@@ -114,3 +114,6 @@ rewrite/godot/tmp/
 
 # Local working notes (roadmaps, todo lists): kept out of the public repo.
 work/
+
+# Visual Studio local indexes and workspace state
+/.vs/

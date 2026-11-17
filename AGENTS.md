@@ -15,6 +15,18 @@ than copying them into this file.
   changes or the rest of the session. Obtain fresh express direction before
   making any additional commit, including an amend.
 
+## GitHub account
+
+- Always use GitHub account **Nox21419** for this repository. The canonical
+  remote is `https://github.com/Nox21419/opentyrian-enhanced.git`. Do not ask
+  which account to use for each commit or push.
+- Repository-local Git credentials use `gh auth git-credential` with username
+  `Nox21419`. Reuse the stored login; request user action only if authentication
+  actually fails and cannot be resolved with the existing credentials.
+- The GitHub login is separate from Git commit author name/email; do not change
+  the author's identity merely to match the GitHub username. The one-commit
+  authorization rule above still applies.
+
 ## Reading order
 
 1. At the start of a new task, read [README.md](README.md) for product scope and
