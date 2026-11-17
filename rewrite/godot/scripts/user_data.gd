@@ -36,12 +36,12 @@ static func dir() -> String:
 
 
 ## True if the player data goes straight to Godot's user folder rather than
-## `userdata/` next to the executable: in the editor, and always under macOS
+## `userdata/` next to the executable: in the editor, Android app storage, and macOS
 ## (inside a .app bundle, read-only or translocated). On macOS, user:// is
 ## ~/Library/Application Support/OpenTyrian2000 Enhanced (project.godot:
 ## application/config/use_custom_user_dir.macos). Stateless (tested).
 static func uses_godot_user_dir(os_name: String, is_editor: bool) -> bool:
-	return is_editor or os_name == GamePaths.MACOS
+	return is_editor or os_name == GamePaths.MACOS or os_name == "Android"
 
 
 ## Absolute path of a file or subfolder of the player data folder.

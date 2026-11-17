@@ -3,6 +3,7 @@
 ## own files (settings, saves, replays, screenshots, mods) live in UserData.
 ##
 ## Windows and Linux: next to the executable (unzipped package folder).
+## Android: verified APK data extracted into user://bundled/runtime-v1/.
 ## macOS: the executable is `<App>.app/Contents/MacOS/<name>`; the shipped
 ## files are in `<App>.app/Contents/Resources/` (rewrite/scripts/package.sh
 ## --only=macos), the standard place of an application bundle's resources. The bundle
@@ -32,6 +33,8 @@ static func shipped_dir_for(os_name: String, exe_path: String) -> String:
 
 ## Folder of the shipped files of the running game.
 static func shipped_dir() -> String:
+	if OS.get_name() == "Android":
+		return AndroidData.root_dir()
 	return shipped_dir_for(OS.get_name(), OS.get_executable_path())
 
 
@@ -50,4 +53,6 @@ static func upscaled_candidates_for(os_name: String, exe_path: String, user_dir:
 
 ## upscaled/ folders of the running game, in order of preference.
 static func upscaled_candidates() -> PackedStringArray:
+	if OS.get_name() == "Android":
+		return PackedStringArray([UserData.path("upscaled")])
 	return upscaled_candidates_for(OS.get_name(), OS.get_executable_path(), UserData.dir())

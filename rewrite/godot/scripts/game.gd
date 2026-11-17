@@ -270,6 +270,12 @@ var demo_carry := PackedInt32Array()
 
 
 func _ready() -> void:
+	# Native Rust readers need loose files, before campaign/profile/title loads.
+	if OS.get_name() == "Android" and not AndroidData.prepare():
+		push_error("Android data: " + AndroidData.last_error)
+		OS.alert("Could not prepare bundled game data. See the Android log for details.", "OpenTyrian startup failed")
+		get_tree().quit(1)
+		return
 	_install_input_actions()
 	# Windows mouse setting read at startup (a reg query blocks for a few
 	# tens of ms) and not at the first mouse movement in a level.

@@ -43,13 +43,14 @@ func test_player_data_folder_choice_per_system() -> void:
 	assert_bool(UserData.uses_godot_user_dir("Windows", false)).is_false()
 	assert_bool(UserData.uses_godot_user_dir("Linux", false)).is_false()
 	assert_bool(UserData.uses_godot_user_dir("macOS", false)).is_true()
+	assert_bool(UserData.uses_godot_user_dir("Android", false)).is_true()
 	assert_bool(UserData.uses_godot_user_dir("Linux", true)).is_true()
 
 
 # macOS end to end: even with a writable folder beside the executable, the
 # player data goes to Godot's user folder and nothing is written in the bundle.
 func test_macos_never_writes_in_the_bundle() -> void:
-	var tmp := OS.get_environment("TMPDIR") if not OS.get_environment("TMPDIR").is_empty() else "/tmp"
+	var tmp := OS.get_user_data_dir()
 	var root := tmp.path_join("game_paths_test_%d" % Time.get_ticks_usec())
 	var macos_dir := root.path_join("Game.app/Contents/MacOS")
 	var user := root.path_join("Application Support/OpenTyrian2000 Enhanced")
@@ -57,7 +58,8 @@ func test_macos_never_writes_in_the_bundle() -> void:
 	var dir := UserData.resolve(PackedStringArray(), macos_dir, UserData.uses_godot_user_dir("macOS", false), user)
 	assert_str(dir).is_equal(user)
 	assert_bool(DirAccess.dir_exists_absolute(macos_dir.path_join(UserData.FOLDER_NAME))).is_false()
-	OS.execute("rm", ["-rf", root])
+	for folder in [user, user.get_base_dir(), macos_dir, macos_dir.get_base_dir(), root.path_join("Game.app"), root]:
+		DirAccess.remove_absolute(folder)
 
 
 # project.godot: user:// is ~/Library/Application Support/OpenTyrian2000 Enhanced

@@ -6,6 +6,8 @@ reloadable = true
 
 [libraries]
 
+android.debug.arm64 = "res://bin/android/arm64/libtyrian_godot.so"
+android.release.arm64 = "res://bin/android/arm64/libtyrian_godot.so"
 linux.debug.x86_64 = "res://bin/libtyrian_godot.so"
 linux.release.x86_64 = "res://bin/libtyrian_godot.so"
 windows.debug.x86_64 = "res://bin/tyrian_godot.dll"

@@ -47,6 +47,8 @@ func _ready() -> void:
 
 
 func dirs() -> PackedStringArray:
+	if OS.get_name() == "Android":
+		return PackedStringArray([USER_MODS])
 	return PackedStringArray(
 		[
 			ProjectSettings.globalize_path(USER_MODS),

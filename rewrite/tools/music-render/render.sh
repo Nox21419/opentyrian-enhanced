@@ -31,7 +31,7 @@ trap 'rm -rf "$work"' EXIT
 # music_render.c includes src/lds_play.c (static state of the player): lds_play.c
 # is therefore not listed separately.
 # shellcheck disable=SC2046  # sdl2-config returns several options
-"$CC" -O2 -std=gnu11 -w -I"$here/c" -I"$here" $(sdl2-config --cflags) \
+"$CC" -O2 -std=gnu11 -w -DSDL_MAIN_HANDLED -I"$here/c" -I"$here" $(sdl2-config --cflags) \
     "$here/music_render.c" "$here/stubs.c" \
     "$here/c/opl.c" "$here/c/opl_dosbox.c" "$here/c/opl_nuked.c" "$here/c/nuked_opl3.c" \
     -lm -o "$work/music_render"
