@@ -1,6 +1,6 @@
 # Asset rights
 
-The code of this repository is under GPL v2 (`COPYING`). The game data and a
+The workspace declares GPL-2.0-or-later for the code (`COPYING` and `rewrite/Cargo.toml`). The game data and a
 few third-party assets are not covered by that licence. None of the data files
 below is copied into `rewrite/`: the Godot client reads them from `data/` or
 converts them locally (output ignored by git). The packages carry a short
@@ -16,4 +16,5 @@ version of this page in `DATA-NOTICES.txt` (written by
 | rustysynth (MIDI synthesiser, linked into the game) | MIT; text in `rewrite/licenses/rustysynth-LICENSE.txt`, copied into the packages. midly: Unlicense. |
 | xBRZ freescale shader | libretro/glsl-shaders; Hyllian (MIT), Zenju (GPL v3); notices kept in the shader source. |
 
-All new code is under GPL v2, like the repository.
+Preserve third-party notices when packaging. The workspace code license is
+GPL-2.0-or-later; the xBRZ shader has its own notices as listed above.

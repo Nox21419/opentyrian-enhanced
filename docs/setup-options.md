@@ -49,26 +49,19 @@ section `[display]` — the same file as the Display screen (F10): `art_mode`, `
 | Gameplay | Rumble (`gp_rumble`) | **wired** | `rumble_enabled`: `Input.start_joy_vibration` on each gamepad, same events and intensities as rumble.c (kill 0.2/100 ms, ≥ 500 pts 0.6/200 ms, hit 0.8/300 ms, death 1.0/500 ms) | `test_rumble_calls_vibration` |
 | Gameplay | Mutators (`gp_mutators`) | **wired** | mutators_menu.c submenu (8 toggles + Reset All) on `Game.mutators` (same variable as the modes screen), key `mutators`, applied to every game (C globals mut_*) | `test_mutators_submenu_applied_to_sim` |
 
-Sound work package (restoration of Stereo, SFX Impact Scaling, Music Widen, the Authentic engine and
-Joystick): the Setup screens (one more line at the root) and Sound (seven lines instead of five)
-change on purpose; their references `rewrite/golden/ui/setup.sha1` and `sound.sha1` are to be
-regenerated with `ui_regression.sh godot-ref` (graphics and gameplay go through the root: their
-images are affected too).
+The Setup and Sound screens deliberately differ from the retired C menus.
+Their current UI sequences (`setup`, `graphics`, `sound`, `gameplay`) use reviewed
+Godot fingerprints in `rewrite/golden/ui/`. Only regenerate affected references
+after an intentional change and visual review; restoration of the sound options
+is already implemented, not pending reference work.
 
-Consequence for the interface regression: the seven sequences that walked through the old
-Setup submenus (setup, gameplay-mutators, keybindings, sound, joystick, graphics, graphics-popups)
-are no longer compared with the C version, the screen being deliberately different (Graphics gains five lines:
-Scaler, Scaling Mode, CRT, Sprites, Visual FX; Explosions belongs to the effects work package). The screens that still exist
-remain covered by a reviewed Godot reference (`ui_regression.sh godot-ref`, hashes in
-`rewrite/golden/ui`): setup, graphics (with the Display list), sound, gameplay (without Mutators).
-Joystick no longer has a screen; gameplay-mutators and graphics-popups are taken over by gameplay and
-graphics; keybindings now opens the Controls screen, which is not a 320×200 screen that the
-regression can capture (covered by `controls_test.gd`). Total in CI when this work package
-landed (written 2026-10-07): 15 sequences (9 C, 6 Godot: + pause-menu and in-game-help, pause menu and
-in-game help on the frozen level). As of 2026-10-12, `rewrite/scripts/ui_regression.sh`
-(`SEQUENCES`) holds 21 sequences, 21 fingerprint files in `rewrite/golden/ui/`: 13 compared
-with the frozen C fingerprints and 8 with a reviewed Godot reference (instructions, setup,
-graphics, sound, gameplay, pause-menu, in-game-help, mouse).
+Joystick has its own Gamepad screen, covered by `joystick_settings_test.gd`;
+Key Bindings opens the Controls screen, covered by `controls_test.gd`. The
+`SEQUENCES` array in `rewrite/scripts/ui_regression.sh` owns the current sequence
+list and reference classification, including instructions, pause/help, mouse
+and Destruct. Read [the UI reference guide](../rewrite/golden/ui/README.md)
+before updating fingerprints. The GitHub workflow runs only on manual dispatch;
+local validation requirements are in [testing.md](testing.md).
 
 Pause menu options (in-level menu, `mainint.c:JE_inGameSetup`):
 

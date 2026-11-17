@@ -1,5 +1,16 @@
 # ADR 0129 — Native campaign save
 
+> Current status (2026-11-17): the native save decision remains. The reduced
+> Options menu below was an initial implementation; music/sound volumes,
+> Joystick, Keyboard and Mouse settings have since returned. See the player
+> guide §3.2 and `save_menu.gd`. Player-file locations follow the guide §6,
+> including portable `userdata/` and macOS app support paths. The current
+> format is version 2 (version 1 remains readable), with 22 slots across
+> one-player and two-player pages and optional player 2 equipment/cash/devices.
+> Slot 11 is written as the one-player autosave; slot 22 is reserved, but the
+> automatic two-player LAST LEVEL backup remains in memory. The version-1 and
+> one-player-only details below record the original design.
+
 Status: accepted (2026-10-05, card t_f20c39df, point 3). Replaces, for the campaign, the rewrite's reading and
 writing of `opentyrian.dat` (GAME section, `tyrian-formats/src/save.rs`).
 

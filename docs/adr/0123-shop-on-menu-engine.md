@@ -1,5 +1,10 @@
 # ADR 0123 — Interactive shop on the shared menu engine (block 20.6)
 
+> Current status (2026-11-17): the remaining-work list below is historical.
+> The firing preview, route map, Data Cubes, Ship Specs and Options screens
+> are implemented. Enter/click buys immediately (divergence 53); purchase-list
+> hover waits 150 ms (62). See the player guide §3.2 and current `shop.gd`.
+
 Status: accepted (block 20, refactoring approved by the maintainer).
 
 ## Context

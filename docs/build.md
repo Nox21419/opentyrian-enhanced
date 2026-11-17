@@ -84,12 +84,15 @@ messages of the headless steps.
 | Enter | change fire mode (bit 5) |
 | Ctrl / Alt | left / right sidekick (bits 6, 7) |
 | Esc | back to the menu |
-| F1 | tick / `cur_loc` info |
-| F2 | CRT filter |
-| F3 | edge smoothing (xBRZ-style) |
+| F1 / Ctrl+F1 | in-game help / technical tick and `cur_loc` information |
+| F2 / P | pause in a level; F2 cycles CRT filters outside a level |
+| F3 | achievements in a level; graphics mode outside a level |
 | Left Shift | in-level bullet time: 4 s at `Engine.time_scale` = 0.25 (no tint, like the C version), 15 s cooldown (bullet_time.c) |
 | F4 | STATISTICS panel over the level (F3: achievements) |
-| F10 | display options (HD sprites) |
+| F5 / F9 | quick save / load in the campaign; F9 opens Controls outside a level |
+| F6 / F7 / F8 | DPS counter / damage numbers / sound mute (F8 also works outside a level) |
+| F10 | replay recording in a level; Display options outside a level |
+| F11 / F12 | gamma / screenshot in a level |
 
 The simulation advances one tick per `_physics_process` at 35 Hz (ADR 0003).
 Bullet time slows the engine clock: fewer ticks per real second,
@@ -119,8 +122,9 @@ Open `res://levels/epN_NN.tscn` in the Godot editor: three `TileMapLayer` nodes
 - **Play from here**: launches `res://scenes/level.tscn`, which loads the level
   then calls `TyrianSim.fast_forward_to(cur_loc)`.
 
-The game menu also offers "Level editor": pick a level and a
-starting row, same launch.
+Use the Godot editor's Tyrian dock for this workflow. The old in-game
+"Level editor" selection screen was removed (ADR 0126, 2026-10-10 addendum).
+See [FIRST_LEVEL_15_MIN.md](FIRST_LEVEL_15_MIN.md) for mod export and packaging.
 
 ## Screenshots (phase 7)
 
@@ -212,7 +216,7 @@ python3 scripts/hd_layer_check.py capture godot <output> e5-first-autopilot.gm:2
 python3 scripts/hd_layer_check.py capture godot <output>
 ```
 
-In game: **Graphics** in F10 (or F3) cycles through Original, Sharp pixel art and HD (AI), remembered in
+Outside a level, **Graphics** in F10 (or F3) cycles through Original, Sharp pixel art and HD (AI), remembered in
 `user://display.cfg`. HD (AI) is only offered if `upscaled/` is present. When active, the play area is rendered at
 1280×800 (logical 320×200 coordinates unchanged, simulation untouched). Command line: `--hd-sprites[=0|1]`.
 
@@ -232,7 +236,9 @@ numbers, major.minor.patch.rc (`v1.0-rc1` → `1.0.0.1`; a final `v1.0` would be
 the archives after it: `OpenTyrian2000-Enhanced-v1.0-rc1-windows-x86_64.zip`, `…-linux-x86_64.tar.gz`,
 `…-windows-x86_64-lite.zip`, `…-linux-x86_64-lite.tar.gz` and `…-hd-pack.zip` (the folder inside stays
 `OpenTyrian2000-Enhanced/`). The Cargo workspace carries the same version in semver form (`1.0.0-rc.1`).
-A release attaches these five files.
+These are the five Windows/Linux/HD archives. The macOS build produces an
+additional universal archive described below; consult the release page for the
+assets published for a particular version.
 
 Lite variant (`--lite`): same export, without
 `upscaled/`, in `build/{windows,linux}-lite/`; archives `…-windows-x86_64-lite.zip` (197.1 MB = 188 MiB) and
@@ -273,16 +279,19 @@ cd /tmp/clean/OpenTyrian2000-Enhanced && env -i HOME=/tmp/clean PATH=/usr/bin:/b
 
 Steam Deck: the Linux x86_64 package targets SteamOS (Linux x86_64, "GL Compatibility"
 renderer). Add it to Steam as a "non-Steam game" pointing to
-`OpenTyrian2000-Enhanced.x86_64`. Not tested on a real Deck; the controls profile
-belongs to the modes work package.
+`OpenTyrian2000-Enhanced.x86_64`. The first-launch profile is
+`godot/config/steam_deck_controls.cfg`; see the player guide §2.5. Real Deck
+hardware testing is still listed as outstanding in the release notes.
 
 ## macOS package (experimental, unsigned)
 
 No Mac and no paid Apple Developer account: the macOS app is built by the **`macos` job** of
 `.github/workflows/rewrite.yml` (manual `workflow_dispatch` only, `macos-14` runner, Apple Silicon)
-and signed **ad-hoc** (`codesign --sign -`): it runs on any Mac once the player gets past Gatekeeper
-(right-click › Open, see the README), but it is neither Developer ID signed nor notarized.
-It is not attached to releases yet.
+and signed **ad-hoc** (`codesign --sign -`), without Developer ID signing or
+notarization. The export preset targets macOS 10.13+ on Intel and macOS 11+
+on Apple Silicon; these are configured minimums, not a hardware test report.
+See the README for startup instructions and the release page for published
+downloads. CI artifacts are also available after a successful manual run.
 
 The job runs, on the runner:
 
@@ -341,14 +350,14 @@ cargo check -p tyrian-godot --target x86_64-apple-darwin
 ```
 
 A run takes about 25–35 min the first time (Homebrew, two Rust release builds, music rendering,
-Godot import, 1.3 GB templates download, 0.5 GB HD archive), less with the caches. macOS minutes are
-free on a public repository and count ten times on a private one. Tester checklist:
+Godot import, 1.3 GB templates download, 0.5 GB HD archive), less with the caches. Tester checklist:
 [macos-test-checklist.md](macos-test-checklist.md).
 
 ## Player check before every push
 
 **Every push to `master` first passes `rewrite/scripts/player-journeys.sh --core` (all PASS), then
-`rewrite/scripts/player-smoke.sh`** locally (GitHub Actions CI is unavailable: billing).
+`rewrite/scripts/player-smoke.sh`** locally. The workflow currently starts only
+through `workflow_dispatch`; pushes and release tags do not start CI automatically.
 The player journeys verify the effect of each action (money debited, weapon upgraded, option kept);
 player-smoke compares images and fails if the journeys did not all pass on the same head.
 See [testing.md](testing.md). Both play the exported package, not the Godot project: that is
@@ -407,7 +416,7 @@ captures of the Godot package, reviewed by hand); level parity relies on the rep
   llvmpipe); the default Vulkan driver is not available under xvfb.
 - **Windows DLL rejected** ("not a valid Win32 application"): check the
   `x86_64` target and that the DLL does not come from a Linux build.
-- **Scrolling does not exactly match the C game**: as long as
-  `tyrian-sim` does not publish `layers[]` (values at 0), the client displays an
-  approximation (default speeds from `tyrian2.c`, without the speed
-  events); F1 indicates it ("defilement approx.").
+- **Scrolling differs from a reference run**: reproduce with the same golden
+  master, seed, inputs and tick. Layer scrolling and speed events are ported;
+  use strict parity to distinguish simulation drift from a rendering problem.
+  See [parity.md](parity.md) and [divergences.md](divergences.md).

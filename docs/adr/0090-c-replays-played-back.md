@@ -1,5 +1,11 @@
 # ADR 0090 — C version `.rep` replays played back by the rewrite
 
+> Current status (2026-11-17): the replay semantics below remain the rationale,
+> but the initial two-player/arcade/mutator exclusions have been lifted.
+> Current supported recording modes and refusals are documented in the player
+> guide §3.1 and divergences 30/32. C recording scripts cited here live at
+> `c-final`, not in the current checkout (ADR 0132).
+
 Status: accepted ("replay" batch, block 9).
 
 ## Context

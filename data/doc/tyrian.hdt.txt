@@ -1,3 +1,11 @@
+Historical HDT notes
+====================
+These older reverse-engineering notes retain original counts and uncertain
+annotations. For the current Tyrian 2000 binary layout, use
+docs/formats-spec.md section 2 and the tyrian-formats readers/round-trip tests.
+The numeric damage codes below describe binary data, not mod.json syntax;
+mods use named damage effects as documented in MODDING.md.
+
 tyrian.hdt:
 
 // episode 1 data offset:

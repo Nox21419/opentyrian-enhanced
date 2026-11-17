@@ -1,5 +1,13 @@
 # ADR 0130 — MIDI music: rustysynth in the extension, Original OPL / MIDI choice
 
+> Current status (2026-11-17): the synth/loop/fallback decision remains; later
+> sound work adds Authentic (offline Nuked OPL3). Current `music_engine` values
+> are 0 Classic, 1 Authentic, 2 Enhanced (MIDI), with Enhanced the default for
+> a new profile. Old 1=MIDI settings migrate to 2. The SoundFont license is
+> bundled in `licenses/TimGM6mb-LICENSE.txt`; only the MIDI arrangements lack
+> an included license. See [setup-options.md](../setup-options.md) and
+> [asset-rights.md](../asset-rights.md).
+
 Status: accepted (2026-10-05, card t_f20c39df, point 8). Replaces the "MIDI ruled out" part of
 ADR 0004; the offline OPL rendering (ADR 0004, 0010) remains the default engine.
 
@@ -43,7 +51,8 @@ Option 1.
   "Music Engine" of the Sound menu (PICKER of the menu engine). The C "Authentic" choice (live Nuked)
   does not exist: the OPL music is an offline rendering.
 - **Packages**: `package.sh:copy_data` copies `data/soundfont.sf2` and `data/midi/NN-*.mid`;
-  `DATA-NOTICES.txt` says that their third-party licenses are not included.
+  `DATA-NOTICES.txt` distinguishes the MIDI arrangements (no included license)
+  from the SoundFont (GPL v2 notice and license in `licenses/TimGM6mb-LICENSE.txt`).
 
 ## Consequences
 - Simulation and golden masters intact: audio stays outside `tyrian-sim`.

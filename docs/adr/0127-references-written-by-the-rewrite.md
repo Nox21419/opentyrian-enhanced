@@ -1,5 +1,11 @@
 # ADR 0127 — Parity references written by the rewrite
 
+> Current status (2026-11-17): ADR 0132 governs independent C evidence after
+> removal of the C engine. The writer can check/recompute existing scenarios;
+> its output is not a new C recording. New C recordings require a separate
+> `c-final` checkout. Review intentional reference changes rather than blindly
+> accepting regenerated state. CI now runs only on manual workflow dispatch.
+
 Date: 2026-10-05 (card t_401e6b69, point 7)
 
 ## Context
@@ -55,7 +61,7 @@ regenerated from the corrected C version (point 6, Zinglon):
 recorded again by the C version the same day (seeds drawn from the clock,
 hence different from the tracked files): 10/10 identical (`.rep` and
 `.play.gm`). The CI (`rewrite.yml`, step "References rewritten by
-tyrian-sim") reruns the proof on every push.
+tyrian-sim") reruns the proof on manual workflow dispatch; pushes do not start it.
 
 ## Usage
 
@@ -69,10 +75,12 @@ cargo run --release -p tyrian-golden --bin tyrian-write-references -- --check --
 cargo run --release -p tyrian-golden --bin tyrian-write-references -- --out /tmp/refs --data ../data golden/e1-nort-pulse.gm
 ```
 
-After the removal of the C version, an intended change is handled as follows: `--out`, review
-of the references diff (ticks affected, groups), copy into `rewrite/golden/`,
-then `--check` goes green again. As long as the C version exists, its recordings
-remain the source and `--check` proves the tool.
+For an intended rewrite-only behavior change, `--out` can produce candidate
+reference state for review (ticks affected, groups). Such a baseline measures
+regression against the reviewed rewrite behavior, not independent C parity;
+retain that distinction and the original evidence. For a new C parity scenario,
+record it from `c-final` as described in ADR 0132. Do not overwrite frozen C
+evidence merely to make `--check` pass.
 
 ## Consequences
 

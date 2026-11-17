@@ -1,7 +1,12 @@
 # Alien Ships
 
+Retired: this pack is kept as an example/test fixture and is not loaded or
+packaged by default. See `rewrite/mods/README.md` for the five shipped packs.
+
 12 biomechanical alien ships, each with its own silhouette.
-8 are sold in every shop (a category shows at most 10 items).
+8 are marked for sale in every shop. Current categories allow the level's
+10 items plus up to 16 mod items (ADR 0134); all enabled mods still share
+14 ship slots.
 
 | # | Name              | Armor    | Price  |
 |---|-------------------|----------|--------|

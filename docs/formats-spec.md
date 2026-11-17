@@ -1,7 +1,8 @@
 # Tyrian 2000 data format specification (as read by OpenTyrian2000 Enhanced)
 
 > Purpose: to allow writing a **byte-exact** (Rust) reader/writer for the
-> files in `data/`. Each field cites the C function that reads it
+> files in `data/`. C source citations refer to the retired engine at tag
+> `c-final`, not a root `src/` directory in the current checkout. Each field cites the C function that reads it
 > (`file.c:function`). All sizes and counts below were
 > **verified against the files present in `data/`** (ad hoc Python script,
 > October 2026) — see § 14 for the summary table.
@@ -253,7 +254,8 @@ generator 6 = "Gravitron Pulse-Wave". After reading, `hdt_json_try_override`,
 `enemyDat[].value` > 30000 encodes a power-up (bands 30000/31000/32000/32100,
 `episodes.c:validate_powerup_values`).
 
-`data/doc/tyrian.hdt.txt` documents the same file (external reference).
+`data/doc/tyrian.hdt.txt` contains older, partially uncertain notes with different
+counts. Use this section and the Rust round-trip tests for the current layout.
 
 ---
 

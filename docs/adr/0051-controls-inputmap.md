@@ -1,5 +1,11 @@
 # ADR 0051 — Controls through shared InputMap actions, player 2, mouse, Steam Deck
 
+> Current status (2026-11-17): the action architecture remains. Later changes
+> add analog movement and replace the initial shoulder/trigger assignments:
+> in a level LB/Back opens the menu, RB/Start pauses, X/Y operate sidekicks,
+> and LT triggers slow motion. See [player controls](../PLAYER-GUIDE.md#2-controls),
+> ADR 0133 and divergences 21/31/33 for current mappings and the linked-gun limit.
+
 Status: accepted (modes batch, blocks 5, 14 and 15).
 
 ## Context

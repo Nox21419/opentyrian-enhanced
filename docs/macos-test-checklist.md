@@ -6,7 +6,8 @@ Tick what you tried, note what went wrong, and send back the items of the last s
 
 - File: `OpenTyrian2000-Enhanced-v<version>-macos-universal.zip` (one app for Intel and Apple Silicon,
   HD (AI) art included, about 0.7 GB).
-- Needs macOS 11 (Big Sur) or later.
+- Configured minimum: macOS 10.13+ on Intel, macOS 11+ on Apple Silicon.
+  Please report the exact OS version tested; these minimums come from the export preset.
 - The app is **not** signed with an Apple Developer ID nor notarized: macOS will warn you the first time.
   That is expected.
 

@@ -1,5 +1,10 @@
 # ADR 0002 — New code under `rewrite/`, a Cargo workspace of eight crates
 
+> Current status (2026-11-17): the layout decision remains, but the workspace
+> now has nine crates, including `tyrian-dodge-bot`. See `rewrite/Cargo.toml`
+> and [the architecture guide](../01-architecture.md). The C engine was removed
+> under ADR 0132; the two-product consequences below describe the original decision.
+
 Date: 2026-10-04 — status: accepted (decision made alone). Updated on 2026-10-05 (m5 review): the
 workspace has eight crates, no longer five.
 

@@ -1,5 +1,11 @@
 # ADR 0100 — "HD sprites" mode (Real-ESRGAN) and exported packages
 
+> Current status (2026-11-17): this ADR records successive experiments. The
+> later whole-map and HD-interface sections supersede the tile-atlas approach
+> and temporary removal of the HD option. HD is available when its assets are
+> installed. Current generation uses 4x-PixelPerfectV4; `hd_assets.sh` pins
+> `hd-assets-5`. Use [build.md](../build.md) for current commands and packaging.
+
 Date: 2026-10-04 — status: accepted (decision taken alone, export batch).
 
 ## Context

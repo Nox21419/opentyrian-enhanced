@@ -1,5 +1,11 @@
 # ADR 0010 — Music: offline OPL rendering, music cues kept out of the simulated state
 
+> Current status (2026-11-17): both DOSBox (Classic) and Nuked OPL3
+> (Authentic) are rendered offline. ADR 0130 adds rustysynth MIDI (Enhanced),
+> now the default for a new profile. The Nuked/MIDI exclusions in the original
+> consequences below are superseded; see `setup-options.md` for current options.
+> C sources used by the tool are frozen under `rewrite/tools/music-render/c/`.
+
 Date: 2026-10-04 — status: accepted (decision taken alone, "music" batch).
 
 ## Context

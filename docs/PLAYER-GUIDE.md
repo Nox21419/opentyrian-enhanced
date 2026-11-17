@@ -2,7 +2,7 @@
 
 This guide covers the Godot rewrite of OpenTyrian2000 Enhanced: installation, controls, game
 modes, options, mods, personal files and known limitations. It does not cover the original C
-version, whose `README.md` describes different keys and options.
+version, which is preserved at the `c-final` tag and has different keys and options.
 
 ---
 
@@ -11,12 +11,14 @@ version, whose `README.md` describes different keys and options.
 ### Downloads
 
 Each release (current: [v1.0-rc1](https://github.com/Patm4nzzz/opentyrian-enhanced/releases/tag/v1.0-rc1))
-offers five files; the version is part of each name:
+uses these archive names; the version is part of each name. Consult the release
+page for the available downloads:
 
 | File | Size (v1.0-rc1) | Content |
 |---|---:|---|
 | `OpenTyrian2000-Enhanced-<version>-windows-x86_64.zip` | 703.8 MB | Windows, full (with HD (AI) art) |
 | `OpenTyrian2000-Enhanced-<version>-linux-x86_64.tar.gz` | 683.2 MB | Linux / Steam Deck, full |
+| `OpenTyrian2000-Enhanced-<version>-macos-universal.zip` | 727.3 MB | macOS, Intel and Apple Silicon, full, experimental |
 | `OpenTyrian2000-Enhanced-<version>-windows-x86_64-lite.zip` | 197.1 MB | Windows, without `upscaled/` |
 | `OpenTyrian2000-Enhanced-<version>-linux-x86_64-lite.tar.gz` | 185.5 MB | Linux / Steam Deck, without `upscaled/` |
 | `OpenTyrian2000-Enhanced-<version>-hd-pack.zip` | 506.5 MB | `upscaled/` alone, for a lite download |
@@ -62,9 +64,10 @@ provides the `SteamDeck=1` environment variable (see §2.5).
 
 ### macOS (experimental, unsigned)
 
-`OpenTyrian2000-Enhanced-<version>-macos-universal.zip` is built on demand by the project's CI and is
-not yet part of a release. It holds a single app, `OpenTyrian2000 Enhanced.app`, for Intel and
-Apple Silicon Macs (macOS 11 or later), with the HD (AI) art included.
+`OpenTyrian2000-Enhanced-<version>-macos-universal.zip` holds a single app,
+`OpenTyrian2000 Enhanced.app`, for Intel (macOS 10.13+) and Apple Silicon
+(macOS 11+) Macs, with the HD (AI) art included. Check the release page for
+the download; the manual CI workflow also builds this archive.
 
 1. Unzip it (double-click the `.zip`); move the app to Applications if you like.
 2. The app is not signed with an Apple Developer ID nor notarized: the first time, **right-click**
@@ -86,13 +89,17 @@ that second folder, never into the app.
 
 The game looks for its data in this order:
 
-1. the folder given by the **`TYRIAN_DATA`** environment variable (optional);
-2. otherwise the **`data/` folder next to the executable** (macOS: `Contents/Resources/data` inside the app).
+1. an explicit launch option after `--`, such as
+   `OpenTyrian2000-Enhanced.exe -- --data=C:\path\to\data` (or `-t DIR`);
+2. otherwise the folder given by **`TYRIAN_DATA`** (optional);
+3. otherwise the **`data/` folder next to the exported executable** (macOS:
+   `Contents/Resources/data` inside the app), if present;
+4. otherwise the repository's `data/` folder relative to the Godot project,
+   for development/editor use.
 
-It can also be given at launch, after `--`:
-`OpenTyrian2000-Enhanced.exe -- --data=C:\path\to\data`.
-
-The window opens at 960×600; the game's 320×200 picture is enlarged by whole-number factors.
+A new profile starts fullscreen. Alt+Enter switches to a window; its size and
+position are remembered. The fallback window size is 960×600. The game's
+logical picture is 320×200; Setup > Graphics controls how it is scaled.
 
 ---
 
@@ -120,8 +127,8 @@ Keys are identified by their **physical position** on the keyboard: player 2's W
 
 **Pause (P)**: the game freezes (no simulation tick, so replays and golden masters are not
 affected), the music plays at half volume and "PAUSED" is shown in the middle of the play area, as
-in the C version. Any key, gamepad button or mouse click resumes (Ctrl, Alt, Shift and the Windows key alone do
-not); Esc pressed to resume does not leave the level. The game also pauses when the window loses
+in the C version. Any key except Ctrl or Alt alone, gamepad button or mouse click
+resumes; Esc pressed to resume does not leave the level. The game also pauses when the window loses
 focus. F2 pauses as well as P. The pause key can be changed in the Controls screen (Setup > Key Bindings).
 
 **In-game menu (Esc, or Back / LB on a gamepad)**: the C version's pause menu, drawn over the frozen,
@@ -143,7 +150,8 @@ stopped. Up / Down pick a line, the mouse works too (hover, left click, right cl
 On the "Game Over" screen Esc opens nothing: like any key, it closes the screen.
 
 **In-game help (F1)**: the original help panels (power bar, weapons, sidekicks, shield/armor; the
-two-player version in two-player games) over the frozen level; any key or click returns to the game.
+two-player version in two-player games) over the frozen level; a key or click
+advances to the current keys-and-mouse panel, then another returns to the game.
 **Ctrl+F1** shows or hides the rewrite's technical information (tick, scroll position), which used
 to be on F1.
 
@@ -344,18 +352,21 @@ A, B, L1 or R1) closes it.
 |---|---|
 | **Data** | data cubes picked up in the previous level (up to 4): pick one, Enter reads it, Up / Down scroll the text, Esc returns to the list |
 | **Ship Specs** | the current ship's specification sheet; any key returns to the menu |
-| **Upgrade Ship** | Ship, Front Gun, Rear Gun, Shield, Generator, Left and Right Sidekick: the hovered item is fitted live and its price shown; in the weapon categories the fitted guns fire in the demo area on the left (power level, stars and shots as in the original). Enter chooses, "DONE" pays (the owned item is resold at its value), Esc cancels and refunds. On guns, Left / Right lower / raise the power level (cost shown per level); `/` cycles the rear weapon mode. Items you cannot afford are skipped |
-| **Options** | Load Game / Save Game (see below) |
+| **Upgrade Ship** | Ship, Front Gun, Rear Gun, Shield, Generator, Left and Right Sidekick: resting the pointer on an item for 150 ms previews it and its price; weapon categories also show a firing demo. Enter or a click buys immediately, applies the trade-in and moves the owned mark. Esc does not undo a completed purchase; it cancels an unconfirmed preview. DONE accepts the current selection and returns. Left / Right lower / raise gun power (cost shown per level); `/` cycles the rear weapon mode. Items you cannot afford are skipped |
+| **Options** | Load Game / Save Game, music and sound volumes, Joystick, Keyboard, Mouse, and Done. The broader settings are also available through Setup |
 | **Start Level** | opens the "Next Level" menu: an animated map shows the route from the current planet to the hovered destination; choose the next destination |
 | **Quit Game** | asks for confirmation, then returns to the title screen (Esc on the Game Menu does the same) |
 
 Specials are not sold in the shop, in the original either: they are picked up during levels.
 
 **Saving**: in the shop, choose **Options**, then **Save Game**, a slot (1 to 10), type a name
-(14 characters, Backspace deletes, Enter confirms, Esc cancels) and confirm with **YES**. The game
+(14 characters, Backspace deletes, Enter confirms, Esc cancels) and confirm with **YES**.
+The one-player page uses slots 1–10; two-player games use slots 12–21. The game
 resumes at the shop where it was saved. **Load Game** is in the same Options menu and on the title
 screen. Slot 11, **LAST LEVEL**, is written automatically before every level: it can be loaded,
-not overwritten.
+not overwritten. Slot 22 is also reserved on the two-player page; the automatic
+two-player LAST LEVEL backup is currently kept in memory rather than written
+to that file.
 
 **Game over**: if your ship is destroyed in a normal level, "Game Over" is shown until you press
 any key, fire, a sidekick button or a mouse button, as in the C version; the level then starts again with the ship, weapons and money you had when you entered it
@@ -492,10 +503,11 @@ level (`processorType`). Screen shake follows the C's `screenshake.c`: big kills
 being hit, dying and defeating a boss shake the picture (random offset up to the current intensity,
 fading by 10 % per frame); Off turns it off.
 **Music Engine** (Sound menu, Left/Right or Enter), the three engines of the C version:
-**Classic**, the default, plays the original AdLib soundtrack as emulated by DOSBox's OPL;
+**Classic** plays the original AdLib soundtrack as emulated by DOSBox's OPL;
 **Authentic** plays the same soundtrack through the Nuked OPL3 emulator (closer to a real chip);
 **Enhanced** plays the General MIDI arrangements of `data/midi/` with the `data/soundfont.sf2`
-SoundFont. The current tune restarts at once in the chosen engine, and the choice is kept in
+SoundFont. Enhanced is the default for a new profile; an existing profile keeps
+its saved choice. The current tune restarts at once in the chosen engine, and the choice is kept in
 `setup.cfg` (a choice saved by an older version, "Original OPL" or "MIDI", is read as Classic or
 Enhanced). If the SoundFont or the MIDI file of a tune is missing, that tune plays in its OPL
 version (a warning is written to the log): the music never goes silent. **Stereo widening** adds the C
@@ -592,11 +604,14 @@ neither read nor deleted.
 | `mods/` | your mods |
 | `endless_leaderboard.json` | Endless leaderboard (10 places) |
 | `endless_run.json` | Endless run in progress (deleted at game over) |
-| `saves/slot_01.json` … `slot_11.json` | campaign saves (one file per slot, readable JSON, see below) |
+| `saves/slot_01.json` … `slot_22.json` | native saves (one file per written slot, readable JSON; one-player and two-player pages, see below) |
 | `opentyrian.dat` | file of the original game's format: achievements; imported once into `saves/` |
 | `replays/` | replay files (recorded with F10, §3.1) listed by the Replays screen |
 
-**Campaign**: each slot is a small JSON file that names everything by its in-game name (ship,
+**Native saves**: the game writes format version 2 and still reads version 1
+one-player saves. There are 22 slots across the one-player and two-player
+pages. Two-player files also hold player 2 equipment, cash and input devices.
+Each written slot is a small JSON file that names everything by its in-game name (ship,
 weapons and their power, shield, generator, sidekicks, special, money, episode, section,
 difficulty). A damaged file, or one written by a newer version of the game, shows as
 **Unreadable** and cannot be loaded; the other slots are not affected. The first time the game
@@ -605,7 +620,9 @@ at its usual location (Linux: `~/.config/opentyrian2000/`; Windows: the C game's
 next to or beside this one), its one-player slots are imported once; after that the C file is no
 longer read for the campaign. On the very first launch its settings (language, volumes, display…)
 and high scores are imported the same way, never overwriting an existing file. Alt+Enter toggles
-fullscreen. Two-player campaign games are not ported: the two-player page of Load Game stays empty.
+fullscreen. Load Game has both one-player and two-player pages. The automatic
+one-player LAST LEVEL save is written to slot 11; the equivalent two-player
+backup is currently in memory, while slot 22 remains reserved in the save menu.
 
 To go back to the default controls, delete `controls.cfg` (or press Delete in the F9 screen).
 
@@ -616,7 +633,7 @@ To go back to the default controls, delete `controls.cfg` (or press Delete in th
 | Problem | What to do |
 |---|---|
 | The game cannot find its data | check that `data/` is next to the executable, or that `TYRIAN_DATA` points to a valid folder (or launch with `-- --data=<folder>`) |
-| E and 2 do nothing, Setup → Mods shows "GDExtension missing: mods unavailable", no game possible | `tyrian_godot.dll` (Windows) or `libtyrian_godot.so` (Linux) is missing next to the executable: extract the full archive again |
+| A level cannot start and Setup → Mods reports that the GDExtension is missing | Extract the full archive again so the native engine library is present (Windows/Linux: next to the executable; macOS: inside the app) |
 | Linux: "permission denied" | `chmod +x OpenTyrian2000-Enhanced.x86_64` |
 | macOS: "cannot be opened because the developer cannot be verified", "is damaged" or "Apple could not verify…" | the app is not signed with an Apple Developer ID: right-click › Open, or System Settings › Privacy & Security › Open Anyway, or `xattr -dr com.apple.quarantine "OpenTyrian2000 Enhanced.app"` (§1, macOS). If it appeared after files were changed inside the app, unzip the download again |
 | Controls unusable after a change | Delete in the F9 screen, or delete `controls.cfg` |
@@ -635,15 +652,16 @@ In all menus, you can use the mouse to navigate:
   key press; pressing any key makes the mouse inactive until you move it again).
 - **Left-click** to activate the selected item (same as pressing Enter).
 - **Right-click** to go back / cancel (same as pressing Escape).
-- The **scroll wheel** does nothing, as in the original C version.
+- The **scroll wheel** scrolls an open data cube or an achievements list (including
+  the in-level overlay), one line per notch. It does not navigate other menus.
 
 The mouse pointer is hidden when over the game image and shown in the surrounding border.
 
 ## 8. Known limitations
 
-- **Screens not ported**: the shop Options menu only offers Load / Save Game (volumes and keys are
-  in Setup); the network game ("Modem/Network Game" is greyed out); the Destruct mini-game is
-  available (DESTRUCT code, §3.5); the code only returns to the title if the native extension is missing.
+- **Native extension required**: gameplay and the Destruct mini-game (§3.5)
+  require the bundled native engine library. If it is missing, extract the full
+  package again.
 - **Difficulty without aids only partly measured**: without any aid, the campaign bot (planned
   driving that avoids enemies, shots and obstacles) finishes all of episode 5, 6 levels of
   episode 1, 4 of episode 3 and up to 3 of episode 4, but stops at one level in each of episodes 1
@@ -665,7 +683,9 @@ The mouse pointer is hidden when over the game image and shown in the surroundin
 - The **code** is licensed under the GPL: see the `COPYING` file included in the package.
 - The **Tyrian 2000 data** (the `data/` folder, and the images, sounds and music derived from it)
   is **freeware, separate** from the code and not covered by the GPL.
-- The MIDI arrangements (`data/midi/`) and the SoundFont (`data/soundfont.sf2`) come from third
-  parties; their licences are not included (see `DATA-NOTICES.txt`).
+- The MIDI arrangements (`data/midi/`) come from third parties with no license
+  included. The TimGM6mb SoundFont (`data/soundfont.sf2`) is GPL v2; its notice
+  and license are included in `licenses/TimGM6mb-LICENSE.txt`. See
+  [asset-rights.md](asset-rights.md) and the package's `DATA-NOTICES.txt`.
 - See the package's `DATA-NOTICES.txt` file. This package is not a permission to redistribute the
   data: before any redistribution, check the permissions with the rights holders.

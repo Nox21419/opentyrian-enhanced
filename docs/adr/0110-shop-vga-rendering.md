@@ -1,5 +1,10 @@
 # ADR 0110 — Shop rendered on TyrianScreen, menu by menu
 
+> Current status (2026-11-17): this is an early rendering milestone. Temporary
+> displays and unported screens listed below have since been replaced by the
+> shared menu/VGA paths, firing preview and navigation map. See ADR 0123,
+> the player guide §3.2 and divergences 53/62 for current purchase/hover behavior.
+
 Status: accepted (ui batch, 2026-10-04).
 
 ## Context

@@ -1,5 +1,12 @@
 # ADR 0132 — Removal of the C version from the repository
 
+> Current status (2026-11-17): C removal and `c-final` remain in effect. The
+> publication/CI statements below describe the decision date: the workflow now
+> starts only with `workflow_dispatch`, not automatically on pushes or tags.
+> Its release job is conditional on a `v*` tag ref during a manual dispatch.
+> The legacy mod guide and original C mod folders mentioned below are no longer
+> present; use `c-final` for those sources and MODDING.md §11 for conversion.
+
 Status: accepted (2026-10-08, decision by the maintainer: "Retire C"). Replaces point 3 of ADR 0131.
 
 ## Context
@@ -14,8 +21,8 @@ The Godot + Rust version is the project's version (ADR 0131). The C version only
    - `rewrite/tools/music-render/c/`: the 13 C files (OPL emulators, LDS player, song titles) that `render.sh` compiles to render the game's OPL music. Exact copies of the files from `c-final`; it is the only C code in the repository.
    - The golden masters, replays and interface fingerprints (`rewrite/golden/`) remain **frozen files**.
 5. **New golden masters**: they can no longer be recorded in this repository. To produce one, you must check out the `c-final` tag (`git worktree add <folder> c-final`), build the C version there with `make GOLDEN=1` and use the `utils/golden/record*.sh` scripts of that tag, then copy the resulting file into `rewrite/golden/`. The rewrite does not produce a "new" golden master: it compares itself with the frozen C version or with itself (`tyrian-write-references --check`, ADR 0127).
-6. **Strict parity**: `tyrian-golden --strict` and the `replays` test replay the frozen files without the C version; CI runs them on every tag and on demand.
-7. **Publishing**: the `OpenTyrian Godot` workflow (`.github/workflows/rewrite.yml`) builds the Windows and Linux packages and publishes the release on the `v*` tag. No C package is published anymore.
+6. **Strict parity**: `tyrian-golden --strict` and the `replays` test replay the frozen files without the C version. Current CI runs on demand; pushes and tags do not trigger it automatically.
+7. **Publishing**: the `OpenTyrian Godot` workflow (`.github/workflows/rewrite.yml`) builds packages on manual dispatch. Its release job is conditional on a `v*` tag ref. No C package is published anymore. See the current workflow and build guide for release operations.
 
 ## Consequences
 - The C interface references (`rewrite/golden/ui/*.sha1`) are no longer regenerated. A screen that deliberately changes moves to a "godot" sequence with a reviewed Godot reference.

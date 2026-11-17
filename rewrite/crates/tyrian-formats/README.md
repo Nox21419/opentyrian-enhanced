@@ -1,8 +1,10 @@
 # tyrian-formats
 
 **Byte-exact** reading and writing of the original Tyrian 2000 data formats,
-with no dependency on Godot. Reference: `docs/formats-spec.md`; when in doubt,
-the C code in `src/` is authoritative.
+with no dependency on Godot. Reference: [formats-spec.md](../../../docs/formats-spec.md).
+C source citations refer to tag `c-final`; root `src/` was removed (ADR 0132).
+Check the current Rust readers and round-trip tests against the original data
+when resolving a format question.
 
 ## Modules
 

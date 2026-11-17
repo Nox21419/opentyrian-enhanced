@@ -1,5 +1,11 @@
 # ADR 0124 — Display settings: a single file
 
+> Current status (2026-11-17): later work makes CRT/scaler/scaling mode persistent
+> in `display.cfg` and restores HD after whole-map rendering fixes (ADR 0100).
+> The unsaved-CRT and hidden-HD statements below describe earlier stages.
+> F3/F10 are display shortcuts only outside a level; ADR 0133 defines their
+> in-level functions. See [setup-options.md](../setup-options.md) for current storage.
+
 Date: 2026-10-04 (block 20.4, refactoring approved by the maintainer)
 
 ## Context

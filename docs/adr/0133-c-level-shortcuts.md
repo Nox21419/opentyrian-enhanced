@@ -1,5 +1,10 @@
 # ADR 0133 — Level shortcuts: the C table, slow motion on Left Shift
 
+> Current status (2026-11-17): F8 was subsequently assigned to sound mute,
+> available in and outside levels except during name entry/key capture
+> (divergence 57). The remaining level shortcuts below still apply; consult
+> the player guide §2.6 for the complete current table.
+
 Status: accepted (2026-10-08, decisions by the maintainer: "Oui", then "Go" for Left Shift). Replaces the F8 key of gap no. 30 and the display shortcuts F2, F3, F4, F9, F10 of the rewrite **in a level**.
 
 ## Context

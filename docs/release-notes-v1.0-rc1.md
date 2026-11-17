@@ -1,5 +1,10 @@
 # OpenTyrian2000 Enhanced v1.0-rc1 — first public release candidate
 
+Documentation refreshed from the repository on 2026-11-17. The download list in
+[README.md](../README.md) includes the experimental macOS archive and the current
+five-pack distribution. Archive sizes below are measurements from the initial
+release packaging; consult the release page for available assets and checksums.
+
 **Tyrian 2000**, the 1995 vertical shoot 'em up, on a new engine: Rust runs the game, Godot 4
 draws it, plays the sound and reads your keyboard, mouse and gamepad. The simulation is checked
 against the previous C edition of OpenTyrian2000 Enhanced, so the game plays the same; on top of
@@ -93,8 +98,9 @@ replays and mods go to a `userdata` folder next to the executable.
 ### Mods and level editor
 - Mod ships, weapons, shields and sidekicks can be **sold in the shop**, with their own images;
   saves record mod items by name, and a save that needs a disabled mod shows a clear message.
-- Two example mods, **Alien Ship Pack** and **Alien Weapon Pack**, drawn in the original
-  style (shipped disabled: turn them on in Setup > Mods).
+- Five packs drawn in the original style: **Alien Ship Pack**, **Bio Ships Pack**,
+  **Alien Weapon Pack**, **Bio Weapons Pack** and **Elements Weapon Pack**.
+  They ship disabled and can all be enabled together in Setup > Mods.
 - Shots drawn by a mod are visible in levels.
 - Level editor: undo / redo for added enemies, invalid mods are refused with the reason when
   exporting.
@@ -106,12 +112,15 @@ replays and mods go to a `userdata` folder next to the executable.
 ### Under the hood
 - The game finds its data through a single place that also knows the layout of a macOS app; on
   Windows and Linux the data, mods and HD art sit next to the executable and your files in
-  `userdata/`. There is no macOS download in this release.
+  `userdata/`. The experimental macOS universal package keeps shipped resources
+  inside the app and player files in `~/Library/Application Support/OpenTyrian2000 Enhanced/`.
 
 ## Known issues
 
 - **Network play** is not available ("Modem/Network Game" is greyed out).
-- **Shop Options menu** only offers Load / Save Game; volumes and keys are in Setup.
+- **macOS**: the universal app is signed ad-hoc, without Developer ID signing
+  or notarization. See the README for first-launch instructions. Export minimums
+  are macOS 10.13 on Intel and macOS 11 on Apple Silicon.
 - **HD (AI) art**: one episode 4 level's enlarged scenery (blue rock with a bubbly texture) looks
   different from the original.
 - **Some enemies flash** for one frame differently from the original when they are hit.

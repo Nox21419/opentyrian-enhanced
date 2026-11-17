@@ -4,6 +4,11 @@ Document extracted **from the C code only** (read-only). All citations
 refer to `src/<file>:<function>:<line>`. Anything that could not be
 confirmed in the source is marked **undetermined**.
 
+The C sources and line numbers refer to the historical engine, available at
+tag `c-final` (ADR 0132); root `src/` is absent from this checkout. This document
+describes binary event semantics. Mod authors use the named event format in
+[MODDING.md §8](../MODDING.md#8-levels), not raw `eventtype`/`eventdat` records.
+
 Dispatcher: `src/level_events.c:JE_eventSystem` (l. 171-1287), a single
 `switch (eventRec[eventLoc-1].eventtype)`.
 

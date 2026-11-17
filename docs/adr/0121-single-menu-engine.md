@@ -1,5 +1,11 @@
 # ADR 0121 — A single menu engine for the 8-bit screens (block 20.1)
 
+> Current status (2026-11-17): the single-engine decision remains. The
+> not-yet-ported shop list below describes this refactoring milestone, not
+> current missing features. Shop Options now includes volume and input settings;
+> the firing demo and route map are implemented. Use `ui_regression.sh` for
+> the current sequence list, and the player guide §3.2 for the shop workflow.
+
 Status: accepted (block 20, refactoring approved by the maintainer).
 
 ## Context

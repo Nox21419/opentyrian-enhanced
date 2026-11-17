@@ -22,7 +22,9 @@ Basic controls
 --------------
 Move: arrow keys      Fire: Space        Rear-gun mode: Enter
 Sidekicks: Ctrl / Alt Pause: P           Help in game: F1
-Controls and display settings: F9 / F10. A gamepad works too.
+Outside a level: F9 controls, F10 display settings. In a campaign level:
+F9 quick load; F10 arms replay recording for the next level. F8 toggles sound
+everywhere (except name entry or key capture). A gamepad works too.
 
 Command line
 ------------

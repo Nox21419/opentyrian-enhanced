@@ -1,5 +1,11 @@
 # ADR 0071 — Endless mode in the rewrite
 
+> Current status (2026-11-17): ADR 0072 adds combos, anomalies, two players
+> and resume choices. The E title shortcut below was later removed to preserve
+> secret codes; start Endless through New Game, or use 2 for two players.
+> High Scores contains the Endless leaderboard. See the player guide §3.4;
+> the original out-of-scope list below is historical.
+
 Date: 2026-10-04 — status: accepted (decision taken alone, "endless" batch).
 
 ## Context

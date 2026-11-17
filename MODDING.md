@@ -1,4 +1,4 @@
-| `data/mod.json`, `data/enemies.json`, `anomalies.json` (global files of the C version, removed) | not read |# Modding Guide — OpenTyrian2000 Enhanced (Godot + Rust)
+# Modding Guide — OpenTyrian2000 Enhanced (Godot + Rust)
 
 This guide describes the only mod format read by the Godot + Rust version of the game
 (`rewrite/`). Decisions behind it: ADR 0080 to 0083 in `docs/adr/`.
@@ -70,18 +70,24 @@ What a mod cannot do yet: change a level's map (tiles), music, sound effects, th
 
 ## 3. Installing, enabling and checking a mod
 
-**Where mods are read**, in this order: `userdata/mods/` next to the game executable (the player's mods and those exported by
-the level editor), then `rewrite/mods/` (mods shipped with the game). For two folders with the
+**Where mods are read**, in this order: the player's `mods/` folder, then the
+shipped mods. Exported Windows/Linux games normally use `userdata/mods/` next
+to the executable and shipped `mods/` alongside it; a read-only game folder
+falls back to the Godot user folder. Editor sessions use the Godot user folder
+and the repository's `rewrite/mods/`. On macOS, player mods are in
+`~/Library/Application Support/OpenTyrian2000 Enhanced/mods/` and shipped mods
+are inside the app's `Contents/Resources/mods/`. See the player guide §6.
+For two folders with the
 same name, the first one wins (warning). Mods are loaded in alphabetical folder order, at most
 32.
 
 **Installing from the game**: **Setup → Mods** ends with two lines.
 
-- **Open mods folder** opens `userdata/mods/` in the system file manager (the folder is created if
+- **Open mods folder** opens the player's `mods/` folder in the system file manager (the folder is created if
   missing; its full path is shown under the line). Copy, update or delete mod folders there.
 - **Install a mod (.zip)** opens a file dialog (the system one when available); a `.zip` can also
   be dropped on the game window while the Mods menu is shown. The archive is extracted into
-  `userdata/mods/<name>/`, then mods are reloaded and the new mod appears in the list (OFF until you
+  the player's `mods/<name>/` folder, then mods are reloaded and the new mod appears in the list (OFF until you
   enable it, unless its `mod.json` says `"enabled": true`).
 
 The archive must hold `mod.json` either at its root (the folder is then named after the `.zip`,
@@ -95,7 +101,7 @@ installed and then shows as ERR with its reason, like any other.
 
 **Enabling**: **Setup → Mods**. Each mod is marked ON, OFF or ERR; an ERR line shows the reason.
 **Enter** toggles the selected mod, **Esc** applies (immediate reload) and returns. The choice is
-kept in `userdata/mods.cfg`, never written into `mod.json` (`"enabled"` there is only the initial
+kept in `mods.cfg` in the player's folder, never written into `mod.json` (`"enabled"` there is only the initial
 state). Launch options, not remembered: `-- --mods=off` disables every mod; `-- --mods=a,b`
 enables only `a` and `b`.
 

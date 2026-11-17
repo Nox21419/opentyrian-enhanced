@@ -1,5 +1,9 @@
 # Performance with thousands of projectiles (block 12)
 
+These measurements record the original optimization work, not a benchmark of
+the latest checkout. The normal renderer has since gained indexed playfield
+composition and HD paths; rerun the bench for current performance claims.
+
 Goal: stable 60 frames/s and the original simulation rate (35 ticks/s, ADR
 0003) with thousands of projectiles.
 
@@ -19,7 +23,7 @@ the project's).
 ## Test bench
 
 The "bullet hell" mutator of the C version (`enemy_render.c:JE_drawEnemy`,
-`mut_bullet_hell`) is not ported ("modes" batch) and is in any case capped at
+`mut_bullet_hell`) is ported (ADR 0060) but is capped at
 `ENEMY_SHOT_MAX` = 60 shots (`varz.h`). The bench therefore injects N enemy
 shots through a test API:
 
@@ -182,10 +186,10 @@ Linear cost (~7 ns per shot per tick). The isolated maxima of 2 to 10 ms (one
 tick in several thousand) vary from one run to the next and do not appear at
 10,000/20,000 shots: process preemption under WSL, not a simulation cost.
 
-## What remains
+## Limits of these measurements
 
-- Explosions and enemies still go through individual nodes (pooled
-  `Sprite2D`, `_draw`): not measured in bulk (the C caps them at
+- Explosions and enemies used individual nodes in the measured path (pooled
+  `Sprite2D`, `_draw`); they were not measured in bulk (the C caps them at
   `MAX_EXPLOSIONS` = 200 and `ENEMY_MAX` = 100).
-- The "bullet hell" mutator itself ("modes" batch): with it, the game would
-  stay at 60 enemy shots at most, far from the volumes measured here.
+- The ported "bullet hell" mutator changes firing frequency but keeps the
+  normal cap of 60 enemy shots, far below the synthetic volumes measured here.
