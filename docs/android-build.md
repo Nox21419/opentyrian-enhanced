@@ -8,6 +8,8 @@ at the existing movement speed and stays inside its normal bounds. Extra fingers
 are ignored; pause or focus loss cancels the held input. The title screen has
 an Android-only two-column layout of the original gold menu text, including
 a visible Side Modes entry with the same lettering.
+The Players screen keeps its original single-column text, adds Back and wider
+touch areas, and greys out/disables its two-player and network entries.
 Other menus still use their existing pointer/click behavior. Dedicated touch buttons for sidekicks,
 weapon switching and pause are not implemented. No HD art or example mods ship.
 Without input, leave the title idle for 30 seconds after the intro
@@ -139,6 +141,28 @@ Do not count the title as phone-verified until those checks run on the device.
 Quit cancellation, Side Modes access and the unchanged desktop layout.
 Run it alongside `title_row_reset_test.gd`, `mouse_menus_test.gd` and
 `controls_test.gd` for the existing desktop input regression coverage.
+
+### Players touch menu (second menu adaptation)
+
+New Game → Players retains the original background, gold lettering and
+selection highlight in a single column. Android uses eight 18-pixel rows
+(including the localized Back entry), starting at y = 46, with invisible
+touch targets from x = 16 to 304. A choice activates on release in the same
+row; dragging off cancels it. Back returns to the title through the existing
+cancel action.
+
+On this Android screen, 2 Player Arcade and 2 Player Endless are grey and
+unavailable, as is Modem/Network Game. Touch, keyboard and controller confirms
+all enforce the restriction. Nearby-device multiplayer is not implemented.
+Desktop retains its original layout and working two-player choices. This
+change does not adapt Episode, Difficulty, Timed Battle or other routes to
+side modes.
+
+On the phone, check that a tap beside the lettering selects the correct row,
+dragging away cancels, the grey entries cannot start a game, a one-player
+choice opens the expected next screen, and Back returns to the title.
+`test/players_touch_test.gd` checks these action results and desktop co-op
+availability; run it with `new_game_test.gd` and `ui_audit_fixes_test.gd`.
 
 ### Bootstrap and packaging
 

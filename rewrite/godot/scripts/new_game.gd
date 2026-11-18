@@ -56,6 +56,9 @@ var idle := false
 var current_screen := ""
 var menus := MenuEngine.new(self)
 var _busy := true
+## Adapt only the Android Players screen; later choices keep their own layout.
+var _touch_players := OS.get_name() == "Android"
+var _touch_pressed := -1
 ## Choice in progress: mode, episode (1-based), battle (timeBattleSelection).
 var mode := MODE_FULL
 var episode := 1
@@ -98,7 +101,12 @@ func _row(label: String, x: int, disabled: Callable) -> Dictionary:
 		"draw": func(_it: Dictionary, _x: int, y: int, selected: bool) -> void:
 			var px := x if x >= 0 else 160 - TyrianText.width(label, NORMAL_FONT) / 2
 			var value := -4 + (2 if selected else 0) + (-4 if disabled.call() else 0)
-			TyrianText.draw_font_hv_shadow(self, px, y, label, NORMAL_FONT, LEFT, 15, value, false, 2),
+			var grey: bool = _touch_players and current_screen == "gameplay" and disabled.call()
+			# Picture 2 uses bank 10 for stone grey (bank 7 is red here).
+			var hue := 10 if grey else 15
+			if grey:
+				value = -4
+			TyrianText.draw_font_hv_shadow(self, px, y, label, NORMAL_FONT, LEFT, hue, value, false, 2),
 		# Left / Right: the C's "default: break", the image is shown again.
 		"adjust": func(_it: Dictionary, _dir: int) -> void: pass,
 		"activate": func(_it: Dictionary) -> void: pass,
@@ -109,6 +117,7 @@ func _row(label: String, x: int, disabled: Callable) -> Dictionary:
 func _open(id: String, header_key: String, items: Array, y: int, dy: int, on_activate: Callable, on_back: Callable,
 		sel := 0) -> void:
 	current_screen = id
+	_touch_pressed = -1
 	_busy = true
 	idle = false
 	_restart(TyrianText.L(header_key))
@@ -132,6 +141,10 @@ func _row_under_pointer(p: Vector2i, y0: int, dy: int) -> int:
 	if menus.stack.is_empty():
 		return -1
 	var items: Array = menus.current().items
+	if _touch_players and current_screen == "gameplay":
+		if p.x < 16 or p.x >= 304 or p.y < y0 - 2 or p.y >= y0 - 2 + dy * items.size():
+			return -1
+		return (p.y - y0 + 2) / dy
 	for i in items.size():
 		var it: Dictionary = items[i]
 		var row_y := y0 + dy * i
@@ -157,11 +170,25 @@ func _to_title() -> void:
 func _open_gameplay() -> void:
 	var items := []
 	for i in GAMEPLAY_KEYS.size():
-		items.append(_row(TyrianText.L(GAMEPLAY_KEYS[i]), -1, func() -> bool: return i == MODE_NETWORK))
-	await _open("gameplay", "gm_title", items, 50, 20, _gameplay_chosen, _to_title)
+		items.append(_row(TyrianText.L(GAMEPLAY_KEYS[i]), -1, _gameplay_disabled.bind(i)))
+	if _touch_players:
+		items.append(_row(TyrianText.L("gd_back"), -1, func() -> bool: return false))
+	await _open("gameplay", "gm_title", items, 46 if _touch_players else 50,
+		18 if _touch_players else 20, _gameplay_chosen, _to_title)
+
+
+func _gameplay_disabled(row: int) -> bool:
+	return row == MODE_NETWORK or (_touch_players and row in [MODE_2P_ARCADE, MODE_2P_ENDLESS])
 
 
 func _gameplay_chosen(sel: int) -> void:
+	if _touch_players and sel == GAMEPLAY_KEYS.size():
+		menus.back()
+		return
+	if _gameplay_disabled(sel):
+		Sfx.play(Sfx.SPRING)
+		menus.draw()
+		return
 	match sel:
 		MODE_FULL, MODE_ARCADE, MODE_TIMED, MODE_2P_ARCADE:
 			Sfx.play(Sfx.SELECT)
@@ -182,10 +209,6 @@ func _gameplay_chosen(sel: int) -> void:
 			await fade_black(10)
 			if not EndlessSession.enter(sel == MODE_2P_ENDLESS):
 				_to_title()
-		MODE_NETWORK:
-			# Grayed-out entry: the C code refuses it (S_SPRING) with or without WITH_NETWORK.
-			Sfx.play(Sfx.SPRING)
-			menus.draw()
 
 
 # --- menus.c:episodeSelect -------------------------------------------------------
@@ -434,6 +457,32 @@ func wait_input() -> void:
 
 
 # --- Input -------------------------------------------------------------------
+
+func handle_mouse(event: InputEvent) -> void:
+	if not _touch_players or current_screen != "gameplay" or modal_active:
+		super(event)
+		return
+	if _busy or not idle or menus.stack.is_empty():
+		_touch_pressed = -1
+		return
+	var row := menus.row_at(menus.current(), Vector2i(event.position.floor()))
+	if event is InputEventMouseMotion:
+		if row != _touch_pressed:
+			_touch_pressed = -1
+		return
+	if not event is InputEventMouseButton or event.button_index != MOUSE_BUTTON_LEFT:
+		return
+	if event.pressed:
+		_touch_pressed = row
+		if row >= 0:
+			menus.hover(menus.current(), row)
+	else:
+		var pressed := _touch_pressed
+		_touch_pressed = -1
+		if row >= 0 and row == pressed:
+			menus.current().sel = row
+			handle_action(TyrianControls.ACCEPT)
+
 
 func handle_event(event: InputEvent) -> void:
 	if (
