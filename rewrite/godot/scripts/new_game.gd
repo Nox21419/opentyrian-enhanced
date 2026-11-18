@@ -56,8 +56,9 @@ var idle := false
 var current_screen := ""
 var menus := MenuEngine.new(self)
 var _busy := true
-## Adapt only the Android Players screen; later choices keep their own layout.
+## Android adaptations are enabled per screen; later choices keep their layout.
 var _touch_players := OS.get_name() == "Android"
+var _touch_episode := OS.get_name() == "Android"
 var _touch_pressed := -1
 ## Choice in progress: mode, episode (1-based), battle (timeBattleSelection).
 var mode := MODE_FULL
@@ -141,6 +142,12 @@ func _row_under_pointer(p: Vector2i, y0: int, dy: int) -> int:
 	if menus.stack.is_empty():
 		return -1
 	var items: Array = menus.current().items
+	if _touch_episode and current_screen == "episode":
+		if p.x < 16 or p.x >= 304 or p.y < y0 - 2 or p.y >= 200:
+			return -1
+		if p.y >= 184:
+			return 5  # Back sits below the five unchanged episode labels.
+		return mini((p.y - y0 + 2) / dy, 4)
 	if _touch_players and current_screen == "gameplay":
 		if p.x < 16 or p.x >= 304 or p.y < y0 - 2 or p.y >= y0 - 2 + dy * items.size():
 			return -1
@@ -223,6 +230,9 @@ func _open_episode() -> void:
 
 
 func _episode_chosen(sel: int) -> void:
+	if _touch_episode and sel == 5:
+		menus.back()
+		return
 	if not episode_available(sel + 1):
 		Sfx.play(Sfx.SPRING)
 		menus.draw()
@@ -428,6 +438,12 @@ func _episode_rows() -> Array:
 	var items := []
 	for i in 5:
 		items.append(_row(TyrianText.L("ep_%d" % (i + 1)), 20, func() -> bool: return not episode_available(i + 1)))
+	if _touch_episode:
+		var back := _row(TyrianText.L("gd_back"), -1, func() -> bool: return false)
+		var draw: Callable = back.draw
+		back.draw = func(it: Dictionary, x: int, _y: int, selected: bool) -> void:
+			draw.call(it, x, 185, selected)
+		items.append(back)
 	return items
 
 
@@ -459,7 +475,8 @@ func wait_input() -> void:
 # --- Input -------------------------------------------------------------------
 
 func handle_mouse(event: InputEvent) -> void:
-	if not _touch_players or current_screen != "gameplay" or modal_active:
+	var touch := (_touch_players and current_screen == "gameplay") or (_touch_episode and current_screen == "episode")
+	if not touch or modal_active:
 		super(event)
 		return
 	if _busy or not idle or menus.stack.is_empty():

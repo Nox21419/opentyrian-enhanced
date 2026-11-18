@@ -10,6 +10,8 @@ an Android-only two-column layout of the original gold menu text, including
 a visible Side Modes entry with the same lettering.
 The Players screen keeps its original single-column text, adds Back and wider
 touch areas, and greys out/disables its two-player and network entries.
+Episode Select keeps its original five labels and placement, adds Back and
+wider touch areas, and activates a choice on release.
 Other menus still use their existing pointer/click behavior. Dedicated touch buttons for sidekicks,
 weapon switching and pause are not implemented. No HD art or example mods ship.
 Without input, leave the title idle for 30 seconds after the intro
@@ -155,14 +157,29 @@ On this Android screen, 2 Player Arcade and 2 Player Endless are grey and
 unavailable, as is Modem/Network Game. Touch, keyboard and controller confirms
 all enforce the restriction. Nearby-device multiplayer is not implemented.
 Desktop retains its original layout and working two-player choices. This
-change does not adapt Episode, Difficulty, Timed Battle or other routes to
-side modes.
+change does not adapt Difficulty, Timed Battle or other routes to side modes.
+Episode Select has its own adaptation below.
 
 On the phone, check that a tap beside the lettering selects the correct row,
 dragging away cancels, the grey entries cannot start a game, a one-player
 choice opens the expected next screen, and Back returns to the title.
 `test/players_touch_test.gd` checks these action results and desktop co-op
 availability; run it with `new_game_test.gd` and `ui_audit_fixes_test.gd`.
+
+### Episode touch menu (third menu adaptation)
+
+Android keeps the original background, gold lettering, highlight and the five
+episode labels at x = 20, y = 50 + 30 × row. Invisible touch areas span
+x = 16 to 304. Back is centered at y = 185, below the fifth episode, with its
+own non-overlapping target from y = 184 to 200. A choice activates on release
+in the same row; dragging off cancels it. Back returns to the title, preserving
+the existing cancel destination. Episode availability checks remain unchanged.
+Desktop retains the original five rows and text-width click areas.
+
+On the phone, check every episode, a tap beside the text, dragging across rows,
+the fifth episode versus Back, and Back returning to the title. Difficulty is
+not adapted by this change. `test/episode_touch_test.gd` checks episode selection,
+drag cancellation, Back, boundary targets and the unchanged desktop layout.
 
 ### Bootstrap and packaging
 

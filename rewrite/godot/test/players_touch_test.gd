@@ -25,6 +25,8 @@ func _open_players(mobile := true) -> Node:
 			break
 		await get_tree().process_frame
 	screen.set("_touch_players", mobile)
+	# Isolate Players behavior; Episode adaptation has its own suite.
+	screen.set("_touch_episode", false)
 	await screen._open_gameplay()
 	return screen
 
