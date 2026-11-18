@@ -15,6 +15,21 @@ than copying them into this file.
   changes or the rest of the session. Obtain fresh express direction before
   making any additional commit, including an amend.
 
+## Android gameplay preservation
+
+- While getting Android working, **do not modify game mechanics from the
+  original Tyrian 2000**. Android platform and input adaptations must preserve
+  gameplay rules, movement speed limits, simulation timing, collisions, damage,
+  balance and gameplay RNG behavior. Existing intentional divergences are not
+  permission to introduce further mechanics changes for Android.
+- If a proposed change might affect game mechanics and its effect is uncertain,
+  investigate the original behavior and the affected implementation first, then
+  explain the findings and remaining uncertainty and **ask the user for express
+  approval before implementing that change**. Do not treat an unverified
+  assumption of equivalence as authorization.
+- See [Android build instructions](docs/android-build.md#gameplay-preservation)
+  for the accepted touch-control adaptation and the Android-specific policy.
+
 ## GitHub account
 
 - Always use GitHub account **Nox21419** for this repository. The canonical

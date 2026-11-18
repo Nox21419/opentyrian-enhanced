@@ -12,6 +12,25 @@ Without input, leave the title idle for 30 seconds after the intro
 to see the built-in recorded gameplay demo. This is an experimental target,
 not a claim of phone performance or full Android support.
 
+## Gameplay preservation
+
+While getting the game working on Android, **do not modify game mechanics from
+the original Tyrian 2000**. Platform integration and touch controls must preserve
+gameplay rules, movement speed limits, simulation timing, collisions, damage,
+balance and gameplay RNG behavior. Existing intentional divergences do not
+authorize additional mechanics changes for the Android port.
+
+If there is uncertainty about whether a proposed change affects game mechanics,
+investigate the original behavior and the affected code first. Present the
+findings, likely gameplay effects and any remaining uncertainty to the user,
+and obtain their express approval **before implementing the change**.
+
+The user has accepted the current single-finger destination-following control:
+the ship continues toward a held finger, using the existing simulation mouse
+path and its limit of 8 logical game pixels per tick per axis (280 pixels per
+second at normal 35 Hz pacing). This accepted input adaptation is not blanket
+approval for other gameplay changes.
+
 ## Host preparation
 
 1. Install Rust (minimum 1.94), Python 3.11+, Godot **4.7.2 standard** and its
