@@ -11,7 +11,8 @@ a visible Side Modes entry with the same lettering.
 The Players screen keeps its original single-column text, adds Back and wider
 touch areas, and greys out/disables its two-player and network entries.
 Episode Select keeps its original five labels and placement, adds Back and
-wider touch areas, and activates a choice on release.
+wider touch areas, and activates a choice on release. Difficulty Select uses
+the same release-to-select adaptation with Back to Episode or Timed Battle.
 Other menus still use their existing pointer/click behavior. Dedicated touch buttons for sidekicks,
 weapon switching and pause are not implemented. No HD art or example mods ship.
 Without input, leave the title idle for 30 seconds after the intro
@@ -157,8 +158,8 @@ On this Android screen, 2 Player Arcade and 2 Player Endless are grey and
 unavailable, as is Modem/Network Game. Touch, keyboard and controller confirms
 all enforce the restriction. Nearby-device multiplayer is not implemented.
 Desktop retains its original layout and working two-player choices. This
-change does not adapt Difficulty, Timed Battle or other routes to side modes.
-Episode Select has its own adaptation below.
+change does not adapt Timed Battle or other routes to side modes.
+Episode and Difficulty Select have their own adaptations below.
 
 On the phone, check that a tap beside the lettering selects the correct row,
 dragging away cancels, the grey entries cannot start a game, a one-player
@@ -177,9 +178,27 @@ the existing cancel destination. Episode availability checks remain unchanged.
 Desktop retains the original five rows and text-width click areas.
 
 On the phone, check every episode, a tap beside the text, dragging across rows,
-the fifth episode versus Back, and Back returning to the title. Difficulty is
-not adapted by this change. `test/episode_touch_test.gd` checks episode selection,
+the fifth episode versus Back, and Back returning to the title. `test/episode_touch_test.gd` checks episode selection,
 drag cancellation, Back, boundary targets and the unchanged desktop layout.
+
+### Difficulty touch menu (fourth menu adaptation)
+
+Android retains the original difficulty labels and positions (y = 54 + 24 ×
+row), the gold lettering and the default Normal selection. Invisible targets
+span x = 16 to 304; release in the pressed row confirms and dragging off
+cancels. A gold Back entry at y = 185 follows the existing cancel action to
+Episode Select, or Timed Battle for that mode. Desktop remains unchanged.
+
+The original keyboard secrets still reveal the higher difficulties. When all
+six are visible, Back uses the original small font at y = 190 so the sixth
+label can stay at y = 174 without overlap. Its touch area starts at y = 188.
+Unlocking a difficulty while Back is selected keeps Back selected. This adds
+no touch shortcut for the secrets and does not change difficulty rules.
+
+On the phone, check Easy/Normal/Hard, drag cancellation, and Back. Automated
+coverage in `test/difficulty_touch_test.gd` verifies the chosen difficulty,
+both Back destinations, secret unlocks and target boundaries, and desktop
+geometry. Run it with the Episode, Players and existing New Game suites.
 
 ### Bootstrap and packaging
 

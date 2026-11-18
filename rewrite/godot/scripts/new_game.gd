@@ -59,6 +59,7 @@ var _busy := true
 ## Android adaptations are enabled per screen; later choices keep their layout.
 var _touch_players := OS.get_name() == "Android"
 var _touch_episode := OS.get_name() == "Android"
+var _touch_difficulty := OS.get_name() == "Android"
 var _touch_pressed := -1
 ## Choice in progress: mode, episode (1-based), battle (timeBattleSelection).
 var mode := MODE_FULL
@@ -142,6 +143,15 @@ func _row_under_pointer(p: Vector2i, y0: int, dy: int) -> int:
 	if menus.stack.is_empty():
 		return -1
 	var items: Array = menus.current().items
+	if _touch_difficulty and current_screen == "difficulty":
+		if p.x < 16 or p.x >= 304 or p.y < y0 - 2 or p.y >= 200:
+			return -1
+		var back_y := 188 if difficulty_count == 6 else 184
+		if p.y >= back_y:
+			return difficulty_count
+		if p.y >= y0 - 2 + dy * difficulty_count:
+			return -1
+		return mini((p.y - y0 + 2) / dy, difficulty_count - 1)
 	if _touch_episode and current_screen == "episode":
 		if p.x < 16 or p.x >= 304 or p.y < y0 - 2 or p.y >= 200:
 			return -1
@@ -274,6 +284,16 @@ func _difficulty_items() -> Array:
 	var items := []
 	for i in difficulty_count:
 		items.append(_row(TyrianText.L(DIFFICULTY_KEYS[i]), -1, func() -> bool: return false))
+	if _touch_difficulty:
+		var back := _row(TyrianText.L("gd_back"), -1, func() -> bool: return false)
+		back.draw = func(_it: Dictionary, _x: int, _y: int, selected: bool) -> void:
+			# Six secret difficulties fill the original layout: use the original
+			# small font for Back so none of the difficulty labels need moving.
+			var compact := difficulty_count == 6
+			var value := (4 if compact else -4) + (2 if selected else 0)
+			TyrianText.draw_font_hv_shadow(self, 160, 190 if compact else 185, TyrianText.L("gd_back"),
+				SMALL_FONT if compact else NORMAL_FONT, CENTERED, 15, value, false, 2)
+		items.append(back)
 	return items
 
 
@@ -287,6 +307,9 @@ func _open_difficulty() -> void:
 
 
 func _difficulty_chosen(sel: int) -> void:
+	if _touch_difficulty and sel == difficulty_count:
+		menus.back()
+		return
 	Sfx.play(Sfx.SELECT)
 	_busy = true
 	idle = false
@@ -325,6 +348,10 @@ func _difficulty_unlocks(event: InputEventKey) -> void:
 		if difficulty_count == 3 and (base == KEY_G or Input.is_physical_key_pressed(KEY_G)):
 			difficulty_count = 4
 	if difficulty_count != before:
+		# A selected Back row must remain Back when a secret adds a difficulty.
+		if _touch_difficulty and menus.current().sel == before:
+			menus.current().sel = difficulty_count
+		_touch_pressed = -1
 		menus.current().items = _difficulty_items()
 
 
@@ -475,7 +502,9 @@ func wait_input() -> void:
 # --- Input -------------------------------------------------------------------
 
 func handle_mouse(event: InputEvent) -> void:
-	var touch := (_touch_players and current_screen == "gameplay") or (_touch_episode and current_screen == "episode")
+	var touch := (_touch_players and current_screen == "gameplay") \
+		or (_touch_episode and current_screen == "episode") \
+		or (_touch_difficulty and current_screen == "difficulty")
 	if not touch or modal_active:
 		super(event)
 		return

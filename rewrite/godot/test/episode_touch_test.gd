@@ -25,6 +25,7 @@ func _open_episode(mobile := true) -> Node:
 			break
 		await get_tree().process_frame
 	screen.set("_touch_episode", mobile)
+	screen.set("_touch_difficulty", false)
 	await screen._open_episode()
 	return screen
 
