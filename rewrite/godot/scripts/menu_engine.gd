@@ -141,6 +141,8 @@ static func item(label: String, help: String, kind: int, extra := {}) -> Diction
 ## - hit_row_y, hit_y0, hit_unbounded (ROWS): origin of the clickable ranks
 ##   (game_menu.c: 38), top area, ranks outside the visible window;
 ## - clamp_last (GAME_MENU): any rank beyond targets the last row.
+## - title_position: optional Callable(row) -> Vector2i, text center/top for
+##   the TITLE highlight; pass the same layout to render_title_items.
 func open(header: String, items: Array, options := {}) -> void:
 	var sel: int = options.get("sel", 0)
 	while sel < items.size() and not selectable(items[sel]):
@@ -673,19 +675,27 @@ func hittest_row(x: int, y: int) -> int:
 func _draw_title(m: Dictionary) -> void:
 	var s := screen
 	_background(m)
+	var position := Vector2i(160, TITLE_Y_ITEMS + TITLE_H_ITEM * m.sel)
+	var layout: Callable = m.options.get("title_position", Callable())
+	if layout.is_valid():
+		position = layout.call(m.sel)
 	TyrianText.draw_font_hv(
-		s, 160, TITLE_Y_ITEMS + TITLE_H_ITEM * m.sel, m.items[m.sel].label, s.NORMAL_FONT, s.CENTERED, 15, -1
+		s, position.x, position.y, m.items[m.sel].label, s.NORMAL_FONT, s.CENTERED, 15, -1
 	)
 
 
 ## title_screen.c:titleScreen, `restart` branch: entries with dark outline
 ## (four offsets, value -10) then text (-3), drawn once.
-func render_title_items(items: Array) -> void:
+func render_title_items(items: Array, layout := Callable()) -> void:
 	var s := screen
 	for i in items.size():
 		var t: String = items[i].label
 		var x := 160 - TyrianText.width(t, s.NORMAL_FONT) / 2
 		var y := TITLE_Y_ITEMS + TITLE_H_ITEM * i
+		if layout.is_valid():
+			var position: Vector2i = layout.call(i)
+			x = position.x - TyrianText.width(t, s.NORMAL_FONT) / 2
+			y = position.y
 		TyrianText.draw_font_hv(s, x - 1, y - 1, t, s.NORMAL_FONT, s.LEFT, 15, -10)
 		TyrianText.draw_font_hv(s, x + 1, y + 1, t, s.NORMAL_FONT, s.LEFT, 15, -10)
 		TyrianText.draw_font_hv(s, x + 1, y - 1, t, s.NORMAL_FONT, s.LEFT, 15, -10)

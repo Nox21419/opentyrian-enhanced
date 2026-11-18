@@ -5,8 +5,10 @@ It uses the existing Compatibility renderer, Original graphics and landscape
 orientation. During a level, **hold one finger on the playfield to steer and fire**;
 drag to move the target, and lift to stop firing. The ship approaches the finger
 at the existing movement speed and stays inside its normal bounds. Extra fingers
-are ignored; pause or focus loss cancels the held input. Menu touch continues to
-use the existing pointer/click behavior. Dedicated touch buttons for sidekicks,
+are ignored; pause or focus loss cancels the held input. The title screen has
+an Android-only two-column layout of the original gold menu text, including
+a visible Side Modes entry with the same lettering.
+Other menus still use their existing pointer/click behavior. Dedicated touch buttons for sidekicks,
 weapon switching and pause are not implemented. No HD art or example mods ship.
 Without input, leave the title idle for 30 seconds after the intro
 to see the built-in recorded gameplay demo. This is an experimental target,
@@ -117,6 +119,28 @@ The proof-of-concept preset passes `--no-xmas` so the December Christmas prompt
 cannot interrupt the idle route while no keyboard/controller is available.
 
 ## Validation
+
+### Title touch menu (first menu adaptation)
+
+Only Android rearranges the original title lettering into two columns with
+20-pixel touch rows. It uses the same gold font, outlines and selection
+highlight, without a button overlay. Desktop retains the original title
+drawing and mouse, keyboard and gamepad paths. Touch uses the existing title
+actions and activates on release; dragging off a row cancels activation. Child
+screens are not adapted by this change; in particular, opening Achievements or
+Replays does not yet make those screens touch navigable.
+
+On the phone, check each title entry, Side Modes, Quit → No, and Quit → Yes.
+Check that pressing then dragging off an entry cancels activation, returning
+from a child screen restores the text layout, and a tap opens only one screen.
+Do not count the title as phone-verified until those checks run on the device.
+
+`test/title_touch_test.gd` covers press/release routing, transition guards,
+Quit cancellation, Side Modes access and the unchanged desktop layout.
+Run it alongside `title_row_reset_test.gd`, `mouse_menus_test.gd` and
+`controls_test.gd` for the existing desktop input regression coverage.
+
+### Bootstrap and packaging
 
 ```powershell
 python -m unittest discover -s rewrite/scripts -p test_build_android.py

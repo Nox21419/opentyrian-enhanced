@@ -1,5 +1,22 @@
 # Setup options: decision per option
 
+## Frontend fidelity
+
+Frontend changes should stay as faithful to the original Tyrian 2000 as
+possible, including its lettering, colors, artwork, outlines, selection
+highlights, sounds and navigation behavior. Prefer adapting the original
+interface's placement, size and hit areas to replacing it with generic widgets
+or covering it with a second interface. This applies to all frontend screens,
+not just Setup, and to every platform.
+
+For Android, adapt one menu screen at a time for maintainer testing and keep
+desktop mouse, keyboard and gamepad behavior intact. The accepted title-menu
+adaptation repositions the original gold text into two columns and expands
+the invisible touch areas; the replacement button overlay was rejected.
+See [Android title-menu validation](android-build.md#title-touch-menu-first-menu-adaptation).
+
+## Option behavior and persistence
+
 Rule (card t_401e6b69, point 4): an option displayed by the Setup menu acts on the game and is
 saved, or it is not displayed. No dummy options.
 

@@ -5,6 +5,7 @@
 ## same calls as the C code; each `present()` matches a `JE_showVGA()`
 ## of the C code, in the same order (palette fades included): the image sequence
 ## is compared one by one with that of the instrumented C build (GOLDEN_FRAMES).
+## Android uses the same lettering in a more widely spaced two-column layout.
 extends TyrianScreen
 
 ## title_screen.c:titleScreen.
@@ -58,6 +59,9 @@ var _busy := false
 var _code_progress := PackedInt32Array()
 ## Time (ms) since the last JE_showVGA of the loop (idleStartTick).
 var _idle_ms := 0.0
+## Android rearranges the original lettering; desktop retains the C geometry.
+var _touch_layout := OS.get_name() == "Android"
+var _touch_pressed := -1
 
 
 ## Screens called from the title loop: returning from them does not cut the sounds.
@@ -92,7 +96,43 @@ func _ready() -> void:
 	mouse_filter_hue = 0xF0
 	for k in MENU_KEYS:
 		_items.append(MenuEngine.item(TyrianText.L(k), "", MenuEngine.Kind.ACTION))
+	if _touch_layout:
+		_items.append(MenuEngine.item(TyrianText.L("gd_modes_title"), "", MenuEngine.Kind.ACTION))
 	_run.call_deferred()
+
+
+## Original title lettering in two columns with full-width, 20-pixel touch rows.
+func _title_position(row: int) -> Vector2i:
+	return Vector2i(80 + (row % 2) * 160, 88 + (row >> 1) * 20)
+
+
+func _touch_row(p: Vector2i) -> int:
+	if p.x < 4 or p.x >= 316 or p.y < 86 or p.y >= 186:
+		return -1
+	return ((p.y - 86) / 20) * 2 + (1 if p.x >= 160 else 0)
+
+
+func _touch_mouse(event: InputEvent) -> void:
+	if _busy or not idle or menus.stack.is_empty():
+		_touch_pressed = -1
+		return
+	var row := _touch_row(Vector2i(event.position.floor()))
+	if event is InputEventMouseMotion:
+		if row != _touch_pressed:
+			_touch_pressed = -1
+		return
+	if not event is InputEventMouseButton or event.button_index != MOUSE_BUTTON_LEFT:
+		return
+	if event.pressed:
+		_touch_pressed = row
+		if row >= 0:
+			menus.hover(menus.current(), row)
+	else:
+		var pressed := _touch_pressed
+		_touch_pressed = -1
+		if row >= 0 and row == pressed:
+			menus.current().sel = row
+			handle_action(TyrianControls.ACCEPT)
 
 
 ## varz.c:517-545 (JE_tyrianHalt): end screen after the Super Tyrian victory; DOS text
@@ -194,7 +234,7 @@ func _restart() -> void:
 		vga.blit_sprite(VGA_SCREEN, 11, 4, PLANET_SHAPES, 146)
 		vga.blit_sprite(VGA_SCREEN, 155, 73, PLANET_SHAPES, 151)
 		await fade_palette(10, 0, 255 - 16)
-	menus.render_title_items(_items)
+	menus.render_title_items(_items, _title_position if _touch_layout else Callable())
 	vga.copy(VGA_SCREEN2, VGA_SCREEN)
 	await fade_palette(20, 255 - 16 + 1, 255)
 	pop_pointer_hidden()
@@ -205,11 +245,15 @@ func _redraw_selection() -> void:
 	if menus.stack.is_empty():
 		menus.open("", _items, {
 			"style": MenuEngine.Style.TITLE, "draw": false, "move_sfx": Sfx.CURSOR,
+			"title_position": _title_position if _touch_layout else Callable(),
 			"accept": [TyrianControls.SELECT, TyrianControls.ACCEPT], "redraw_on_horizontal": false,
 			"on_activate": func(sel: int) -> void:
 				selected = sel
 				idle = false
-				activate(),
+				if _touch_layout and sel == MENU_KEYS.size():
+					_open_modes()
+				else:
+					activate(),
 			# Esc asks for confirmation before quitting (title_screen.c).
 			"on_back": func() -> void:
 				Sfx.play(Sfx.SPRING)
@@ -371,7 +415,10 @@ func handle_mouse(event: InputEvent) -> void:
 	# title_screen.c: mouseMoved or newmouse restarts the loop (idleStartTick).
 	if (event is InputEventMouseMotion and event.relative != Vector2.ZERO) or TyrianMouse.is_button_press(event):
 		_idle_ms = 0.0
-	super(event)
+	if _touch_layout and not modal_active:
+		_touch_mouse(event)
+	else:
+		super(event)
 	if not menus.stack.is_empty() and not _busy:
 		selected = menus.selection()
 

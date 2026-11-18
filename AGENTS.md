@@ -15,6 +15,20 @@ than copying them into this file.
   changes or the rest of the session. Obtain fresh express direction before
   making any additional commit, including an amend.
 
+## Frontend fidelity
+
+- Keep frontend changes as faithful to the original Tyrian 2000 as possible
+  on every platform. Preserve its fonts, palette, artwork, outlines, selection
+  highlights, sounds and navigation behavior wherever practical.
+- For touch or other platform adaptations, first reposition or resize the
+  original interface and its hit areas. Avoid replacing it with generic widgets
+  or drawing a second interface over it when the original can be adapted.
+- Keep platform-specific adaptations scoped to that platform and preserve
+  existing desktop mouse, keyboard and gamepad functionality. Work on one menu
+  screen at a time so the maintainer can test each change before the next.
+- See [Frontend fidelity guidance](docs/setup-options.md#frontend-fidelity)
+  for the accepted Android title-menu example.
+
 ## Android gameplay preservation
 
 - While getting Android working, **do not modify game mechanics from the
