@@ -2,8 +2,13 @@
 
 This target is for the Samsung Galaxy A35 and other ARM64 Android devices.
 It uses the existing Compatibility renderer, Original graphics and landscape
-orientation. There are **no touch controls** and no bundled HD art or example
-mods. With no controller, leave the title idle for 30 seconds after the intro
+orientation. During a level, **hold one finger on the playfield to steer and fire**;
+drag to move the target, and lift to stop firing. The ship approaches the finger
+at the existing movement speed and stays inside its normal bounds. Extra fingers
+are ignored; pause or focus loss cancels the held input. Menu touch continues to
+use the existing pointer/click behavior. Dedicated touch buttons for sidekicks,
+weapon switching and pause are not implemented. No HD art or example mods ship.
+Without input, leave the title idle for 30 seconds after the intro
 to see the built-in recorded gameplay demo. This is an experimental target,
 not a claim of phone performance or full Android support.
 
@@ -87,7 +92,7 @@ adb logcat -s godot AndroidRuntime
 Confirm the title, then gameplay after the idle timeout, moving enemies and shots,
 music/SFX, stable pacing, landscape rotation and letterboxing. Test Home → resume,
 screen off/on, cold relaunch, and an APK update without uninstalling. Save/settings
-interaction needs a keyboard/controller until touch controls exist. Record the
+interaction beyond pointer-accessible menus may need a keyboard/controller. Record the
 actual Android version, ABI and page size rather than assuming what “newest” means.
 The proof-of-concept preset passes `--no-xmas` so the December Christmas prompt
 cannot interrupt the idle route while no keyboard/controller is available.

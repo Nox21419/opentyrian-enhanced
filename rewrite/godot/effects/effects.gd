@@ -348,6 +348,9 @@ func set_crt_mode(mode: int) -> void:
 
 
 func _unhandled_input(event: InputEvent) -> void:
+	if (event is InputEventScreenTouch or event is InputEventScreenDrag) and _level_running():
+		game_viewport.push_input(touch_event_in_game_pixels(event), true)
+		return
 	# Menu mouse state (keyboard.c): position in game pixels,
 	# toggles mouseInactive.
 	# Paused level (pause menu, help, Quit box): treated as a
@@ -445,6 +448,14 @@ func _unhandled_input(event: InputEvent) -> void:
 ## and the K×320×200 image sits at `_screen_base` (centered in a window that
 ## the player may have resized): that offset is removed first, otherwise the
 ## pointer was mapped as if the image started at the window's top left corner.
+func touch_event_in_game_pixels(event: InputEvent) -> InputEvent:
+	var pointer := InputEventMouseMotion.new()
+	pointer.position = event.position
+	var touch: InputEvent = event.duplicate()
+	touch.set("position", mouse_event_in_game_pixels(pointer).position)
+	return touch
+
+
 func mouse_event_in_game_pixels(event: InputEventMouse) -> InputEventMouse:
 	if _screen == null or (Vector2i(_screen.size) == GAME_SIZE and _screen_base == Vector2.ZERO):
 		return event
@@ -489,7 +500,8 @@ func _update_mouse_capture() -> void:
 	if _level_running():
 		var cur := current_game_scene()
 		want = (
-			cur.get("interactive") != false
+			OS.get_name() != "Android"
+			and cur.get("interactive") != false
 			and cur.get("demo") != true
 			and cur.get("replaying") != true
 			and DisplayServer.window_is_focused()

@@ -184,6 +184,27 @@ platform integration**, not “already Android-ready” or “tested on the A35.
 
 ## Acceptance checks for the implementation
 
+Touch follow-up: `TouchFlight` now translates one held finger into absolute
+steering plus continuous fire through the existing simulation mouse input.
+The level receives correctly mapped touch coordinates and Android no longer
+captures the pointer for relative mouse movement. Emulated mouse events do not
+double-apply gameplay input; menu pointer/click handling is retained. Five focused
+touch tests and ten display regression tests pass, including movement and firing
+in the native simulation. On 2026-11-18 the follow-up APK was installed on the
+SM-A356W without uninstalling the app. Android touchscreen swipe/hold gestures
+in a live Endless level moved the ship left/right and vertically while firing;
+screenshots captured the ship and projectiles at the changed locations. Menu
+navigation still worked, and no new script/native error was seen in the app log.
+The user also confirmed that holding/dragging a physical finger moves the ship
+while firing. Other combat touch buttons remain
+unimplemented; the earlier initial proof-of-concept validation above predates this change.
+The additional DPI/demo regressions pass. The older mouse-speed suite reports
+two failed assertions in one case on this Windows host: it expects twelve raw
+pixels but Windows pointer gain reduces them to six. A comparison against the
+committed pre-touch level produces the same six-pixel result after resetting the
+gain accumulator; physical mouse behavior is unchanged. The Linux journey/smoke
+gate remains unavailable without WSL.
+
 - ARM64 library links, is packaged and loads; no unresolved native classes or
   GDScript parse errors in the device log.
 - First install extracts all required data before native reads; second launch

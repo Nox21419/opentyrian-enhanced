@@ -78,8 +78,8 @@ messages of the headless steps.
 ## Game controls
 
 For the experimental Android ARM64 target, see [Android build instructions](android-build.md).
-It adds an APK preset and app-private extraction for native data; touch controls
-are not implemented.
+It adds an APK preset and app-private extraction for native data, plus single-finger
+touch steering and firing during levels.
 
 | Key | Effect |
 |---|---|

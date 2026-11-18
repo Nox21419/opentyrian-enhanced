@@ -704,6 +704,7 @@ func _physics_process(_delta: float) -> void:
 	if _entry_fade_active():
 		return
 	if not interactive or paused or _quit_box != null or _pause_menu != null or _help_screen != null:
+		_touch_flight.reset()
 		# mainint.c:JE_inGameSetup presents the screen on every turn (JE_showVGA) and
 		# video.c:449 decays the shake there: the menu does not stay shifted.
 		if interactive and not paused and sim != null and sim.has_method("shake_present_frame"):
@@ -756,7 +757,12 @@ func _physics_process(_delta: float) -> void:
 		sim.set_new_key(_any_key_pressed and not replaying)
 	if sim != null and not replaying:
 		_take_mouse_delta()
-		sim.set_mouse(_mouse_mask, _mouse_dx, _mouse_dy)
+		if _touch_flight.active():
+			var player: PackedInt32Array = sim.player(1 if _two_players() else 0)
+			var movement := _touch_flight.movement(Vector2i(player[0], player[1]), SIM_X_TO_SCREEN)
+			_mouse_dx = movement.x
+			_mouse_dy = movement.y
+		sim.set_mouse(_mouse_mask | _touch_flight.fire_mask(), _mouse_dx, _mouse_dy)
 		_trace_mouse = Vector2i(_mouse_dx, _mouse_dy)
 		# Analog stick (player_movement.c, joystick[j].analog): proportional
 		# movement, added to the mouse movement by the simulation.
@@ -875,6 +881,7 @@ func _freeze_for_debrief() -> void:
 ## config.c:defaultMouseSettings {1, 4, 5} -> left fire, right both
 ## sidekicks, middle weapon switch (keyboard.c, SDL_MOUSEBUTTONDOWN).
 var _mouse_mask := 0
+var _touch_flight := TouchFlight.new()
 var _mouse_dx := 0
 var _mouse_dy := 0
 ## keyboard.c:mouseWindowXRelative/YRelative: raw movement accumulated in
@@ -1024,7 +1031,10 @@ func _trace_tick() -> void:
 	_trace_ticks += 1
 	var p: PackedInt32Array = sim.player(0) if sim != null else PackedInt32Array([0, 0])
 	_trace_file.store_line(
-		"%d %d %d %d %d %d" % [_trace_ticks, _trace_mouse.x, _trace_mouse.y, p[0], p[1], _mouse_mask]
+		(
+			"%d %d %d %d %d %d"
+			% [_trace_ticks, _trace_mouse.x, _trace_mouse.y, p[0], p[1], _mouse_mask | _touch_flight.fire_mask()]
+		)
 	)
 	_trace_file.flush()
 	_trace_mouse = Vector2i.ZERO
@@ -1047,6 +1057,23 @@ func _two_players() -> bool:
 
 func _input(event: InputEvent) -> void:
 	if not interactive:
+		return
+	if event is InputEventScreenTouch or event is InputEventScreenDrag:
+		if (
+			not paused
+			and _quit_box == null
+			and _pause_menu == null
+			and _help_screen == null
+			and not demo
+			and not replaying
+		):
+			_touch_flight.feed(event)
+		else:
+			_touch_flight.reset()
+		return
+	# The real touch event supplies both movement and fire. Its emulated mouse
+	# must not add relative movement, remapped buttons or a stuck fire state.
+	if event is InputEventMouse and event.device == InputEvent.DEVICE_ID_EMULATION:
 		return
 	if event is InputEventMouseMotion:
 		# keyboard.c, SDL_MOUSEMOTION: "mouseWindowXRelative += ev.motion.xrel"
@@ -1083,6 +1110,8 @@ var _resumed_frame := -10
 
 
 func set_paused(on: bool) -> void:
+	if on:
+		_touch_flight.reset()
 	if on == paused:
 		return
 	paused = on
@@ -1237,6 +1266,8 @@ static func _resumes_pause(event: InputEvent) -> bool:
 ## tyrian2.c: "if (pause_pressed || !windowHasFocus) JE_pauseGame();": a
 ## window that loses focus pauses the game.
 func _notification(what: int) -> void:
+	if what == NOTIFICATION_APPLICATION_FOCUS_OUT or what == NOTIFICATION_EXIT_TREE:
+		_touch_flight.reset()
 	# Level exited (Escape, exit box, title): the recording closes
 	# as at the end of the level, the file is written.
 	if what == NOTIFICATION_PREDELETE or what == NOTIFICATION_EXIT_TREE:

@@ -657,6 +657,11 @@ In all menus, you can use the mouse to navigate:
 
 The mouse pointer is hidden when over the game image and shown in the surrounding border.
 
+In the experimental Android build, hold one finger on the level's playfield to
+move the ship toward it while firing. Drag to steer and lift to stop firing.
+The ship keeps its normal movement limits. Touch still works as a pointer in
+menus; dedicated touch buttons for other combat actions are not yet available.
+
 ## 8. Known limitations
 
 - **Native extension required**: gameplay and the Destruct mini-game (§3.5)
