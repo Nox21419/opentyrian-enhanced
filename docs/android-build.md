@@ -13,6 +13,7 @@ touch areas, and greys out/disables its two-player and network entries.
 Episode Select keeps its original five labels and placement, adds Back and
 wider touch areas, and activates a choice on release. Difficulty Select uses
 the same release-to-select adaptation with Back to Episode or Timed Battle.
+The shop root Game Menu also activates on release within wider column targets.
 Other menus still use their existing pointer/click behavior. Dedicated touch buttons for sidekicks,
 weapon switching and pause are not implemented. No HD art or example mods ship.
 Without input, leave the title idle for 30 seconds after the intro
@@ -199,6 +200,27 @@ On the phone, check Easy/Normal/Hard, drag cancellation, and Back. Automated
 coverage in `test/difficulty_touch_test.gd` verifies the chosen difficulty,
 both Back destinations, secret unlocks and target boundaries, and desktop
 geometry. Run it with the Episode, Players and existing New Game suites.
+
+### Shop root Game Menu (fifth menu adaptation)
+
+Android retains the original shop artwork, lettering, row positions and
+right-hand menu column. The six root entries use invisible targets from
+x = 164 to 312: Data through Start Level occupy y = 36 to 116 in 16-pixel
+rows; Quit Game occupies y = 132 to 150. The gap and footer are not targets.
+Touch highlights on press and activates on release in the same row; dragging
+off cancels. Quit still opens the existing confirmation box.
+
+Only the root Game Menu is adapted. Upgrade Ship, purchase lists, Data Cubes,
+Ship Specs, Options and Next Level retain their existing interactions. Desktop
+mouse, keyboard and controller paths and all native purchasing/equipment rules
+are unchanged. Root touch forwards the existing shop commands.
+
+On the phone, check all six entries, drag cancellation, taps on the gap/footer,
+and Quit → No. Check that entering a submenu does not immediately activate
+another item. `test/shop_root_touch_test.gd` covers entry destinations,
+confirmation, cancelled taps, unchanged equipment/cash, desktop mouse-on-press
+and the original Upgrade Ship interaction. Run it alongside the shop rows,
+purchase-hover and mouse menu suites.
 
 ### Bootstrap and packaging
 

@@ -19,6 +19,9 @@ extends TyrianScreen
 
 ## 8-bit rendering (ADR 0110): idle screen for the capture tool.
 var idle := false
+## Adapt only the Android root Game Menu; submenus retain their input paths.
+var _touch_root := OS.get_name() == "Android"
+var _touch_root_pressed := -1
 var _background := PackedByteArray()
 ## game_menu.c:shop_scroll (window of the item list, persistent).
 var _shop_scroll := 0
@@ -292,6 +295,7 @@ func _shop_key(name: String) -> void:
 ## State and action after a shop key or click (the click follows the
 ## same path, game_menu.c:JE_itemScreen).
 func _shop_after(r: Dictionary, before: int) -> void:
+	_touch_root_pressed = -1
 	_state = _shop.state()
 	if before != MENU_PLAY_NEXT_LEVEL and int(_state["menu"]) == MENU_PLAY_NEXT_LEVEL:
 		_nav_open()
@@ -336,6 +340,7 @@ func _quit_request() -> void:
 ## Menu action (keyboard, gamepad or capture tool --keys; TyrianScreen
 ## routes the events, ADR 0120). Space and Enter = "select" like the C code.
 func handle_action(action: StringName) -> void:
+	_touch_root_pressed = -1
 	if (_shop == null and _arcade_menu == 0) or modal_input(action):
 		return
 	if _specs_open:
@@ -423,6 +428,9 @@ func handle_mouse(event: InputEvent) -> void:
 		if TyrianMouse.is_button_press(event):
 			_specs_key = true
 		return
+	if _touch_root and int(_state.get("menu", 0)) == 0:
+		_root_touch_mouse(event)
+		return
 	if TyrianMouse.is_wheel(event):
 		# Wheel (maintainer, 2026-10-10): the text of an open cube scrolls by one
 		# line per notch, like pressing Up / Down; no effect elsewhere.
@@ -461,6 +469,11 @@ func handle_mouse(event: InputEvent) -> void:
 		return
 	if row < 0:
 		return
+	_activate_shop_row(row)
+
+
+## Existing shop command path, shared by desktop clicks and root touch release.
+func _activate_shop_row(row: int) -> void:
 	# JE_menuFunction: col = 0, colC = -1; the clicked row selects then acts.
 	_flash_col = 0
 	_flash_col_c = -1
@@ -475,6 +488,40 @@ func handle_mouse(event: InputEvent) -> void:
 		"item":
 			Sfx.play(S_ITEM)
 	_shop_after(r, before)
+
+
+## Targets follow the unchanged labels, including the gap before Quit Game.
+## Keep the footer and the left-hand ship/equipment area outside all targets.
+func _root_touch_row(p: Vector2i) -> int:
+	if p.x < 164 or p.x >= 312:
+		return -1
+	if p.y >= 36 and p.y < 116:
+		return 2 + (p.y - 36) / 16
+	if p.y >= 132 and p.y < 150:
+		return 7
+	return -1
+
+
+func _root_touch_mouse(event: InputEvent) -> void:
+	if not idle:
+		_touch_root_pressed = -1
+		return
+	var row := _root_touch_row(Vector2i(event.position.floor()))
+	if event is InputEventMouseMotion:
+		if row != _touch_root_pressed:
+			_touch_root_pressed = -1
+		return
+	if not event is InputEventMouseButton or event.button_index != MOUSE_BUTTON_LEFT:
+		return
+	if event.pressed:
+		_touch_root_pressed = row
+		if row >= 0:
+			_apply_hover(row)
+	else:
+		var pressed := _touch_root_pressed
+		_touch_root_pressed = -1
+		if row >= 0 and row == pressed:
+			_activate_shop_row(row)
 
 
 ## Hover (game_menu.c:JE_itemScreen, mouse moved with no button): row `row`
