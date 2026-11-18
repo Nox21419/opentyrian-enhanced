@@ -17,6 +17,11 @@ than copying them into this file.
 
 ## Frontend fidelity
 
+- Before implementing or building any requested change that affects the
+  frontend, present a few concrete design directions, explain the relevant
+  tradeoffs and recommend one. Wait for the user to choose the direction before
+  implementing or building it. This also applies when a frontend change is a
+  consequence of a broader request. Read-only investigation may proceed first.
 - Keep frontend changes as faithful to the original Tyrian 2000 as possible
   on every platform. Preserve its fonts, palette, artwork, outlines, selection
   highlights, sounds and navigation behavior wherever practical.

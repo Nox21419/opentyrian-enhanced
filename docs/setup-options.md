@@ -2,6 +2,12 @@
 
 ## Frontend fidelity
 
+Before implementing or building a change that affects the frontend, present
+a few concrete design directions with their tradeoffs and a recommendation.
+Wait for the maintainer to choose a direction before implementing or building
+it, including when the frontend change follows from a broader request.
+Read-only investigation can happen before presenting the options.
+
 Frontend changes should stay as faithful to the original Tyrian 2000 as
 possible, including its lettering, colors, artwork, outlines, selection
 highlights, sounds and navigation behavior. Prefer adapting the original
