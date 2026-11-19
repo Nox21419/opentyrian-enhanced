@@ -136,6 +136,8 @@ var _key := KEY_NONE
 var _shift := false
 ## starlib.c, P key: pause until the next key.
 var _star_paused := false
+var _touch_jukebox := OS.get_name() == "Android"
+var _touch_release := preload("res://scripts/touch_release.gd").new()
 
 
 func _ready() -> void:
@@ -382,8 +384,55 @@ func _star_key() -> String:
 func handle_mouse(event: InputEvent) -> void:
 	if _quitting:
 		return
+	if _touch_jukebox:
+		if not event is InputEventMouse:
+			return
+		var key := _touch_key(Vector2i(event.position.floor()))
+		var click := _touch_release.feed(event, str(key) if key != KEY_NONE else "")
+		if click != null:
+			if _star_paused:
+				_star_paused = false
+			else:
+				_key = key
+				_shift = false
+		return
 	if TyrianMouse.is_button_press(event):
 		_trigger_quit = true
+
+
+## Existing labels and command hints become targets; no overlay or new artwork.
+func _touch_key(p: Vector2i) -> int:
+	if not Rect2i(0, 0, 320, 200).has_point(p):
+		return KEY_NONE
+	if _hide_text:
+		return KEY_SPACE
+	if Rect2i(16, 3, 288, 17).has_point(p):
+		return KEY_ESCAPE
+	if Rect2i(16, 23, 288, 32).has_point(p):
+		return (KEY_COMMA if p.x < 160 else KEY_PERIOD) if _fx else (KEY_LEFT if p.x < 160 else KEY_RIGHT)
+	if Rect2i(16, 57, 288, 15).has_point(p):
+		return KEY_SEMICOLON if _fx else (KEY_R if _stopped else KEY_S)
+	if Rect2i(16, 73, 288, 15).has_point(p):
+		return KEY_X
+	if Music.ingame_song_override >= 0 and Rect2i(16, 89, 288, 22).has_point(p):
+		return KEY_G
+	var commands := [[KEY_RIGHT, KEY_S, KEY_R], [KEY_X, KEY_SLASH, KEY_G], [KEY_SPACE, KEY_ESCAPE]]
+	for row in 3:
+		var text := TyrianText.L("jb_ctrl%d" % (row + 1))
+		var x := 160 - TyrianText.width(text, SMALL_FONT) / 2
+		var parts := text.split("   ", false)
+		for column in mini(parts.size(), commands[row].size()):
+			var width := TyrianText.width(parts[column], SMALL_FONT)
+			if Rect2i(x - 2, 153 + row * 10, width + 4, 10).has_point(p):
+				if row == 0 and column == 0:
+					return (
+						(KEY_COMMA if p.x < x + width / 2 else KEY_PERIOD)
+						if _fx
+						else (KEY_LEFT if p.x < x + width / 2 else KEY_RIGHT)
+					)
+				return commands[row][column]
+			x += width + TyrianText.width("   ", SMALL_FONT)
+	return KEY_NONE
 
 
 ## Keys: keyboard by scancode (like lastkey_scan), click = quit,
@@ -392,10 +441,10 @@ func handle_event(event: InputEvent) -> void:
 	if _quitting:
 		return
 	if event is InputEventMouseButton:
-		if TyrianMouse.is_button_press(event):
-			_trigger_quit = true
+		handle_mouse(event)
 		return
 	if event is InputEventKey:
+		_touch_release.cancel()
 		if event.pressed and not event.echo:
 			if _star_paused:
 				_star_paused = false
@@ -408,6 +457,7 @@ func handle_event(event: InputEvent) -> void:
 
 ## Gamepad (push_joysticks_as_keyboard): same keys as the keyboard.
 func handle_action(action: StringName) -> void:
+	_touch_release.cancel()
 	const KEYS := {
 		TyrianControls.UP: KEY_UP,
 		TyrianControls.DOWN: KEY_DOWN,

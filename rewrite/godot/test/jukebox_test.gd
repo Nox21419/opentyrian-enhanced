@@ -27,6 +27,9 @@ func after() -> void:
 
 func after_test() -> void:
 	Music.ingame_song_override = -1
+	TyrianText.language = "en"
+	TyrianMouse.inactive = true
+	TyrianMouse.buttons = 0
 	for child in Effects.game_viewport.get_children():
 		child.queue_free()
 		Effects.game_viewport.remove_child(child)
@@ -50,6 +53,72 @@ func _open() -> Node:
 		if jb.idle:
 			break
 	return jb
+
+
+func _touch_button(jb: Node, p: Vector2, pressed: bool) -> void:
+	var event := InputEventMouseButton.new()
+	event.position = p
+	event.button_index = MOUSE_BUTTON_LEFT
+	event.pressed = pressed
+	jb.handle_mouse(event)
+
+
+func _touch_command(jb: Node, p: Vector2) -> void:
+	_touch_button(jb, p, true)
+	_touch_button(jb, p, false)
+	jb._apply_key(Music.song_count())
+
+
+func test_touch_track_playback_and_drag_cancel() -> void:
+	var jb := await _open()
+	jb.set("_touch_jukebox", true)
+	var before: int = jb._jb_pos
+	_touch_button(jb, Vector2(250, 40), true)
+	assert_int(jb._jb_pos).is_equal(before)
+	_touch_button(jb, Vector2(250, 40), false)
+	jb._apply_key(Music.song_count())
+	assert_int(jb._jb_pos).is_equal((before + 1) % Music.song_count())
+	_touch_command(jb, Vector2(60, 40))
+	assert_int(jb._jb_pos).is_equal(before)
+	_touch_button(jb, Vector2(250, 40), true)
+	var motion := InputEventMouseMotion.new()
+	motion.position = Vector2(250, 120)
+	jb.handle_mouse(motion)
+	_touch_button(jb, Vector2(250, 40), false)
+	assert_int(jb._key).is_equal(KEY_NONE)
+	_touch_command(jb, Vector2(160, 60))
+	assert_bool(jb._stopped).is_true()
+	_touch_command(jb, Vector2(160, 60))
+	assert_bool(jb._stopped).is_false()
+	_touch_command(jb, Vector2(160, 80))
+	assert_bool(jb._shuffle).is_true()
+
+
+func test_touch_existing_hints_work_in_all_languages_and_hidden_text_returns() -> void:
+	var jb := await _open()
+	jb.set("_touch_jukebox", true)
+	for language in ["en", "fr", "de", "es", "it", "pt"]:
+		TyrianText.language = language
+		var keys := []
+		for row in [155, 165, 175]:
+			for x in 320:
+				var key: int = jb._touch_key(Vector2i(x, row))
+				if key != KEY_NONE and not keys.has(key):
+					keys.append(key)
+		for key in [KEY_LEFT, KEY_RIGHT, KEY_S, KEY_R, KEY_X, KEY_SLASH, KEY_G, KEY_SPACE, KEY_ESCAPE]:
+			assert_bool(keys.has(key)).override_failure_message("%s lacks key %d" % [language, key]).is_true()
+	TyrianText.language = "en"
+	jb._fx = true
+	_touch_command(jb, Vector2(250, 40))
+	assert_int(jb._fx_num).is_equal(1)
+	_touch_command(jb, Vector2(60, 40))
+	assert_int(jb._fx_num).is_equal(0)
+	assert_int(jb._touch_key(Vector2i(160, 60))).is_equal(KEY_SEMICOLON)
+	jb._hide_text = true
+	_touch_command(jb, Vector2(100, 120))
+	assert_bool(jb._hide_text).is_false()
+	_touch_command(jb, Vector2(160, 10))
+	assert_bool(jb._trigger_quit).is_true()
 
 
 func test_navigation_order_and_wrap() -> void:

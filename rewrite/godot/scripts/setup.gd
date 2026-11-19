@@ -391,6 +391,9 @@ var menus := MenuEngine.new(self)
 ## True when the menu is waiting for a key (for the capture tool).
 var idle := false
 var _busy := true
+var _touch_setup := OS.get_name() == "Android"
+var _mobile_options_disabled := OS.get_name() == "Android"
+var _touch_release := preload("res://scripts/touch_release.gd").new()
 ## Row selected on opening (return from a screen opened from
 ## Setup: run_menu keeps its selection during the action); reset to 0 afterwards.
 static var entry_row := 0
@@ -411,7 +414,8 @@ func _run() -> void:
 
 ## Entry into run_menu (menu_tree_run); exit from the root: title.
 func _open(header: String, items: Array, sel := 0) -> void:
-	menus.open(header, items, {"on_back": _leave, "sel": sel})
+	_touch_release.cancel()
+	menus.open(header, items, {"on_back": _leave, "sel": sel, "touch_wide": _touch_setup})
 
 
 ## setup_menu.c:restore_setup_background.
@@ -459,9 +463,12 @@ func _setup_items() -> Array:
 			{"action": func() -> void: _open("snd_header", _sound_items())}),
 		_item("setup_gameplay", "setup_gameplay_desc", Kind.ACTION,
 			{"action": func() -> void: _open("gp_header", _gameplay_items())}),
-		_item("setup_keybindings", "setup_keybindings_desc", Kind.ACTION, {"action": _open_controls}),
-		_item("setup_joystick", "setup_joystick_desc", Kind.ACTION, {"action": _open_joystick}),
-		_item("setup_mods", "setup_mods_desc", Kind.ACTION, {"action": _open_mods}),
+		_item("setup_keybindings", "setup_keybindings_desc", Kind.ACTION,
+			{"action": _open_controls, "unavailable": _mobile_options_disabled}),
+		_item("setup_joystick", "setup_joystick_desc", Kind.ACTION,
+			{"action": _open_joystick, "unavailable": _mobile_options_disabled}),
+		_item("setup_mods", "setup_mods_desc", Kind.ACTION,
+			{"action": _open_mods, "unavailable": _mobile_options_disabled}),
 		_item("setup_jukebox", "setup_jukebox_desc", Kind.ACTION, {"action": _open_jukebox}),
 		_item("setup_done", "setup_done_main", Kind.BACK),
 	]
@@ -737,6 +744,7 @@ func _draw_volume(it: Dictionary, x: int, y: int, selected: bool) -> void:
 
 ## Navigation of run_menu and picker_popup: shared engine (ADR 0121).
 func handle_action(action: StringName) -> void:
+	_touch_release.cancel()
 	if _busy or not idle:
 		return
 	menus.handle_action(action)
@@ -748,13 +756,49 @@ func handle_action(action: StringName) -> void:
 ## Mouse of run_menu and picker_popup (shared engine), settings applied
 ## and saved as with the keyboard.
 func handle_mouse(event: InputEvent) -> void:
+	if not _touch_setup or _busy or not idle or not event is InputEventMouse or TyrianMouse.is_wheel(event):
+		_touch_release.cancel()
+		_handle_mouse(event)
+		return
+	var p := Vector2i(event.position.floor())
+	var target := _touch_target(p)
+	var click := _touch_release.feed(event, target)
+	if click != null:
+		if target == "popup:cancel":
+			menus.handle_action(TyrianControls.BACK)
+		else:
+			_handle_mouse(click)
+		TyrianMouse.note(event)
+	elif event is InputEventMouseMotion:
+		_handle_mouse(event)
+	elif event is InputEventMouseButton and event.pressed and event.button_index == MOUSE_BUTTON_LEFT \
+		and not menus.popup_open() and not menus.stack.is_empty():
+		menus.hover(menus.current(), menus.row_at(menus.current(), p))
+
+
+func _touch_target(p: Vector2i) -> String:
+	if not Rect2i(0, 0, 320, 200).has_point(p) or menus.stack.is_empty():
+		return ""
+	if menus.popup_open():
+		var popup: Dictionary = menus._popup
+		for row in int(popup.it.count):
+			if Rect2i(popup.x, popup.y + 2 + row * 15, popup.w, 15).has_point(p):
+				return "popup:%s:%d" % [popup.it.label, row]
+		return "popup:cancel"
+	var row := menus.row_at(menus.current(), p)
+	if row < 0 or not MenuEngine.selectable(menus.current().items[row]):
+		return ""
+	return "%d:%s:%d" % [menus.stack.size(), menus.current().header, row]
+
+
+func _handle_mouse(event: InputEvent) -> void:
 	if joystick.capturing() and idle:
 		# joystick.c:detect_joystick_assignment: a click cancels the capture;
 		# hover and right click do not touch the menu during the loop.
 		if TyrianMouse.is_button_press(event) and joystick.capture(event):
 			menus.draw()
 		return
-	super(event)
+	super.handle_mouse(event)
 	if settings != _applied:
 		apply_settings()
 		save_settings()

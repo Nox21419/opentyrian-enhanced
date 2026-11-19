@@ -292,6 +292,11 @@ func row_at(m: Dictionary, p: Vector2i) -> int:
 			# on the menu's real geometry (header or not, y_start, step, width).
 			var g := tree_geometry(m)
 			var n_vis: int = mini(items.size() - m.top, g.max_vis)
+			if o.get("touch_wide", false):
+				if p.x < 16 or p.x >= 304:
+					return -1
+				var r := floori(float(p.y - g.y_start + 2) / g.step)
+				return m.top + r if r >= 0 and r < n_vis else -1
 			for r in n_vis:
 				var row_y: int = g.y_start + r * g.step
 				if p.y >= row_y - 2 and p.y < row_y + ROW_HEIGHT + 2 and p.x >= g.x and p.x < g.x + g.row_width:
@@ -437,7 +442,8 @@ func _popup_mouse(event: InputEvent) -> void:
 	var hit := -1
 	for i in int(_popup.it.count):
 		var y: int = _popup.y + 2 + i * 15
-		if p.x >= _popup.x and p.x < _popup.x + _popup.w and p.y >= y and p.y < y + 13:
+		var height := 15 if current().options.get("touch_wide", false) else 13
+		if p.x >= _popup.x and p.x < _popup.x + _popup.w and p.y >= y and p.y < y + height:
 			hit = i
 			break
 	if event is InputEventMouseMotion:
@@ -633,6 +639,9 @@ func _draw_menu_tree(m: Dictionary) -> void:
 	for i in range(m.top, m.top + n_vis):
 		var it: Dictionary = items[i]
 		var y: int = g.y_start + (i - m.top) * g.step
+		if it.get("unavailable", false):
+			TyrianText.draw_font_hv_shadow(s, x0, y, TyrianText.L(it.label), s.NORMAL_FONT, s.LEFT, 10, -3, false, 2)
+			continue
 		if it.kind == Kind.CUSTOM:  # render_item: CUSTOM drawing
 			it.draw.call(it, x0, y, i == m.sel)
 			continue

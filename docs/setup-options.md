@@ -23,6 +23,12 @@ See [Android title-menu validation](android-build.md#title-touch-menu-first-menu
 
 ## Option behavior and persistence
 
+On Android, Setup's Key Bindings, Joystick and Mods entries are grey and
+unavailable. The available Setup menus and their children use wider invisible
+touch targets and activate on release, cancelling when dragged off. Jukebox
+uses its existing text as touch controls. Desktop behavior is unchanged; see
+[Android Setup navigation](android-build.md#setup-and-child-screens).
+
 Rule (card t_401e6b69, point 4): an option displayed by the Setup menu acts on the game and is
 saved, or it is not displayed. No dummy options.
 

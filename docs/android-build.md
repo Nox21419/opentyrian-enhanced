@@ -16,6 +16,10 @@ the same release-to-select adaptation with Back to Episode or Timed Battle.
 The shop root Game Menu also activates on release within wider column targets.
 Data, Upgrade Ship, Options and Next Level and their child screens activate
 on release using their original targets.
+Setup, Graphics, Sound, Gameplay, Mutators and picker popups also activate on
+release, with wider invisible row targets. Jukebox uses its existing text for
+touch controls. Setup's Key Bindings, Joystick and Mods entries are grey and
+unavailable on Android.
 Other menus still use their existing pointer/click behavior. Dedicated touch buttons for sidekicks,
 weapon switching and pause are not implemented. No HD art or example mods ship.
 Without input, leave the title idle for 30 seconds after the intro
@@ -284,6 +288,34 @@ Storm using the original blended OPTION_SHAPES artwork.
 The preview owns a separate world, so firing never consumes gameplay ammo or
 changes equipment or cash. Desktop keeps its original automatic demonstration.
 The preview unit test and `shop_children_touch_test.gd` cover these paths.
+
+### Setup and child screens
+
+Android Setup retains the original fonts, artwork, positions and row spacing.
+Rows in Setup, Graphics, Sound, Gameplay and Mutators accept touches from
+x = 16 to 304, with a separate 15-pixel-high target per visible row. Pressing
+highlights; release in the same row activates; dragging off cancels. Volume
+bars keep their existing value mapping. Settings still apply and save through
+the original handlers. Picker popups confirm on release; tapping outside the
+popup cancels without changing the value.
+
+Key Bindings, Joystick and Mods remain visible in grey but cannot be opened
+on Android; navigation skips them. Desktop retains those entries and its
+existing mouse-on-press behavior, row targets and picker handling.
+
+Jukebox's existing text becomes touch targets without new widgets: tap the
+left/right halves of the track/title area for previous/next, the playback
+status to stop/restart (or play the selected effect), and Shuffle to toggle it.
+The existing command hints at the bottom are also tappable, including effects,
+in-game music, hide text and quit. In effects mode the track/title area changes
+the effect. Tap anywhere to restore hidden text; tap the header to exit. Each
+action activates on release and cancels when dragged off. Desktop keeps its
+existing keyboard/gamepad commands and click-to-exit behavior.
+
+`test/setup_touch_test.gd` covers release activation, cancellation, unavailable
+entries, settings persistence, volume, popups and desktop input. Jukebox touch
+and six-language command targets are covered by `test/jukebox_test.gd`; run
+these alongside the existing Setup and mouse-menu suites.
 
 ### Bootstrap and packaging
 
