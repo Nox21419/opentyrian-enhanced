@@ -78,6 +78,10 @@ const JOY_KEY_NAMES := [1, 4, 2, 3, 5, 6, 7, 8]
 ## Options row to find again on returning from the settings screen.
 static var entry_row := 0
 var idle := false
+var _touch_options := OS.get_name() == "Android"
+## Mobile uses dedicated touch controls; desktop device configuration stays available.
+var _mobile_controls_disabled := OS.get_name() == "Android"
+var _touch_release := preload("res://scripts/touch_release.gd").new()
 var menus := MenuEngine.new(self)
 var _background := PackedByteArray()
 ## Slots read (Game.campaign_slots) when the list is opened.
@@ -485,6 +489,8 @@ func _open_options() -> void:
 	]
 	menus.stack.clear()
 	var first_row := entry_row if entry_row != 0 else _remembered_row("options")
+	for row in [4, 5, 6]:
+		items[row]["unavailable"] = _mobile_controls_disabled
 	entry_row = 0
 	menus.open(TyrianText.L("opt_options"), items, {
 		"sel": first_row,
@@ -814,6 +820,7 @@ func handle_event(event: InputEvent) -> void:
 
 
 func handle_action(action: StringName) -> void:
+	_touch_release.cancel()
 	if modal_input(action) or _typing or _capturing or menus.stack.is_empty():
 		return
 	menus.handle_action(action)
@@ -822,8 +829,51 @@ func handle_action(action: StringName) -> void:
 ## Mouse: name entry (mainint.c:JE_operation: click on "OK" x 56..142,
 ## "Cancel" x 151..237, y 123..149) or menus (shared engine).
 func handle_mouse(event: InputEvent) -> void:
+	if not _touch_options or (not idle and not _capturing and not _typing and not modal_active) \
+		or TyrianMouse.is_wheel(event):
+		_touch_release.cancel()
+		_handle_mouse(event)
+		return
+	var target := _touch_target(Vector2i(event.position.floor()))
+	var click := _touch_release.feed(event, target)
+	if event is InputEventMouseButton and event.pressed and event.button_index == MOUSE_BUTTON_LEFT \
+		and not modal_active and not _capturing and not _typing and not menus.stack.is_empty():
+		menus.hover(menus.current(), menus.row_at(menus.current(), Vector2i(event.position.floor())))
+	if click != null:
+		_handle_mouse(click)
+		# MenuEngine notes the delayed press; restore the real released state.
+		TyrianMouse.note(event)
+
+
+func _touch_target(p: Vector2i) -> String:
+	if not Rect2i(0, 0, 320, 200).has_point(p):
+		return ""
 	if modal_active:
-		super(event)
+		var answer: Variant = quit_box_answer(p)
+		return "modal:%s" % answer if answer != null else ""
+	if _capturing:
+		return "capture" if Rect2i(0, 0, 320, 200).has_point(p) else ""
+	if _typing:
+		if p.y > 123 and p.y < 149:
+			if p.x > 56 and p.x < 142:
+				return "name:yes"
+			if p.x > 151 and p.x < 237:
+				return "name:no"
+		return ""
+	if menus.stack.is_empty():
+		return ""
+	var row := menus.row_at(menus.current(), p)
+	# Preserve the bars' existing hit areas, including beyond the menu column.
+	if menus.stack.size() == 1 and p.x >= VOLUME_CLICK_X:
+		for volume in 2:
+			if p.y >= VOLUME_BAR_Y[volume] and p.y <= VOLUME_BAR_Y[volume] + 12:
+				row = ROW_VOLUME_FIRST + volume
+	return "%d:%s:%d" % [menus.stack.size(), menus.current().header, row] if row >= 0 else ""
+
+
+func _handle_mouse(event: InputEvent) -> void:
+	if modal_active:
+		super.handle_mouse(event)
 		return
 	if _capturing:
 		if TyrianMouse.is_button_press(event):
@@ -840,7 +890,7 @@ func handle_mouse(event: InputEvent) -> void:
 		elif p.y > 123 and p.y < 149 and p.x > 151 and p.x < 237:
 			_pending.append(TyrianControls.BACK)
 		return
-	super(event)
+	super.handle_mouse(event)
 
 
 ## Event received during a capture (keyboard.c: newkey, mousedown, joydown).

@@ -166,8 +166,9 @@ func popup_open() -> bool:
 
 
 ## menu_tree.c:item_is_selectable (SEPARATOR, LABEL excluded).
+## Optional `unavailable` metadata also blocks activation and navigation.
 static func selectable(it: Dictionary) -> bool:
-	return it.kind != Kind.LABEL
+	return it.kind != Kind.LABEL and not it.get("unavailable", false)
 
 
 ## menu_tree.c:move_selection.
@@ -458,6 +459,8 @@ func _popup_mouse(event: InputEvent) -> void:
 
 ## menu_tree.c:activate (TOGGLE flips, PICKER without popup advances one notch).
 func activate(it: Dictionary, sfx := Sfx.CLICK) -> void:
+	if it.get("unavailable", false):
+		return
 	if sfx >= 0:
 		Sfx.play(sfx)
 	match it.kind:
@@ -735,7 +738,10 @@ func _draw_game_menu(m: Dictionary) -> void:
 	for i in m.items.size():
 		var it: Dictionary = m.items[i]
 		var y: int = 38 + 16 * i + int(it.get("gap", 0))
-		s.vga.dstring(s.VGA_SCREEN, 166, y, ("~" if i == m.sel else "") + it.label, s.NORMAL_FONT)
+		if it.get("unavailable", false):
+			TyrianText.draw_font_hv_shadow(s, 166, y, it.label, s.NORMAL_FONT, s.LEFT, 0, -4, false, 2)
+		else:
+			s.vga.dstring(s.VGA_SCREEN, 166, y, ("~" if i == m.sel else "") + it.label, s.NORMAL_FONT)
 
 
 ## game_menu.c:JE_drawMenuHeader: centered on x = 234, small font if too

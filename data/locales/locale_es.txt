@@ -859,6 +859,7 @@ miscText_67=Juego extra
 miscText_68=¿Seguro que quieres guardar?
 miscText_69=Guardado original:
 miscText_70=[/] Modo del arma trasera
+shop_touch_rear_mode=[Tocar] Modo trasero
 miscText_71=Escribe Engage o
 miscTextB_0=Ep
 miscTextB_1=Episodio

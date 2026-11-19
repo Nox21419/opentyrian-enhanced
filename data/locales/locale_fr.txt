@@ -911,6 +911,7 @@ miscText_67=Jeu bonus
 miscText_68=Voulez-vous vraiment sauvegarder ?
 miscText_69=Sauvegarde d'origine :
 miscText_70=[/] Mode arme arrière
+shop_touch_rear_mode=[Toucher] Mode arrière
 miscText_71=Tapez Engage ou
 miscTextB_0=Ép
 miscTextB_1=Épisode

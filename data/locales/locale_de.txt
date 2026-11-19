@@ -859,6 +859,7 @@ miscText_67=Bonusspiel
 miscText_68=Wirklich speichern?
 miscText_69=Ursprünglicher Spielstand:
 miscText_70=[/] Heckwaffen-Modus
+shop_touch_rear_mode=[Tippen] Heckmodus
 miscText_71=Tippe Engage oder
 miscTextB_0=Ep
 miscTextB_1=Episode

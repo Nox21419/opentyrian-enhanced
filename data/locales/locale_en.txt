@@ -911,6 +911,7 @@ miscText_67=Bonus Game
 miscText_68=Are you sure you want to save?
 miscText_69=Original save:
 miscText_70=[/] Rear Weapon Mode
+shop_touch_rear_mode=[Tap] Rear weapon mode
 miscText_71=Type Engage or
 miscTextB_0=Ep
 miscTextB_1=Episode

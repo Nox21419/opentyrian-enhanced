@@ -14,6 +14,8 @@ Episode Select keeps its original five labels and placement, adds Back and
 wider touch areas, and activates a choice on release. Difficulty Select uses
 the same release-to-select adaptation with Back to Episode or Timed Battle.
 The shop root Game Menu also activates on release within wider column targets.
+Data, Upgrade Ship, Options and Next Level and their child screens activate
+on release using their original targets.
 Other menus still use their existing pointer/click behavior. Dedicated touch buttons for sidekicks,
 weapon switching and pause are not implemented. No HD art or example mods ship.
 Without input, leave the title idle for 30 seconds after the intro
@@ -210,10 +212,10 @@ rows; Quit Game occupies y = 132 to 150. The gap and footer are not targets.
 Touch highlights on press and activates on release in the same row; dragging
 off cancels. Quit still opens the existing confirmation box.
 
-Only the root Game Menu is adapted. Upgrade Ship, purchase lists, Data Cubes,
-Ship Specs, Options and Next Level retain their existing interactions. Desktop
-mouse, keyboard and controller paths and all native purchasing/equipment rules
-are unchanged. Root touch forwards the existing shop commands.
+The root policy preserves desktop mouse, keyboard and controller paths and
+all native purchasing/equipment rules. Root touch forwards the existing shop
+commands. The child-screen policy below extends release activation separately;
+Ship Specs retains its existing interaction.
 
 On the phone, check all six entries, drag cancellation, taps on the gap/footer,
 and Quit → No. Check that entering a submenu does not immediately activate
@@ -221,6 +223,53 @@ another item. `test/shop_root_touch_test.gd` covers entry destinations,
 confirmation, cancelled taps, unchanged equipment/cash, desktop mouse-on-press
 and the original Upgrade Ship interaction. Run it alongside the shop rows,
 purchase-hover and mouse menu suites.
+
+### Shop menus and child screens: release activation
+
+On Android, Data, Upgrade Ship, Options and Next Level now activate taps on
+release over the same target and cancel after the pointer is dragged off it.
+This also applies to their child screens: cube reader Exit, item purchases,
+weapon-power arrows, save/load slots, name-entry and save-confirmation buttons,
+and keyboard/gamepad/mouse settings. The original positions, labels, hit areas,
+prices, volume increments and action handlers are unchanged. Desktop keeps its
+existing mouse-on-press behavior.
+
+Cube text scrolling remains a held interaction, not a release activation.
+The empty Data screen still returns on a tap anywhere, now on release. Purchase
+rows use the existing native click path at release, including its affordability
+checks; pressing alone does not purchase an item. The shared `TouchRelease`
+helper delays the click without adding widgets or changing the menu engine.
+
+On the phone, test opening and leaving each submenu, cancelling a purchase
+by dragging off, buying on release, power arrows, volume bars, slot selection,
+name/confirmation cancellation and settings capture. Verify that cube scrolling
+still responds while held. Automated coverage is in
+`test/shop_children_touch_test.gd` and `test/options_touch_release_test.gd`,
+alongside the existing shop/configuration/mouse/save suites.
+
+### Mobile Options: external-device settings unavailable
+
+In the shop's Options menu, Android retains the Joystick, Keyboard and Mouse
+labels in their original positions but draws them grey and disables them.
+Touch cannot open them, and keyboard/controller navigation skips them. Mobile
+controls will use the dedicated touch interface; this change does not rewrite
+saved bindings or add a touch-control settings screen. Desktop retains the
+three working device-configuration menus.
+
+The child settings handlers remain present for desktop use. On the phone,
+check that tapping these grey entries does nothing and that Load, Save,
+Music, Sound and Done still work. `options_touch_release_test.gd` checks mobile
+availability and that all three desktop menus still open.
+
+### Rear Gun mode hint
+
+On Android, a rear gun with multiple modes keeps a localized `[Tap] Rear weapon
+mode` hint visible in the original preview panel. Releasing on the hint cycles
+the mode through the existing `/` command; dragging off cancels. Power and
+prices sit just above the hint, using the original lettering and colors.
+Single-mode guns have no mode target. Desktop retains its alternating `/` hint
+and existing keyboard behavior. `shop_children_touch_test.gd` checks matching
+mode indicators, cancellation, unchanged equipment/cash and localized widths.
 
 ### Bootstrap and packaging
 

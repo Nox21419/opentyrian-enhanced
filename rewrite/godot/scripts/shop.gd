@@ -19,9 +19,12 @@ extends TyrianScreen
 
 ## 8-bit rendering (ADR 0110): idle screen for the capture tool.
 var idle := false
-## Adapt only the Android root Game Menu; submenus retain their input paths.
+## Android touch adapters forward to the existing shop command paths.
 var _touch_root := OS.get_name() == "Android"
 var _touch_root_pressed := -1
+var _touch_children := OS.get_name() == "Android"
+var _touch_rear_mode := OS.get_name() == "Android"
+var _touch_release := preload("res://scripts/touch_release.gd").new()
 var _background := PackedByteArray()
 ## game_menu.c:shop_scroll (window of the item list, persistent).
 var _shop_scroll := 0
@@ -295,6 +298,7 @@ func _shop_key(name: String) -> void:
 ## State and action after a shop key or click (the click follows the
 ## same path, game_menu.c:JE_itemScreen).
 func _shop_after(r: Dictionary, before: int) -> void:
+	_touch_release.cancel()
 	_touch_root_pressed = -1
 	_state = _shop.state()
 	if before != MENU_PLAY_NEXT_LEVEL and int(_state["menu"]) == MENU_PLAY_NEXT_LEVEL:
@@ -340,6 +344,7 @@ func _quit_request() -> void:
 ## Menu action (keyboard, gamepad or capture tool --keys; TyrianScreen
 ## routes the events, ADR 0120). Space and Enter = "select" like the C code.
 func handle_action(action: StringName) -> void:
+	_touch_release.cancel()
 	_touch_root_pressed = -1
 	if (_shop == null and _arcade_menu == 0) or modal_input(action):
 		return
@@ -415,13 +420,78 @@ func handle_event(event: InputEvent) -> void:
 ## row activates, another selects); wheel = one row, like the
 ## arrows (SDL has no wheel: rewrite addition).
 func handle_mouse(event: InputEvent) -> void:
+	if not _touch_children or _shop == null or _help != null or _specs_open or modal_active \
+		or not int(_state.get("menu", 0)) in [1, MENU_PLAY_NEXT_LEVEL, MENU_UPGRADE_SUB, MENU_DATA_CUBES, MENU_DATA_CUBE_SUB]:
+		_touch_release.cancel()
+		_handle_mouse(event)
+		return
+	if TyrianMouse.is_wheel(event):
+		_touch_release.cancel()
+		_handle_mouse(event)
+		return
+	var p := Vector2i(event.position.floor())
+	var menu := int(_state.get("menu", 0))
+	var target := _child_touch_target(p)
+	var click := _touch_release.feed(event, target)
+	if target.ends_with(":rear_mode"):
+		if click != null:
+			_shop_key("slash")
+			TyrianMouse.note(event)
+		return
+	if menu == MENU_DATA_CUBE_SUB:
+		# Continuous cube scrolling remains a held interaction; only Exit activates.
+		if not target.is_empty():
+			mouse_pointer = MouseCursor.NORMAL
+		if click != null:
+			_handle_mouse(click)
+			TyrianMouse.note(event)
+		elif target.is_empty() or event is InputEventMouseMotion:
+			_handle_mouse(event)
+		return
+	if event is InputEventMouseButton and event.pressed and event.button_index == MOUSE_BUTTON_LEFT \
+		and menu != MENU_UPGRADE_SUB:
+		var row: int = _shop.row_under_mouse(p.x, p.y, _shop_scroll)
+		if row >= 0:
+			_apply_hover(row)
+	if click != null:
+		_handle_mouse(click)
+		TyrianMouse.note(event)
+
+
+func _child_touch_target(p: Vector2i) -> String:
+	var menu := int(_state.get("menu", 0))
+	var category := int(_state.get("category", 0)) if menu == MENU_UPGRADE_SUB else 0
+	var prefix := "%d:%d:" % [menu, category]
+	if _rear_touch_hint_visible() and Rect2i(20, 137, 124, 12).has_point(p):
+		return prefix + "rear_mode"
+	if menu == MENU_DATA_CUBE_SUB:
+		return prefix + "exit" if p.x > 258 and p.x < 290 and p.y > 159 and p.y < 171 else ""
+	if menu == MENU_DATA_CUBES and PackedStringArray(_state.get("cube_titles", [])).is_empty():
+		return prefix + "empty" if Rect2i(0, 0, 320, 200).has_point(p) else ""
+	var row: int = _shop.row_under_mouse(p.x, p.y, _shop_scroll)
+	if row >= 0:
+		return prefix + str(row)
+	if menu == MENU_UPGRADE_SUB and int(_state.get("category", 0)) in [3, 4] and p.y >= 149 and p.y <= 168:
+		if p.x >= 119 and p.x <= 131:
+			return prefix + "power_up"
+		if p.x >= 23 and p.x <= 36:
+			return prefix + "power_down"
+	return ""
+
+
+func _rear_touch_hint_visible() -> bool:
+	return _touch_rear_mode and int(_state.get("menu", 0)) == MENU_UPGRADE_SUB \
+		and int(_state.get("category", 0)) == 4 and int(_state.get("rear_mode_count", 1)) > 1
+
+
+func _handle_mouse(event: InputEvent) -> void:
 	if _help != null:
 		return
 	if _arcade_menu != 0 and _shop == null and not modal_active:
 		_arcade_mouse(event)
 		return
 	if _shop == null or modal_active:
-		super(event)
+		super.handle_mouse(event)
 		return
 	if _specs_open:
 		# JE_doShipSpecs: wait_input, any button.
@@ -940,16 +1010,20 @@ func _weapon_sim_frame(cat: int, lo: PackedInt32Array) -> void:
 		if not right or not _state.get("right_power_afford", false):
 			vga.blit_sprite(VGA_SCREEN, 119, 149, OPTION_SHAPES, 14)  # upgrade impossible
 		var power := lo[2] if cat == 3 else lo[4]
-		if cat == 4 and int(_state.get("rear_mode_count", 1)) == 2 and sim_time >= 75:
+		var touch_hint := _rear_touch_hint_visible()
+		if not touch_hint and cat == 4 and int(_state.get("rear_mode_count", 1)) == 2 and sim_time >= 75:
 			# Every other half-period: "[/] Rear Weapon Mode".
 			vga.out_text(VGA_SCREEN, 28, 137, TyrianText.L("miscText_70"), 1, 4)
 		else:
+			var info_y := 130 if touch_hint else 137
 			if left:
-				vga.out_text(VGA_SCREEN, 26, 137, str(int(_state.get("downgrade_cost", 0))), 1, 4)
+				vga.out_text(VGA_SCREEN, 26, info_y, str(int(_state.get("downgrade_cost", 0))), 1, 4)
 			if right:
-				vga.out_text(VGA_SCREEN, 108, 137, str(int(_state.get("upgrade_cost", 0))),
+				vga.out_text(VGA_SCREEN, 108, info_y, str(int(_state.get("upgrade_cost", 0))),
 						1 if _state.get("right_power_afford", false) else 7, 4)
-			vga.out_text(VGA_SCREEN, 58, 137, "%s %d" % [TyrianText.L("miscTextB_5"), power], 15, 4)
+			vga.out_text(VGA_SCREEN, 58, info_y, "%s %d" % [TyrianText.L("miscTextB_5"), power], 15, 4)
+		if touch_hint:
+			vga.out_text(VGA_SCREEN, 28, 137, TyrianText.L("shop_touch_rear_mode"), 1, 4)
 		for x in range(1, power + 1):
 			vga.fill_rectangle_xy(VGA_SCREEN, 39 + x * 6, 151, 39 + x * 6 + 4, 151, 251)
 			vga.set_pixel(VGA_SCREEN, 39 + x * 6, 151, 252)

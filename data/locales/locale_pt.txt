@@ -859,6 +859,7 @@ miscText_67=Jogo bonus
 miscText_68=Deseja mesmo salvar?
 miscText_69=Jogo salvo original:
 miscText_70=[/] Modo arma traseira
+shop_touch_rear_mode=[Toque] Modo traseiro
 miscText_71=Digite Engage ou
 miscTextB_0=Ep
 miscTextB_1=Episódio

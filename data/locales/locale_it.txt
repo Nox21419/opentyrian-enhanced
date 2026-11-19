@@ -911,6 +911,7 @@ miscText_67=Gioco bonus
 miscText_68=Vuoi davvero salvare?
 miscText_69=Salvataggio originale:
 miscText_70=[/] Modo arma posteriore
+shop_touch_rear_mode=[Tocca] Modo post.
 miscText_71=Digita Engage o
 miscTextB_0=Ep
 miscTextB_1=Episodio
