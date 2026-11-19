@@ -679,6 +679,25 @@ func _build_hud() -> void:
 	_pause_label.position = Vector2(120, 90)
 	_pause_label.visible = false
 	_hud.add_child(_pause_label)
+	_build_touch_pause_label()
+
+
+func _build_touch_pause_label() -> void:
+	if _touch_pause_label == null and _touch_pause and interactive and not demo and not replaying:
+		_touch_pause_label = TyrianText.new()
+		_touch_pause_label.name = "TouchPause"
+		_touch_pause_label.font = TyrianText.FontKind.NORMAL
+		_touch_pause_label.outline = true
+		_touch_pause_label.align = TyrianText.Align.LEFT
+		_touch_pause_label.text = "I"
+		var second_bar := TyrianText.new()
+		second_bar.font = TyrianText.FontKind.NORMAL
+		second_bar.outline = true
+		second_bar.text = "I"
+		second_bar.position.x = TyrianText.measure("I", TyrianText.FontKind.NORMAL) + 2
+		_touch_pause_label.add_child(second_bar)
+		_touch_pause_label.position = Vector2(2, 2)
+		_hud.add_child(_touch_pause_label)
 
 
 var _timer_text: TyrianText
@@ -882,6 +901,11 @@ func _freeze_for_debrief() -> void:
 ## sidekicks, middle weapon switch (keyboard.c, SDL_MOUSEBUTTONDOWN).
 var _mouse_mask := 0
 var _touch_flight := TouchFlight.new()
+var _touch_pause := OS.get_name() == "Android"
+const TOUCH_PAUSE_RECT := Rect2(0, 0, 56, 16)
+var _pause_touch_finger := -1
+var _pause_touch_armed := false
+var _touch_pause_label: TyrianText
 var _mouse_dx := 0
 var _mouse_dy := 0
 ## keyboard.c:mouseWindowXRelative/YRelative: raw movement accumulated in
@@ -1067,9 +1091,13 @@ func _input(event: InputEvent) -> void:
 			and not demo
 			and not replaying
 		):
+			if _touch_pause and _pause_touch_event(event):
+				return
 			_touch_flight.feed(event)
 		else:
 			_touch_flight.reset()
+			_pause_touch_finger = -1
+			_pause_touch_armed = false
 		return
 	# The real touch event supplies both movement and fire. Its emulated mouse
 	# must not add relative movement, remapped buttons or a stuck fire state.
@@ -1093,6 +1121,40 @@ func _input(event: InputEvent) -> void:
 			_mouse_mask |= mouse_button_mask(event.button_index)
 		else:
 			_mouse_mask &= ~mouse_button_mask(event.button_index)
+
+
+## Separate Pause-label finger: never enters the flight input path.
+func _pause_touch_event(event: InputEvent) -> bool:
+	if _entry_fade_active() or _game_over_shown():
+		_pause_touch_finger = -1
+		_pause_touch_armed = false
+		return false
+	if event is InputEventScreenTouch:
+		if event.index == _pause_touch_finger:
+			if not event.pressed or event.is_canceled():
+				var activate := (
+					_pause_touch_armed and not event.is_canceled() and TOUCH_PAUSE_RECT.has_point(event.position)
+				)
+				_pause_touch_finger = -1
+				_pause_touch_armed = false
+				if activate:
+					_touch_flight.reset()
+					open_pause_menu()
+			return true
+		if (
+			event.pressed
+			and not event.is_canceled()
+			and _pause_touch_finger == -1
+			and TOUCH_PAUSE_RECT.has_point(event.position)
+		):
+			_pause_touch_finger = event.index
+			_pause_touch_armed = true
+			return true
+	elif event is InputEventScreenDrag and event.index == _pause_touch_finger:
+		if not TOUCH_PAUSE_RECT.has_point(event.position):
+			_pause_touch_armed = false
+		return true
+	return false
 
 
 ## The C's newkey (keyboard.c): a key (or a click) since the last tick.
@@ -1268,6 +1330,8 @@ static func _resumes_pause(event: InputEvent) -> bool:
 func _notification(what: int) -> void:
 	if what == NOTIFICATION_APPLICATION_FOCUS_OUT or what == NOTIFICATION_EXIT_TREE:
 		_touch_flight.reset()
+		_pause_touch_finger = -1
+		_pause_touch_armed = false
 	# Level exited (Escape, exit box, title): the recording closes
 	# as at the end of the level, the file is written.
 	if what == NOTIFICATION_PREDELETE or what == NOTIFICATION_EXIT_TREE:
@@ -1496,6 +1560,11 @@ var _help_screen: Node
 func open_pause_menu() -> void:
 	if _pause_menu != null:
 		return
+	_touch_flight.reset()
+	_pause_touch_finger = -1
+	_pause_touch_armed = false
+	if _touch_pause_label != null:
+		_touch_pause_label.visible = false
 	var menu: Node = PAUSE_MENU.new()
 	menu.name = "PauseMenu"
 	menu.z_index = Z.HUD + 2
@@ -1519,6 +1588,8 @@ func _on_pause_menu_closed(quit: bool) -> void:
 	if not quit:
 		_pause_menu.queue_free()
 	_pause_menu = null
+	if _touch_pause_label != null:
+		_touch_pause_label.visible = true
 	if _hud_vga != null:
 		_hud_vga.release_frozen_screen()
 	# input_consume(INPUT_MENU_CANCEL): the key that closes does not reopen;

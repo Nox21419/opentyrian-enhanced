@@ -34,8 +34,10 @@ Side Modes keeps its two modifier columns, with wider release-activated targets,
 mode arrows, Start Level and Back; Two Players is grey and cannot launch.
 End-of-level Statistics replaces its footer hint with Continue; a release over
 the wide footer target advances, while dragging off cancels.
-Other menus still use their existing pointer/click behavior. Dedicated touch buttons for sidekicks,
-weapon switching and pause are not implemented. No HD art or example mods ship.
+The top-left corner has an `II` Pause icon; its menu and Quit confirmation
+activate on release and cancel when dragged off.
+Other menus still use their existing pointer/click behavior. Dedicated in-level
+touch buttons for sidekicks and weapon switching are not implemented. No HD art or example mods ship.
 Without input, leave the title idle for 30 seconds after the intro
 to see the built-in recorded gameplay demo. This is an experimental target,
 not a claim of phone performance or full Android support.
@@ -499,3 +501,31 @@ The preceding debrief animation and game rules are unchanged.
 campaign continuation, desktop behavior and localized label widths. Existing
 debrief suites check statistics values, keyboard/gamepad exits, timed bonuses,
 two-player results and early scene replacement.
+
+
+### Top-left Pause icon, pause menu and Quit confirmation
+
+Android places `II` at (2, 2) in the top-left corner as a Pause icon, using
+the same original font as the main-menu items and a dark outline. The bars
+have two extra pixels of separation rather than a full text space. Its touch area is x = 0..55,
+y = 0..15. Presses starting there belong to Pause instead of flight. The icon opens
+the existing pause menu on release, cancels when dragged off or on focus loss,
+and tracks its own finger so it cannot steer the ship. Opening Pause clears held
+flight input. No simulation ticks run while the existing pause menu is open.
+The icon is absent on desktop and during demos/replays.
+
+The pause menu keeps its original artwork, six rows, values and sounds. Android
+uses disjoint 20-pixel-high touch rows spanning x = 8..217. Music/Sound labels
+still toggle mute, their bars still set volume, Visual Effects and Game Speed
+still cycle through their existing choices, and Return resumes. These actions
+activate on release; dragging from a volume label to its bar also cancels.
+Quit's original Yes/No box uses release activation and drag-off cancellation.
+No resumes the game and Yes follows the original quit path. Settings retain
+the existing save-on-close behavior. Desktop mouse, keyboard and gamepad paths
+are unchanged. This adaptation does not change simulation timing or speed rules.
+
+`test/pause_touch_test.gd` checks the top-left gesture, separate flight finger,
+cancellation and focus loss, frozen simulation state, settings and persistence,
+Return, both Quit answers, icon width and desktop icon absence.
+Existing pause-menu, pause, visual-effects and touch-flight suites check the
+other input paths and gameplay input preservation.

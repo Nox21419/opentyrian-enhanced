@@ -36,6 +36,8 @@ signal closed(quit: bool)
 
 var menus := MenuEngine.new(self)
 var _closing := false
+var _touch_pause := OS.get_name() == "Android"
+var _touch_release := TouchRelease.new()
 
 
 ## JE_inGameSetup: darkened frozen image (four JE_barShade passes),
@@ -235,6 +237,7 @@ func _quit_action() -> void:
 
 
 func _quit_request() -> void:
+	_touch_release.cancel()
 	idle = false
 	var yes: bool = await quit_request_msg(TyrianText.L("miscText_28"), TyrianText.L("miscText_30"))
 	_close(yes)
@@ -275,6 +278,7 @@ func _process(_delta: float) -> void:
 
 
 func handle_action(action: StringName) -> void:
+	_touch_release.cancel()
 	if _closing or modal_input(action):
 		return
 	menus.handle_action(action)
@@ -293,6 +297,47 @@ func _unhandled_input(event: InputEvent) -> void:
 
 
 func mouse_event(event: InputEvent) -> void:
+	if not _touch_pause:
+		_mouse_event(event)
+		return
+	TyrianMouse.note(event)
+	if _closing or not event is InputEventMouse:
+		_touch_release.cancel()
+		return
+	var p := Vector2i(make_input_local(event).position)
+	var target := _touch_target(p)
+	if _touch_release.feed(event, target) == null:
+		return
+	if modal_active:
+		modal_input(TyrianControls.YES if target == "yes" else TyrianControls.NO)
+		return
+	var i := int(target.get_slice(":", 1))
+	var m: Dictionary = menus.current()
+	m.sel = i
+	var it: Dictionary = m.items[i]
+	if it.kind == Kind.BACK:
+		menus.back()
+		return
+	if it.kind == Kind.CUSTOM:
+		it.click.call(it, p.x - PAUSE_X)
+	else:
+		menus.activate(it)
+	menus.draw()
+
+
+func _touch_target(p: Vector2i) -> String:
+	if modal_active:
+		var answer: Variant = quit_box_answer(p)
+		return "" if answer == null else ("yes" if answer else "no")
+	if Rect2i(8, 18, 210, 120).has_point(p):
+		var i := (p.y - 18) / PAUSE_STEP
+		# Crossing from a volume label to its bar cancels instead of muting.
+		var part := ":label" if p.x < PAUSE_VALUE_X else ":value"
+		return "row:%d%s" % [i, part if i < 2 else ""]
+	return ""
+
+
+func _mouse_event(event: InputEvent) -> void:
 	var p := Vector2i(make_input_local(event).position)
 	if modal_active:
 		# Hover over "Yes" / "No": moves the selection (modal_mouse).
