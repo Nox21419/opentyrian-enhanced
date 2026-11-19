@@ -27,6 +27,8 @@ var players_index := 0
 var selected := 0
 var idle := false
 var _busy := true
+var _touch_load := OS.get_name() == "Android"
+var _touch_release := preload("res://scripts/touch_release.gd").new()
 ## Slot list (shared engine, ADR 0121).
 var menus := MenuEngine.new(self)
 ## 22 slots (playersIndex * 11 + i): Dictionary or null.
@@ -122,12 +124,17 @@ func _draw_controls() -> void:
 	if players_index > 0:
 		vga.blit_sprite2(VGA_SCREEN, X_LEFT_CONTROL, Y_CONTROLS, "newsh1.shp", 279, 0, 0, true)
 	if players_index < 1:
-		vga.blit_sprite2(VGA_SCREEN, X_RIGHT_CONTROL, Y_CONTROLS, "newsh1.shp", 281, 0, 0, true)
-	TyrianText.help_box(self, 103, 182, TyrianText.L("miscText_55"), 25, 15)
+		if _touch_load:
+			vga.blit_sprite2(VGA_SCREEN, X_RIGHT_CONTROL, Y_CONTROLS, "newsh1.shp", 281, 3, 10 * 16, true)
+		else:
+			vga.blit_sprite2(VGA_SCREEN, X_RIGHT_CONTROL, Y_CONTROLS, "newsh1.shp", 281, 0, 0, true)
+	TyrianText.help_box(self, 103, 182, TyrianText.L("miscText_55"), 25, 10 if _touch_load else 15)
 
 
 ## Left / Right: one-player / two-player page.
 func _switch_players() -> bool:
+	if _touch_load:
+		return false
 	Sfx.play(Sfx.CURSOR)
 	players_index = 1 - players_index
 	return true
@@ -137,6 +144,9 @@ func _switch_players() -> bool:
 ## 24, y >= 179) on left click; otherwise hovering a row = selection, left
 ## click = Enter; right click = exit (S_SPRING).
 func handle_mouse(event: InputEvent) -> void:
+	if _touch_load:
+		_touch_mouse(event)
+		return
 	if _busy or not idle:
 		return
 	TyrianMouse.note(event)
@@ -155,8 +165,34 @@ func handle_mouse(event: InputEvent) -> void:
 		selected = menus.selection()
 
 
+func _touch_row(p: Vector2i) -> int:
+	# The unavailable page control must not fall through to the wide Exit row.
+	if Rect2i(200, 174, 48, 26).has_point(p):
+		return -1
+	if not Rect2i(8, Y_ITEMS - 2, 304, ITEMS * DY_ITEMS).has_point(p):
+		return -1
+	return (p.y - Y_ITEMS + 2) / DY_ITEMS
+
+
+func _touch_mouse(event: InputEvent) -> void:
+	if _busy or not idle or not event is InputEventMouse:
+		_touch_release.cancel()
+		return
+	TyrianMouse.note(event)
+	var row := _touch_row(Vector2i(event.position.floor()))
+	var target := "%d:%d" % [players_index, row] if row >= 0 else ""
+	var click := _touch_release.feed(event, target)
+	if event is InputEventMouseButton and event.pressed and event.button_index == MOUSE_BUTTON_LEFT:
+		menus.hover(menus.current(), row)
+	elif click != null:
+		menus.click(menus.current(), row, Vector2i(event.position.floor()))
+	if not menus.stack.is_empty():
+		selected = menus.selection()
+
+
 ## `switch (lastkey_scan)` of JE_loadScreen: navigation by the engine.
 func handle_action(key: StringName) -> void:
+	_touch_release.cancel()
 	if _busy or not idle:
 		return
 	menus.handle_action(key)

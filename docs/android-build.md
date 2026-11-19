@@ -24,6 +24,8 @@ High Scores keeps its original arrows with wider touch targets and adds a
 small Back label; both activate on release and cancel when dragged off.
 Replays uses its original rows and scroll indicators as release-activated
 touch targets, with Back available even when the folder is empty.
+Load Game keeps its original save rows and Exit to Main Menu, with wider
+release-activated targets and the two-player page control greyed out.
 Other menus still use their existing pointer/click behavior. Dedicated touch buttons for sidekicks,
 weapon switching and pause are not implemented. No HD art or example mods ship.
 Without input, leave the title idle for 30 seconds after the intro
@@ -378,6 +380,25 @@ Replay files, recording and playback simulation are unchanged.
 drag cancellation, scroll limits, empty-screen Back, refusal messages and
 unchanged desktop pointer behavior. Run it alongside recording, playback
 and mouse-menu suites; report any existing playback parity failure separately.
+
+### Load Game
+
+Android retains the original eleven one-player save slots and Exit to Main
+Menu row, fonts, columns, spacing and selection colors. Row targets span
+x = 8..311, y = 28..183, in separate 13-pixel bands. Press highlights a row;
+release in that same row loads it through the existing campaign-save path.
+Dragging off cancels. Empty and unreadable saves retain their refusal behavior.
+The original Exit row also activates on release.
+
+The two-player page arrow and its hint are grey on Android. Touch and
+keyboard/controller page switching are disabled there, consistent with mobile
+two-player mode being unavailable. The arrow area is excluded from the wide
+Exit target. Desktop retains both pages and its existing input behavior.
+No saved files or campaign rules are changed by the adaptation.
+
+`test/load_touch_test.gd` covers loading a real save and its cash, cancellation
+without modifying that save, row geometry, unavailable paging, refusal paths,
+Exit and desktop paging. Run it alongside the save and mouse-menu suites.
 
 ### Bootstrap and packaging
 
