@@ -92,6 +92,15 @@ impl WeaponPreview {
     /// (hovered item included), `weapon_mode`: `player[0].weapon_mode`
     /// (1 or 2). Returns the shots to draw, in order.
     pub fn frame(&mut self, items: &Items, weapon_mode: u8) -> Vec<PreviewSprite> {
+        self.frame_input(items, weapon_mode, None)
+    }
+
+    /// Touch-only manual fire in this isolated preview world. No gameplay ammo is consumed.
+    pub fn frame_manual(&mut self, items: &Items, weapon_mode: u8, fire: [bool; 2]) -> Vec<PreviewSprite> {
+        self.frame_input(items, weapon_mode, Some(fire))
+    }
+
+    fn frame_input(&mut self, items: &Items, weapon_mode: u8, fire: Option<[bool; 2]>) -> Vec<PreviewSprite> {
         // update_and_draw_starfield(VGAScreen, 1): advances the positions.
         for s in self.stars.iter_mut() {
             s.position = (s.position as i32 + (s.speed + 1) * 320) as u16;
@@ -114,7 +123,7 @@ impl WeaponPreview {
         if left.wport > 0 {
             if w.shot_repeat[SHOT_LEFT_SIDEKICK] > 0 {
                 w.shot_repeat[SHOT_LEFT_SIDEKICK] -= 1;
-            } else {
+            } else if fire.is_none_or(|f| (left.ammo == 0 && left.pwr == 0) || f[0]) {
                 let s = w.players[0].sidekick[0];
                 w.player_shot_create(
                     left.wport as u16,
@@ -140,7 +149,7 @@ impl WeaponPreview {
         if right.wport > 0 {
             if w.shot_repeat[SHOT_RIGHT_SIDEKICK] > 0 {
                 w.shot_repeat[SHOT_RIGHT_SIDEKICK] -= 1;
-            } else {
+            } else if fire.is_none_or(|f| (right.ammo == 0 && right.pwr == 0) || f[1]) {
                 let s = w.players[0].sidekick[1];
                 w.player_shot_create(
                     right.wport as u16,
@@ -154,7 +163,7 @@ impl WeaponPreview {
                 );
             }
         }
-        let sprites = w.simulate_player_shots();
+        let sprites = w.simulate_player_shots(fire.is_some());
         // Energy bar: power += powerAdd (generator mounted,
         // varz.c:JE_getShipInfo), capped at 900.
         let power_add = w.tables.generators[items.generator.index().min(w.tables.generators.len() - 1)].power as u32;
@@ -168,7 +177,7 @@ impl World {
     /// `shots.c:simulate_player_shots`: simplified movement of the
     /// demonstration's shots (no homing, no trail, no collision), exit from the
     /// 0..140 × 0..170 frame, animated image.
-    fn simulate_player_shots(&mut self) -> Vec<PreviewSprite> {
+    fn simulate_player_shots(&mut self, special_sprites: bool) -> Vec<PreviewSprite> {
         let mut out = Vec::new();
         let dy = self.players[0].delta_y_shot_move;
         for z in 0..MAX_PWEAPON {
@@ -215,8 +224,70 @@ impl World {
                     frame %= 1000;
                 }
                 out.push(PreviewSprite { x: s.shot_x as i32 + 1, y: s.shot_y as i32, frame });
+            } else if special_sprites && frame > 60000 {
+                out.push(PreviewSprite { x: s.shot_x as i32 + 1, y: s.shot_y as i32, frame });
             }
         }
         out
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn touch_preview_fires_only_requested_manual_side_and_preserves_ammo() {
+        let data = std::path::Path::new(env!("CARGO_MANIFEST_DIR")).join("../../../data");
+        let setup = crate::setup::load_level(
+            &data,
+            1,
+            2,
+            9,
+            2,
+            crate::Loadout {
+                ship: crate::ShipId(1),
+                front_weapon: crate::WeaponId(0),
+                front_power: 1,
+                rear_weapon: crate::WeaponId(0),
+                rear_power: 1,
+                shield: crate::ShieldId(4),
+                generator: crate::GeneratorId(2),
+                left_sidekick: SidekickId(0),
+                right_sidekick: SidekickId(0),
+                special: crate::SpecialId(0),
+                cash: 10000,
+            },
+            42,
+        )
+        .unwrap();
+        let mut preview = WeaponPreview::new(&setup, [StarfieldStar::default(); MAX_STARS]);
+        let manual = preview.world.tables.options.iter().position(|o| o.wport > 0 && o.ammo > 0).unwrap();
+        let mut items = preview.world.players[0].items;
+        items.sidekick = [SidekickId(manual as u8); 2];
+        let ammo = preview.world.players[0].sidekick.map(|s| s.ammo);
+        for _ in 0..40 {
+            preview.frame_manual(&items, 1, [false; 2]);
+        }
+        assert_eq!(preview.world.shot_repeat[SHOT_LEFT_SIDEKICK], 0);
+        assert_eq!(preview.world.shot_repeat[SHOT_RIGHT_SIDEKICK], 0);
+        preview.frame_manual(&items, 1, [true, false]);
+        assert!(preview.world.shot_repeat[SHOT_LEFT_SIDEKICK] > 0);
+        assert_eq!(preview.world.shot_repeat[SHOT_RIGHT_SIDEKICK], 0);
+        preview.frame_manual(&items, 1, [false, true]);
+        assert!(preview.world.shot_repeat[SHOT_RIGHT_SIDEKICK] > 0);
+        assert_eq!(preview.world.players[0].sidekick.map(|s| s.ammo), ammo);
+        // The original desktop entry point continues auto-firing manual weapons.
+        preview.init([StarfieldStar::default(); MAX_STARS]);
+        preview.frame(&items, 1);
+        preview.frame(&items, 1);
+        assert!(preview.world.shot_repeat[SHOT_LEFT_SIDEKICK] > 0);
+        assert!(preview.world.shot_repeat[SHOT_RIGHT_SIDEKICK] > 0);
+        // Plasma Storm uses OPTION_SHAPES instead of the ordinary shot sheets.
+        items.sidekick = [SidekickId(9), SidekickId(0)];
+        preview.init([StarfieldStar::default(); MAX_STARS]);
+        preview.frame_manual(&items, 1, [false; 2]);
+        let sprites = preview.frame_manual(&items, 1, [true, false]);
+        assert!(sprites.iter().any(|s| s.frame > 60000));
     }
 }

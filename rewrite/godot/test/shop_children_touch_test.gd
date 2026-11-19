@@ -209,3 +209,58 @@ func test_desktop_keeps_slash_hint_and_touch_hint_fits_all_locales() -> void:
 	for language in ["en", "fr", "de", "es", "it", "pt"]:
 		var label := TyrianText.L("shop_touch_rear_mode", language)
 		assert_int(TyrianText.width(label, TyrianScreen.SMALL_FONT)).is_less_equal(116)
+
+
+func _open_sidekick(category: int) -> Node:
+	var shop := await _open_shop()
+	shop.set("_touch_sidekick", true)
+	_open_upgrade(shop)
+	shop._apply_hover(category)
+	shop.handle_action(TyrianControls.ACCEPT)
+	return shop
+
+
+func test_manual_sidekick_icon_uses_selected_side_and_release() -> void:
+	for category in [7, 8]:
+		var shop := await _open_sidekick(category)
+		var found := false
+		for row in shop._state.items.size():
+			shop._apply_hover(row + 2)
+			if bool(shop._state.get("manual_sidekick", false)):
+				found = true
+				break
+		assert_bool(found).is_true()
+		assert_bool(shop._sidekick_touch_icon_visible()).is_true()
+		var equipment: PackedInt32Array = shop._shop.loadout()
+		var cash := int(shop._state.cash)
+		_button(shop, Vector2(35, 158), true)
+		assert_int(shop._preview_sidekick_fire).is_equal(-1)
+		_button(shop, Vector2(35, 158), false)
+		assert_int(shop._preview_sidekick_fire).is_equal(category - 7)
+		shop._weapon_sim_frame(category, equipment)
+		assert_int(shop._preview_sidekick_fire).is_equal(-1)
+		assert_bool(shop._shop.loadout() == equipment).is_true()
+		assert_int(int(shop._state.cash)).is_equal(cash)
+		_button(shop, Vector2(35, 158), true)
+		var motion := InputEventMouseMotion.new()
+		motion.position = Vector2(80, 158)
+		shop.handle_mouse(motion)
+		_button(shop, Vector2(35, 158), false)
+		assert_int(shop._preview_sidekick_fire).is_equal(-1)
+		shop.set("_touch_sidekick", false)
+		assert_bool(shop._sidekick_touch_icon_visible()).is_false()
+		assert_str(shop._child_touch_target(Vector2i(35, 158))).is_empty()
+
+
+func test_automatic_and_empty_sidekick_have_no_fire_icon() -> void:
+	var shop := await _open_sidekick(7)
+	assert_bool(shop._sidekick_touch_icon_visible()).is_false()  # None equipped.
+	var found := false
+	for row in shop._state.items.size():
+		shop._apply_hover(row + 2)
+		if int(shop._state.loadout[7]) > 0 and not bool(shop._state.manual_sidekick):
+			found = true
+			assert_bool(shop._sidekick_touch_icon_visible()).is_false()
+			assert_str(shop._child_touch_target(Vector2i(35, 158))).is_empty()
+			break
+	assert_bool(found).is_true()

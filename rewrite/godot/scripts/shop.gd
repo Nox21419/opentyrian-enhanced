@@ -24,6 +24,9 @@ var _touch_root := OS.get_name() == "Android"
 var _touch_root_pressed := -1
 var _touch_children := OS.get_name() == "Android"
 var _touch_rear_mode := OS.get_name() == "Android"
+var _touch_sidekick := OS.get_name() == "Android"
+var _preview_sidekick_fire := -1
+var _preview_sidekick_item := -1
 var _touch_release := preload("res://scripts/touch_release.gd").new()
 var _background := PackedByteArray()
 ## game_menu.c:shop_scroll (window of the item list, persistent).
@@ -298,6 +301,7 @@ func _shop_key(name: String) -> void:
 ## State and action after a shop key or click (the click follows the
 ## same path, game_menu.c:JE_itemScreen).
 func _shop_after(r: Dictionary, before: int) -> void:
+	_preview_sidekick_fire = -1
 	_touch_release.cancel()
 	_touch_root_pressed = -1
 	_state = _shop.state()
@@ -433,6 +437,11 @@ func handle_mouse(event: InputEvent) -> void:
 	var menu := int(_state.get("menu", 0))
 	var target := _child_touch_target(p)
 	var click := _touch_release.feed(event, target)
+	if target.contains(":sidekick_fire:"):
+		if click != null:
+			_preview_sidekick_fire = int(_state.get("category", 0)) - 7
+			_preview_sidekick_item = int(_state.loadout[_preview_sidekick_fire + 7])
+		return
 	if target.ends_with(":rear_mode"):
 		if click != null:
 			_shop_key("slash")
@@ -462,6 +471,8 @@ func _child_touch_target(p: Vector2i) -> String:
 	var menu := int(_state.get("menu", 0))
 	var category := int(_state.get("category", 0)) if menu == MENU_UPGRADE_SUB else 0
 	var prefix := "%d:%d:" % [menu, category]
+	if _sidekick_touch_icon_visible() and Rect2i(20, 146, 32, 27).has_point(p):
+		return prefix + "sidekick_fire:" + str(int(_state.loadout[category]))
 	if _rear_touch_hint_visible() and Rect2i(20, 137, 124, 12).has_point(p):
 		return prefix + "rear_mode"
 	if menu == MENU_DATA_CUBE_SUB:
@@ -482,6 +493,10 @@ func _child_touch_target(p: Vector2i) -> String:
 func _rear_touch_hint_visible() -> bool:
 	return _touch_rear_mode and int(_state.get("menu", 0)) == MENU_UPGRADE_SUB \
 		and int(_state.get("category", 0)) == 4 and int(_state.get("rear_mode_count", 1)) > 1
+
+
+func _sidekick_touch_icon_visible() -> bool:
+	return _touch_sidekick and bool(_state.get("manual_sidekick", false))
 
 
 func _handle_mouse(event: InputEvent) -> void:
@@ -1001,6 +1016,9 @@ func _render_category(sel: int, lo: PackedInt32Array) -> void:
 ## indicator, energy bar), power interface of the front /
 ## rear weapons, motionless ship at (72, 110), then JE_drawScore.
 func _weapon_sim_frame(cat: int, lo: PackedInt32Array) -> void:
+	var fire := _preview_sidekick_fire if cat in [7, 8] and lo[cat] == _preview_sidekick_item else -1
+	_shop.preview_sidekick_input(fire if _touch_sidekick else -2)
+	_preview_sidekick_fire = -1
 	var sim_time: int = _shop.weapon_view_frame(vga)
 	var left: bool = _state.get("left_power", false)
 	var right: bool = _state.get("right_power", false)
@@ -1032,6 +1050,8 @@ func _weapon_sim_frame(cat: int, lo: PackedInt32Array) -> void:
 	else:
 		vga.blit_sprite(VGA_SCREEN, 20, 146, OPTION_SHAPES, 17)  # power interface hidden
 	_draw_shop_item(1, lo[0], 72 - 5, 110 - 7)
+	if _sidekick_touch_icon_visible():
+		_draw_shop_item(cat - 1, lo[cat], 24, 146)
 	vga.text_shade(VGA_SCREEN, 65, 173, str(int(_state["cash_left"])), 1, 6, 2)
 
 

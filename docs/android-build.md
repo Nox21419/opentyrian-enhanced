@@ -271,6 +271,20 @@ Single-mode guns have no mode target. Desktop retains its alternating `/` hint
 and existing keyboard behavior. `shop_children_touch_test.gd` checks matching
 mode indicators, cancellation, unchanged equipment/cash and localized widths.
 
+### Manual sidekick preview
+
+On Android, Left Sidekick and Right Sidekick show the selected sidekick's
+original item icon at the bottom-left of the ship preview when that sidekick
+requires manual fire (limited ammo or a nonzero charging power requirement).
+Release on the icon fires that menu's side only; dragging off cancels. Empty
+slots and automatic sidekicks have no fire icon. Manual sidekicks wait for a
+tap in the Android preview; automatic sidekicks continue their demonstration.
+The Android preview also draws special projectile sprites such as Plasma
+Storm using the original blended OPTION_SHAPES artwork.
+The preview owns a separate world, so firing never consumes gameplay ammo or
+changes equipment or cash. Desktop keeps its original automatic demonstration.
+The preview unit test and `shop_children_touch_test.gd` cover these paths.
+
 ### Bootstrap and packaging
 
 ```powershell

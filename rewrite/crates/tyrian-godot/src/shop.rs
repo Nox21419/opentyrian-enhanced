@@ -35,6 +35,8 @@ pub struct TyrianShop {
     session: Option<ShopSession>,
     /// Fire demonstration for the weapon categories (`shop_preview.c`).
     preview: Option<WeaponPreview>,
+    /// None preserves the desktop demonstration; touch supplies one-frame pulses.
+    preview_sidekick_fire: Option<[bool; 2]>,
     special: u8,
     /// `cube[]`: readable data cubes (`load_cubes`), `cubeMax` at most.
     cubes: Vec<Cube>,
@@ -465,6 +467,14 @@ impl TyrianShop {
         // Number of rear weapon modes (`weaponPort[...].opnum`):
         // "[/] Rear Weapon Mode" only appears if there are two.
         d.set("rear_mode_count", s.rear_mode_count(t) as i32);
+        let manual_sidekick = if s.menu == tyrian_sim::shop::ShopMenu::UpgradeSub && matches!(cat, 7 | 8) {
+            t.options
+                .get(s.items.sidekick[(cat - 7) as usize].index())
+                .is_some_and(|o| o.wport > 0 && (o.ammo > 0 || o.pwr > 0))
+        } else {
+            false
+        };
+        d.set("manual_sidekick", manual_sidekick);
         d.set("cube_sel", s.cur_sel[7] as i32);
         d.set("cube_max", s.cube_max as i32);
         let mut titles = PackedStringArray::new();
@@ -481,6 +491,20 @@ impl TyrianShop {
         d
     }
 
+    /// -2: original desktop auto-fire; -1: touch idle; 0/1: selected side only.
+    #[func]
+    fn preview_sidekick_input(&mut self, side: i32) {
+        self.preview_sidekick_fire = if side == -2 { None } else { Some([false; 2]) };
+        let Some(s) = self.session.as_ref() else { return };
+        if s.menu == tyrian_sim::shop::ShopMenu::UpgradeSub && side == s.upgrade_sel() as i32 - 7 {
+            if let Some(fire) = self.preview_sidekick_fire.as_mut() {
+                if let Some(button) = fire.get_mut(side as usize) {
+                    *button = true;
+                }
+            }
+        }
+    }
+
     /// `shop_preview.c:JE_weaponViewFrame` in the VGAScreen of `vga`: starfield,
     /// simulated shots, frame, mode indicator and energy bar.
     /// Returns `weaponSimTime` after increment (`JE_weaponSimUpdate`), on which
@@ -490,7 +514,11 @@ impl TyrianShop {
         let (Some(s), Some(p)) = (self.session.as_ref(), self.preview.as_mut()) else {
             return 0;
         };
-        let sprites = p.frame(&s.items, s.weapon_mode);
+        let sprites = if let Some(fire) = self.preview_sidekick_fire.as_mut() {
+            p.frame_manual(&s.items, s.weapon_mode, std::mem::replace(fire, [false; 2]))
+        } else {
+            p.frame(&s.items, s.weapon_mode)
+        };
         let stars = p.stars;
         let power = p.power();
         let sim_time = p.sim_time;
@@ -506,6 +534,12 @@ impl TyrianShop {
         with_assets(|a| {
             for sp in &sprites {
                 let frame = sp.frame as u32;
+                if frame > 60000 {
+                    if let Some(sprite) = a.sprite(tyrian_render::assets::OPTION_SHAPES, (frame - 60001) as usize) {
+                        surf.blit_sprite_blend(sp.x, sp.y, sprite);
+                    }
+                    continue;
+                }
                 let (sheet, idx) = if frame > 500 { ("main:11", frame - 500) } else { ("main:7", frame) };
                 if let Some(data) = a.sheet(sheet) {
                     surf.blit_sprite2(sp.x, sp.y, data, idx);
