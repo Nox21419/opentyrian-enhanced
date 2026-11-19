@@ -18,6 +18,8 @@ const BROWSER_MAX := 64  # title_screen.c:REPLAY_BROWSER_MAX
 
 var idle := false
 var _busy := true
+var _touch_replays := OS.get_name() == "Android"
+var _touch_release := preload("res://scripts/touch_release.gd").new()
 var _names: Array[String] = []
 var _headers: Array[PackedInt64Array] = []
 ## File refusal: replaces the footer for ~2.5 s (status_text /
@@ -34,10 +36,53 @@ func _ready() -> void:
 	_run.call_deferred()
 
 
-## achievements.c and replay.c have no mouse access: no hover, no click,
-## no cursor.
-func handle_mouse(_event: InputEvent) -> void:
-	pass
+## Desktop retains the keyboard-only browser. Android activates on release.
+func handle_mouse(event: InputEvent) -> void:
+	if not _touch_replays or _busy or not idle or not event is InputEventMouse:
+		_touch_release.cancel()
+		return
+	TyrianMouse.note(event)
+	var target := _touch_target(Vector2i(event.position.floor()))
+	if event is InputEventMouseButton and event.pressed and event.button_index == MOUSE_BUTTON_LEFT \
+		and target.begins_with("row:"):
+		menus.hover(menus.current(), int(target.trim_prefix("row:")))
+	if _touch_release.feed(event, target) == null:
+		return
+	match target:
+		"back":
+			handle_action(TyrianControls.BACK)
+		"up":
+			_scroll_touch(-1)
+		"down":
+			_scroll_touch(1)
+		_:
+			if target.begins_with("row:"):
+				menus.click(menus.current(), int(target.trim_prefix("row:")), Vector2i(event.position.floor()))
+
+
+func _touch_target(p: Vector2i) -> String:
+	if Rect2i(252, 188, 56, 12).has_point(p):
+		return "back"
+	if menus.stack.is_empty() or _names.is_empty():
+		return ""
+	var m: Dictionary = menus.current()
+	if Rect2i(278, 22, 30, 22).has_point(p) and m.top > 0:
+		return "up"
+	if Rect2i(278, 170, 30, 18).has_point(p) and m.top + ITEMS_PER_PAGE < _names.size():
+		return "down"
+	if p.x >= 16 and p.x < 278 and p.y >= 28 and p.y < 188:
+		var row: int = m.top + (p.y - 28) / 20
+		if row < _names.size():
+			return "row:%d" % row
+	return ""
+
+
+func _scroll_touch(direction: int) -> void:
+	var m: Dictionary = menus.current()
+	m.top = clampi(m.top + direction * ITEMS_PER_PAGE, 0, maxi(0, _names.size() - ITEMS_PER_PAGE))
+	m.sel = m.top
+	Sfx.play(Sfx.CURSOR)
+	menus.draw()
 
 
 func _replay_dir() -> String:
@@ -135,7 +180,10 @@ func _draw_footer() -> void:
 	if not _status.is_empty() and Time.get_ticks_msec() < _status_until:
 		TyrianText.text_shade(self, 20, 192, _status, 4, 4, TyrianText.FULL_SHADE)
 	else:
-		TyrianText.text_shade(self, 20, 192, TyrianText.L("replay_controls"), 15, 0, TyrianText.FULL_SHADE)
+		if not _touch_replays:
+			TyrianText.text_shade(self, 20, 192, TyrianText.L("replay_controls"), 15, 0, TyrianText.FULL_SHADE)
+	if _touch_replays:
+		TyrianText.draw_font_hv_shadow(self, 280, 192, TyrianText.L("gd_back"), SMALL_FONT, CENTERED, 15, 4, false, 2)
 
 
 ## The "^" glyph does not exist in the fonts (fonthand.c:font_ascii['^'] = -1,
@@ -170,6 +218,7 @@ func _activate(sel: int) -> void:
 
 ## Navigation (Up/Down with wrap-around, Esc): shared engine.
 func handle_action(key: StringName) -> void:
+	_touch_release.cancel()
 	if _busy or not idle:
 		return
 	menus.handle_action(key)

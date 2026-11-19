@@ -22,6 +22,8 @@ touch controls. Setup's Key Bindings, Joystick and Mods entries are grey and
 unavailable on Android.
 High Scores keeps its original arrows with wider touch targets and adds a
 small Back label; both activate on release and cancel when dragged off.
+Replays uses its original rows and scroll indicators as release-activated
+touch targets, with Back available even when the folder is empty.
 Other menus still use their existing pointer/click behavior. Dedicated touch buttons for sidekicks,
 weapon switching and pause are not implemented. No HD art or example mods ship.
 Without input, leave the title idle for 30 seconds after the intro
@@ -354,6 +356,28 @@ exit behavior. Scores and persistence are unchanged.
 `test/highscores_touch_test.gd` covers all nine pages, boundary targets,
 cancellation, Back, unchanged scores, localized label widths and desktop
 clicks. Run it with the existing high-score and mouse-menu suites.
+
+### Replays browser
+
+Android keeps the original eight-row replay list, filenames, header summaries,
+selection colors and scroll indicators. Pressing a row highlights it; releasing
+in the same row opens it through the existing replay validation/loading path.
+Dragging off cancels playback. Row targets span x = 16..277 and y = 28..187,
+in separate 20-pixel rows. Only displayed rows are targets.
+
+The existing up/down indicators have targets at x = 278..307, y = 22..43
+and 170..187 respectively. Tapping one moves the list window up/down by up
+to eight rows, without wrapping. Back uses x = 252..307, y = 188..199 with
+the existing localized tiny-font label centered at (280, 192). It replaces
+the keyboard-only footer hint on Android and also appears on the empty screen.
+Invalid/empty-file messages keep their original validation and timeout.
+Desktop retains keyboard/gamepad navigation and ignores mouse clicks as before.
+Replay files, recording and playback simulation are unchanged.
+
+`test/replays_touch_test.gd` verifies release-to-play of the selected replay,
+drag cancellation, scroll limits, empty-screen Back, refusal messages and
+unchanged desktop pointer behavior. Run it alongside recording, playback
+and mouse-menu suites; report any existing playback parity failure separately.
 
 ### Bootstrap and packaging
 
