@@ -28,6 +28,8 @@ Load Game keeps its original save rows and Exit to Main Menu, with wider
 release-activated targets and the two-player page control greyed out.
 Instructions has wider topic targets and visible previous/next chevrons and
 Back on every help page, including the embedded shop help.
+Achievements retains its original list and detail panel, with release-activated
+rows, category arrows, paging arrows and Back.
 Other menus still use their existing pointer/click behavior. Dedicated touch buttons for sidekicks,
 weapon switching and pause are not implemented. No HD art or example mods ship.
 Without input, leave the title idle for 30 seconds after the intro
@@ -436,3 +438,21 @@ save preservation and unsafe names. `game_paths_test.gd` also checks Android's
 player-directory policy. These checks and an APK export cannot substitute for
 running on the A35. The repository's Linux exported-package journey/smoke gate
 in [testing.md](testing.md) still applies before a push or build handoff.
+
+
+### Achievements touch navigation
+
+Android retains the original achievement rows, status boxes, selection bar,
+localized category heading and selected achievement details. Tap a row to select
+its details on release. The two small gold chevrons beside the category heading
+cycle through all six categories; category changes reset selection to the top.
+Up/down chevrons in the right margin page the selection by fourteen rows and
+appear only when more rows exist in that direction. The existing centered list
+window remains in use. Back replaces the keyboard-only footer hint on Android.
+Every touch action requires release over its original target; moving off cancels
+it, even when returning before release. Desktop keyboard, gamepad, mouse-wheel
+and ignored-click behavior are unchanged. Achievement tracking rules are unchanged.
+
+`test/achievements_touch_test.gd` checks selection, cancellation, all categories,
+paging boundaries, Back and desktop input. Existing sorting, sound and mouse
+parity suites also cover the unchanged desktop behavior.

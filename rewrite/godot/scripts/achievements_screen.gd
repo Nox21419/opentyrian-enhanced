@@ -152,6 +152,9 @@ const ACHIEVEMENTS := [
 	["ach_arcade_entry", "achd_arcade_entry", 5],
 ]
 
+var _touch_achievements := OS.get_name() == "Android"
+var _touch_release := TouchRelease.new()
+
 var category := 0
 var cursor := 0
 var idle := false
@@ -174,9 +177,47 @@ func _ready() -> void:
 ## no cursor. Only the wheel scrolls the list, one row per notch,
 ## like Up / Down (deliberate divergence requested by the maintainer, 2026-10-10).
 func handle_mouse(event: InputEvent) -> void:
+	if _touch_achievements:
+		TyrianMouse.note(event)
+		if _busy or not idle or menus.stack.is_empty() or not event is InputEventMouse:
+			_touch_release.cancel()
+			return
+		var target := _touch_target(Vector2i(event.position.floor()))
+		if _touch_release.feed(event, target) != null:
+			if target == "back":
+				_leave()
+			elif target == "previous" or target == "next":
+				_change_category(CAT_COUNT - 1 if target == "previous" else 1)
+			elif target == "up" or target == "down":
+				var step := -MAX_VISIBLE if target == "up" else MAX_VISIBLE
+				menus.current().sel = clampi(menus.selection() + step, 0, _filtered.size() - 1)
+			else:
+				menus.current().sel = int(target.get_slice(":", 1))
+			cursor = menus.selection()
+			if idle:
+				menus.draw()
+		return
 	var step := TyrianMouse.wheel_step(event)
 	if step != 0:
 		handle_action(TyrianControls.UP if step < 0 else TyrianControls.DOWN)
+
+
+func _touch_target(p: Vector2i) -> String:
+	if Rect2i(252, 185, 64, 15).has_point(p):
+		return "back"
+	if Rect2i(260, 0, 32, 22).has_point(p):
+		return "previous"
+	if Rect2i(292, 0, 28, 22).has_point(p):
+		return "next"
+	if Rect2i(278, 22, 38, 24).has_point(p) and menus.current().top > 0:
+		return "up"
+	if Rect2i(278, 126, 38, 24).has_point(p) and menus.current().top + 15 < _filtered.size():
+		return "down"
+	if Rect2i(8, 21, 270, 135).has_point(p):
+		var row: int = menus.current().top + (p.y - 21) / LINE_HEIGHT
+		if row < _filtered.size():
+			return "row:%d" % row
+	return ""
 
 
 func _name(i: int) -> String:
@@ -378,7 +419,27 @@ func _draw_details() -> void:
 		var d := _desc(idx)
 		if d != "":
 			TyrianText.text_shade(self, X + 24, DESC_Y, d, 15, 2, TyrianText.FULL_SHADE)
-	TyrianText.text_shade(self, 10, 190, TyrianText.L("ach_scroll"), 15, 4, TyrianText.FULL_SHADE)
+	if _touch_achievements:
+		_draw_touch_arrow(Vector2i(275, 13), Vector2i(-1, 0))
+		_draw_touch_arrow(Vector2i(306, 13), Vector2i(1, 0))
+		if menus.current().top > 0:
+			_draw_touch_arrow(Vector2i(295, 32), Vector2i(0, -1))
+		if menus.current().top + 15 < _filtered.size():
+			_draw_touch_arrow(Vector2i(295, 138), Vector2i(0, 1))
+		TyrianText.draw_font_hv_shadow(self, 280, 190, TyrianText.L("gd_back"), SMALL_FONT, CENTERED, 15, 4, false, 2)
+	else:
+		TyrianText.text_shade(self, 10, 190, TyrianText.L("ach_scroll"), 15, 4, TyrianText.FULL_SHADE)
+
+
+func _draw_touch_arrow(center: Vector2i, direction: Vector2i) -> void:
+	for shadow in [true, false]:
+		var offset := Vector2i.ONE if shadow else Vector2i.ZERO
+		var color := 0 if shadow else 252
+		for row in 7:
+			for thickness in 2:
+				var p := center + direction * (1 - absi(3 - row) + thickness)
+				p += Vector2i(-direction.y, direction.x) * (row - 3) + offset
+				vga.set_pixel(VGA_SCREEN, p.x, p.y, color)
 
 
 ## Left / Right: previous / next category, cursor at the top.
@@ -398,6 +459,7 @@ func _leave() -> void:
 
 ## Navigation: shared engine (clamped cursor, no wrapping).
 func handle_action(key: StringName) -> void:
+	_touch_release.cancel()
 	if _busy or not idle:
 		return
 	menus.handle_action(key)
