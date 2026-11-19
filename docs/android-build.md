@@ -30,6 +30,8 @@ Instructions has wider topic targets and visible previous/next chevrons and
 Back on every help page, including the embedded shop help.
 Achievements retains its original list and detail panel, with release-activated
 rows, category arrows, paging arrows and Back.
+Side Modes keeps its two modifier columns, with wider release-activated targets,
+mode arrows, Start Level and Back; Two Players is grey and cannot launch.
 Other menus still use their existing pointer/click behavior. Dedicated touch buttons for sidekicks,
 weapon switching and pause are not implemented. No HD art or example mods ship.
 Without input, leave the title idle for 30 seconds after the intro
@@ -456,3 +458,25 @@ and ignored-click behavior are unchanged. Achievement tracking rules are unchang
 `test/achievements_touch_test.gd` checks selection, cancellation, all categories,
 paging boundaries, Back and desktop input. Existing sorting, sound and mouse
 parity suites also cover the unchanged desktop behavior.
+
+
+### Side Modes touch navigation
+
+Android retains the existing mode row, modifier columns, lettering, palette and
+background. Small gold chevrons switch modes: the left arrow selects the previous
+mode; the mode text and right arrow select the next. Mutator and anomaly rows use
+wider, disjoint touch areas while retaining their original nine-pixel spacing.
+Start Level and Back replace the keyboard hints at the bottom. All touch actions
+activate on release over the original target; dragging off cancels the action.
+
+Two Players remains visible in grey, with Start Level grey and unavailable while
+it is selected. Android also refuses that launch through keyboard/gamepad Accept.
+The remaining modes use their original launch parameters, and mutators retain
+the existing settings persistence. Desktop input and two-player launch remain
+available. This pass adapts the Side Modes selection screen, not Destruct's own
+menus or gameplay controls.
+
+`test/modes_touch_test.gd` covers every modifier, mode cycling, release/cancel,
+mobile two-player refusal, Galaga launch flags, Destruct routing, Back, desktop
+two-player launch and localized control widths. Existing menu and mode suites
+check desktop navigation, saved mutators and a 300-tick Galaga run.
