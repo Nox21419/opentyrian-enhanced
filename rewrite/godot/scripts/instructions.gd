@@ -47,6 +47,8 @@ var page := 0
 var topic := 1
 var idle := false
 var _busy := true
+var _touch_help := OS.get_name() == "Android"
+var _touch_release := preload("res://scripts/touch_release.gd").new()
 ## Opened by the shop (F1): child of the scene instead of a scene, exit
 ## emits "closed" instead of returning to the title.
 var embedded := false
@@ -142,12 +144,28 @@ func _draw_page() -> bool:
 		for box in PAGE_BOXES[page]:
 			TyrianText.help_box(self, 10, box[0], TyrianText.L("help_%d" % (box[1] - 1)), 60, 12, 3)
 	TyrianText.vertical_height = 7
+	if _touch_help:
+		_draw_touch_arrow(108, -1)
+		_draw_touch_arrow(212, 1)
+		TyrianText.draw_font_hv_shadow(self, 160, 192, TyrianText.L("gd_back"), SMALL_FONT, CENTERED, 15, 4, false, 2)
 	present()
 	idle = true
 	return true
 
 
+## Small palette chevrons, like the replay browser's original-style indicator.
+func _draw_touch_arrow(x: int, direction: int) -> void:
+	for shadow in [true, false]:
+		var offset := 1 if shadow else 0
+		var color := 0 if shadow else 15 * 16 + 12
+		for row in 7:
+			var px := x + direction * (1 - absi(3 - row)) + offset
+			for thickness in 2:
+				vga.set_pixel(VGA_SCREEN, px + thickness, 192 + row + offset, color)
+
+
 func handle_action(key: StringName) -> void:
+	_touch_release.cancel()
 	if _busy or not idle:
 		return
 	if page == 0:
@@ -162,6 +180,9 @@ func handle_action(key: StringName) -> void:
 ## left click = page -1 / +1, right click = back to topics). Wheel
 ## (addition, absent from the C): previous / next topic, previous / next page.
 func handle_mouse(event: InputEvent) -> void:
+	if _touch_help:
+		_touch_mouse(event)
+		return
 	if _busy or not idle:
 		return
 	TyrianMouse.note(event)
@@ -180,6 +201,44 @@ func handle_mouse(event: InputEvent) -> void:
 		_page_key(TyrianControls.LEFT if event.position.x < X_CENTER else TyrianControls.RIGHT)
 	elif event.button_index == MOUSE_BUTTON_RIGHT:
 		_page_key(TyrianControls.BACK)
+
+
+func _touch_target(p: Vector2i) -> String:
+	if page == 0:
+		if Rect2i(16, Y_MENU_ITEMS - 2, 288, (TOPIC_COUNT - 1) * 20).has_point(p):
+			return "topic:%d" % ((p.y - Y_MENU_ITEMS + 2) / 20)
+		return ""
+	for control in [[88, "left"], [132, "back"], [192, "right"]]:
+		var width := 56 if control[1] == "back" else 40
+		if Rect2i(control[0], 188, width, 12).has_point(p):
+			return "%d:%s" % [page, control[1]]
+	return ""
+
+
+func _touch_mouse(event: InputEvent) -> void:
+	if _busy or not idle or not event is InputEventMouse:
+		_touch_release.cancel()
+		return
+	TyrianMouse.note(event)
+	mouse_pointer = MouseCursor.NORMAL
+	var target := _touch_target(Vector2i(event.position.floor()))
+	var click := _touch_release.feed(event, target)
+	if page == 0:
+		if target.begins_with("topic:"):
+			var row := int(target.trim_prefix("topic:"))
+			if event is InputEventMouseButton and event.pressed and event.button_index == MOUSE_BUTTON_LEFT:
+				menus.hover(menus.current(), row)
+			elif click != null:
+				menus.click(menus.current(), row, Vector2i(event.position.floor()))
+			if page == 0:
+				selected_index = menus.selection()
+	elif click != null:
+		if target.ends_with(":back"):
+			_page_key(TyrianControls.BACK)
+		elif target.ends_with(":left"):
+			_page_key(TyrianControls.LEFT)
+		elif target.ends_with(":right"):
+			_page_key(TyrianControls.RIGHT)
 
 
 ## Choice of a topic (JE_helpSystem): the last one ("Exit") returns to the title.

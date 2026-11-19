@@ -26,6 +26,8 @@ Replays uses its original rows and scroll indicators as release-activated
 touch targets, with Back available even when the folder is empty.
 Load Game keeps its original save rows and Exit to Main Menu, with wider
 release-activated targets and the two-player page control greyed out.
+Instructions has wider topic targets and visible previous/next chevrons and
+Back on every help page, including the embedded shop help.
 Other menus still use their existing pointer/click behavior. Dedicated touch buttons for sidekicks,
 weapon switching and pause are not implemented. No HD art or example mods ship.
 Without input, leave the title idle for 30 seconds after the intro
@@ -399,6 +401,28 @@ No saved files or campaign rules are changed by the adaptation.
 `test/load_touch_test.gd` covers loading a real save and its cash, cancellation
 without modifying that save, row geometry, unavailable paging, refusal paths,
 Exit and desktop paging. Run it alongside the save and mouse-menu suites.
+
+### Instructions and Help
+
+Android retains every original topic and all eleven help pages, including
+their help text, artwork, fonts and page counters. Topics use wider targets
+from x = 16..303 in separate 20-pixel bands starting at y = 58. Pressing
+highlights a topic; releasing on the same topic opens it; dragging off cancels.
+The existing Exit topic returns to the title (or closes embedded shop help).
+
+Each help page has small gold palette chevrons centered at x = 108 and 212,
+and a localized tiny-font Back label at x = 160, in the existing bottom strip.
+Touch targets are x = 88..127 for Previous, 132..187 for Back and 192..231
+for Next, all y = 188..199. Actions activate on release and cancel when dragged
+off. The page body is not a navigation target on Android. Back returns to the
+topic list; Previous before page 1 and Next after page 11 also return there,
+following the original page flow. The same adaptation covers help embedded
+in the shop. Desktop retains its original topic, half-page click, right-click,
+keyboard and gamepad behavior.
+
+`test/instructions_touch_test.gd` covers every topic and page, cancellation,
+page limits, Exit, embedded close signaling, desktop input and visible footer
+controls. Run it with the help glyph, key-help and mouse-menu suites.
 
 ### Bootstrap and packaging
 
