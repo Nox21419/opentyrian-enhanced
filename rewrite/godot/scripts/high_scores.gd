@@ -161,6 +161,8 @@ var episode_index := 0
 ## True when the screen is waiting for a key (for the capture tool).
 var idle := false
 var _busy := true
+var _touch_scores := OS.get_name() == "Android"
+var _touch_release := preload("res://scripts/touch_release.gd").new()
 
 
 func _ready() -> void:
@@ -272,6 +274,8 @@ func _draw() -> void:
 	# Endless page: dedicated label ("change episode" would be wrong here).
 	var help_key := "hs_help_endless" if episode_index == ENDLESS_PAGE else "hs_help"
 	TyrianText.help_box(self, 103, 182, TyrianText.L(help_key), 25, 15)
+	if _touch_scores:
+		TyrianText.draw_font_hv_shadow(self, 280, 182, TyrianText.L("gd_back"), SMALL_FONT, CENTERED, 15, 4, false, 2)
 
 
 ## Endless page: rank and score, name ("*" mutators), "2P" mark and wave,
@@ -350,6 +354,19 @@ func handle_mouse(event: InputEvent) -> void:
 	if _busy or not idle:
 		return
 	TyrianMouse.note(event)
+	if _touch_scores:
+		if not event is InputEventMouse:
+			return
+		var target := _touch_target(Vector2i(event.position.floor()))
+		if _touch_release.feed(event, target) != null:
+			match target:
+				"left":
+					handle_action(TyrianControls.LEFT)
+				"right":
+					handle_action(TyrianControls.RIGHT)
+				"back":
+					handle_action(TyrianControls.BACK)
+		return
 	if TyrianMouse.is_wheel(event):
 		return
 	if not TyrianMouse.is_button_press(event):
@@ -364,8 +381,19 @@ func handle_mouse(event: InputEvent) -> void:
 			handle_action(TyrianControls.RIGHT)
 
 
+func _touch_target(p: Vector2i) -> String:
+	if Rect2i(64, 174, 43, 26).has_point(p) and episode_index > 0:
+		return "left"
+	if Rect2i(213, 174, 35, 26).has_point(p) and episode_index < PAGE_COUNT - 1:
+		return "right"
+	if Rect2i(252, 174, 56, 26).has_point(p):
+		return "back"
+	return ""
+
+
 ## `switch (lastkey_scan)` of JE_highScoreScreen.
 func handle_action(key: StringName) -> void:
+	_touch_release.cancel()
 	if _busy or not idle:
 		return
 	match key:

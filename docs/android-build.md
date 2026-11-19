@@ -20,6 +20,8 @@ Setup, Graphics, Sound, Gameplay, Mutators and picker popups also activate on
 release, with wider invisible row targets. Jukebox uses its existing text for
 touch controls. Setup's Key Bindings, Joystick and Mods entries are grey and
 unavailable on Android.
+High Scores keeps its original arrows with wider touch targets and adds a
+small Back label; both activate on release and cancel when dragged off.
 Other menus still use their existing pointer/click behavior. Dedicated touch buttons for sidekicks,
 weapon switching and pause are not implemented. No HD art or example mods ship.
 Without input, leave the title idle for 30 seconds after the intro
@@ -337,6 +339,21 @@ existing keyboard/gamepad commands and click-to-exit behavior.
 entries, settings persistence, volume, popups and desktop input. Jukebox touch
 and six-language command targets are covered by `test/jukebox_test.gd`; run
 these alongside the existing Setup and mouse-menu suites.
+
+### High Scores
+
+Android keeps the original score tables, episode headings, arrows and footer.
+The previous-page target spans x = 64..106, the next-page target x = 213..247,
+and Back x = 252..307; all occupy y = 174..199. The small localized Back label
+is centered at (280, 182), beside the original footer without covering it.
+Only visible arrows are active: touch does not wrap past the first or last
+page. Release in the original target activates; dragging off cancels.
+Desktop retains its original arrow-on-press, keyboard/gamepad and right-click
+exit behavior. Scores and persistence are unchanged.
+
+`test/highscores_touch_test.gd` covers all nine pages, boundary targets,
+cancellation, Back, unchanged scores, localized label widths and desktop
+clicks. Run it with the existing high-score and mouse-menu suites.
 
 ### Bootstrap and packaging
 
