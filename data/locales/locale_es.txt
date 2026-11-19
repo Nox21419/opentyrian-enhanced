@@ -1502,3 +1502,5 @@ gfx_sprite_remastered=Remasterizado
 gfx_sprite_upscaled=Escalado (xBRZ)
 gd_display_scaler=Escalador: %s
 gd_display_scale_mode=Modo de escala: %s
+
+ls_continue=Continuar

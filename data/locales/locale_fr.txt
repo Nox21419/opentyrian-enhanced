@@ -1556,3 +1556,5 @@ gfx_sprite_remastered=Remasterisé
 gfx_sprite_upscaled=Agrandi (xBRZ)
 gd_display_scaler=Filtre : %s
 gd_display_scale_mode=Echelle : %s
+
+ls_continue=Continuer

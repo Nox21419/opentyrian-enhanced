@@ -32,6 +32,8 @@ Achievements retains its original list and detail panel, with release-activated
 rows, category arrows, paging arrows and Back.
 Side Modes keeps its two modifier columns, with wider release-activated targets,
 mode arrows, Start Level and Back; Two Players is grey and cannot launch.
+End-of-level Statistics replaces its footer hint with Continue; a release over
+the wide footer target advances, while dragging off cancels.
 Other menus still use their existing pointer/click behavior. Dedicated touch buttons for sidekicks,
 weapon switching and pause are not implemented. No HD art or example mods ship.
 Without input, leave the title idle for 30 seconds after the intro
@@ -480,3 +482,20 @@ menus or gameplay controls.
 mobile two-player refusal, Galaga launch flags, Destruct routing, Back, desktop
 two-player launch and localized control widths. Existing menu and mode suites
 check desktop navigation, saved mutators and a 300-tick Galaga run.
+
+
+### End-of-level Statistics touch footer
+
+Android keeps the original Statistics layout, values, font, color and footer
+position (y = 182). Its footer reads Continue in the selected language, with an
+invisible touch area spanning x = 16..303 and y = 176..199. Only a press and release
+inside that area continue to the existing campaign/Endless flow. Dragging off
+cancels, even when returning before release; tapping the statistics body does
+nothing. A release carried over from the preceding debrief cannot dismiss the
+screen. Desktop retains its original hint and keyboard/gamepad confirmation.
+The preceding debrief animation and game rules are unchanged.
+
+`test/debrief_touch_test.gd` checks release activation, cancellation, body taps,
+campaign continuation, desktop behavior and localized label widths. Existing
+debrief suites check statistics values, keyboard/gamepad exits, timed bonuses,
+two-player results and early scene replacement.

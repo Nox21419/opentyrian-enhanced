@@ -33,6 +33,9 @@ static func debrief_plays_song(d: Dictionary, episode: int) -> bool:
 	return bool(d.get("level_timer", false)) and int(d.get("timer_countdown", 0)) <= 0 and episode == 4
 
 
+var _touch_stats := OS.get_name() == "Android"
+var _touch_release := TouchRelease.new()
+
 var _frame_count_max := 4
 var _glow_brightness := 6
 ## True when the screen is waiting for the final key (capture tool).
@@ -266,8 +269,23 @@ func _run() -> void:
 ## Confirm / Back during the statistics screen (TyrianScreen._unhandled_input:
 ## keyboard and gamepad through TyrianControls actions).
 func handle_action(action: StringName) -> void:
+	_touch_release.cancel()
 	if stats_shown and action in [TyrianControls.ACCEPT, TyrianControls.BACK]:
 		_stats_action = action
+
+
+## Android's existing statistics footer is the only touch exit target.
+func handle_mouse(event: InputEvent) -> void:
+	if not _touch_stats or not stats_shown:
+		_touch_release.cancel()
+		super(event)
+		return
+	TyrianMouse.note(event)
+	if not event is InputEventMouse:
+		return
+	var target := "continue" if Rect2i(16, 176, 288, 24).has_point(Vector2i(event.position.floor())) else ""
+	if _touch_release.feed(event, target) != null:
+		handle_action(TyrianControls.ACCEPT)
 
 
 ## "label ... value" row (STAT_LINE macro): value right-aligned.
@@ -329,14 +347,16 @@ func _level_statistics(d: Dictionary) -> void:
 	var secs := maxi(Time.get_ticks_msec() - Game.level_start_ms, 0) / 1000
 	y = _stat_line("ls_time", "%d:%02d" % [secs / 60, secs % 60], y)
 	# Exit prompt centered at the bottom, like the debriefing.
-	var press_key := TyrianText.L("misc_press_key")
+	var press_key := TyrianText.L("ls_continue" if _touch_stats else "misc_press_key")
 	TyrianText.text_shade(
 		self, TyrianText.font_center(press_key, SMALL_FONT), 182, press_key, 14, 4, TyrianText.FULL_SHADE
 	)
 	present()
+	_touch_release.cancel()
 	stats_shown = true
 	_stats_action = &""
 	if not Capture.active:
 		while is_inside_tree() and _stats_action == &"":
 			await wait_units(1)
 	stats_shown = false
+	_touch_release.cancel()
