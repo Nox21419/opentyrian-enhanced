@@ -1,9 +1,11 @@
 extends GdUnitTestSuite
 
 const SetupScreen := preload("res://scripts/setup.gd")
+var _saved_mobile_rules := false
 
 
 func before_test() -> void:
+	_saved_mobile_rules = SetupScreen._mobile_gameplay_rules
 	EndlessSession.stop()
 	Game.campaign_active = false
 	SetupScreen.reset_settings()
@@ -17,6 +19,7 @@ func after_test() -> void:
 		Effects.game_viewport.remove_child(child)
 	await get_tree().process_frame
 	DirAccess.remove_absolute(ProjectSettings.globalize_path(SetupScreen.SETTINGS_PATH))
+	SetupScreen._mobile_gameplay_rules = _saved_mobile_rules
 	SetupScreen.reset_settings()
 	SetupScreen.apply_settings()
 	Music.release_streams()
@@ -30,6 +33,8 @@ func _open(mobile := true) -> Node:
 	var setup: Node = Game.goto_scene(Game.SCENE_SETUP)
 	setup.set("_touch_setup", mobile)
 	setup.set("_mobile_options_disabled", mobile)
+	SetupScreen._mobile_gameplay_rules = mobile
+	SetupScreen.apply_settings()
 	for _frame in 1000:
 		await get_tree().process_frame
 		if setup.idle and not setup._busy:
@@ -88,14 +93,14 @@ func test_mobile_control_and_mod_rows_are_disabled_and_skipped() -> void:
 func test_gameplay_and_mutator_changes_wait_for_release_and_save() -> void:
 	var setup := await _open()
 	_tap(setup, _row(2))
-	var before: bool = SetupScreen.settings.bullet_time_enabled
-	_button(setup, _row(0, 300), true)
-	assert_bool(SetupScreen.settings.bullet_time_enabled).is_equal(before)
-	_button(setup, _row(0, 300), false)
-	assert_bool(SetupScreen.settings.bullet_time_enabled).is_equal(not before)
+	var before: bool = SetupScreen.settings.hitstop_enabled
+	_button(setup, _row(1, 300), true)
+	assert_bool(SetupScreen.settings.hitstop_enabled).is_equal(before)
+	_button(setup, _row(1, 300), false)
+	assert_bool(SetupScreen.settings.hitstop_enabled).is_equal(not before)
 	var config := ConfigFile.new()
 	assert_int(config.load(SetupScreen.SETTINGS_PATH)).is_equal(OK)
-	assert_bool(config.get_value("setup", "bullet_time_enabled")).is_equal(not before)
+	assert_bool(config.get_value("setup", "hitstop_enabled")).is_equal(not before)
 	_tap(setup, _row(7))
 	assert_str(setup.menus.current().header).is_equal("mut_header")
 	_button(setup, _row(0), true)
@@ -175,3 +180,50 @@ func test_mobile_graphics_display_is_disabled_and_other_options_remain_available
 		assert_bool(MenuEngine.selectable(setup.menus.current().items[row])).is_true()
 	setup.handle_action(TyrianControls.UP)
 	assert_int(setup.menus.selection()).is_equal(7)
+
+
+func test_mobile_gameplay_locks_apply_to_menu_runtime_and_old_settings() -> void:
+	var setup := await _open()
+	_tap(setup, _row(2))
+	for row in [0, 4, 5]:
+		var item: Dictionary = setup.menus.current().items[row]
+		assert_bool(MenuEngine.selectable(item)).is_false()
+		_tap(setup, _row(row, 160))
+		setup.menus.activate(item)
+	for row in [1, 2, 3, 6, 7, 8]:
+		assert_bool(MenuEngine.selectable(setup.menus.current().items[row])).is_true()
+	setup.menus.current().sel = 3
+	setup.handle_action(TyrianControls.DOWN)
+	assert_int(setup.menus.selection()).is_equal(6)
+	# Old settings cannot re-enable slow motion/rumble or disable continuous fire.
+	var config := ConfigFile.new()
+	config.set_value("setup", "bullet_time_enabled", true)
+	config.set_value("setup", "auto_fire_enabled", false)
+	config.set_value("setup", "rumble_enabled", true)
+	assert_int(config.save(SetupScreen.SETTINGS_PATH)).is_equal(OK)
+	SetupScreen.load_settings()
+	assert_bool(SetupScreen.settings.bullet_time_enabled).is_false()
+	assert_bool(Effects.bullet_time_allowed).is_false()
+	assert_bool(Effects.bullet_time).is_false()
+	assert_bool(SetupScreen.settings.auto_fire_enabled).is_true()
+	assert_int(Game.read_input_mask() & Game.MASK_FIRE).is_equal(Game.MASK_FIRE)
+	assert_bool(SetupScreen.settings.rumble_enabled).is_false()
+	SetupScreen.save_settings()
+	assert_int(config.load(SetupScreen.SETTINGS_PATH)).is_equal(OK)
+	assert_bool(config.get_value("setup", "bullet_time_enabled")).is_false()
+	assert_bool(config.get_value("setup", "auto_fire_enabled")).is_true()
+	assert_bool(config.get_value("setup", "rumble_enabled")).is_false()
+
+
+func test_desktop_gameplay_retains_all_options_and_saved_values() -> void:
+	var setup := await _open(false)
+	_tap(setup, _row(2, 160))
+	for item in setup.menus.current().items:
+		assert_bool(MenuEngine.selectable(item)).is_true()
+	SetupScreen.settings.bullet_time_enabled = true
+	SetupScreen.settings.auto_fire_enabled = false
+	SetupScreen.settings.rumble_enabled = true
+	SetupScreen.apply_settings()
+	assert_bool(Effects.bullet_time_allowed).is_true()
+	assert_bool(Game.auto_fire).is_false()
+	assert_bool(SetupScreen.settings.rumble_enabled).is_true()

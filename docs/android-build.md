@@ -45,6 +45,14 @@ path and its limit of 8 logical game pixels per tick per axis (280 pixels per
 second at normal 35 Hz pacing). This accepted input adaptation is not blanket
 approval for other gameplay changes.
 
+The maintainer also requested the existing Auto-fire option locked on for
+Android (continuous normal fire, including with no finger held), Bullet Time
+locked off, and Rumble locked off until mobile haptics are implemented.
+Settings application enforces these values, including when loading older
+profiles. Their Gameplay rows and values are grey and navigation skips them.
+The simulation's firing cadence, damage and movement rules are unchanged.
+Desktop retains its saved choices and editable rows.
+
 ## Host preparation
 
 1. Install Rust (minimum 1.94), Python 3.11+, Godot **4.7.2 standard** and its
@@ -290,6 +298,14 @@ changes equipment or cash. Desktop keeps its original automatic demonstration.
 The preview unit test and `shop_children_touch_test.gd` cover these paths.
 
 ### Setup and child screens
+
+Gameplay keeps Freeze Frames, Damage Numbers, Combos, Language and Mutators
+available: their existing settings paths have no desktop-only input dependency.
+On Android, Bullet Time is locked Off, Auto-fire On, and Rumble Off. Rumble
+currently targets connected gamepad motors, not the phone's vibrator.
+`setup_touch_test.gd` checks disabled rows, navigation, old-profile overrides,
+effective runtime settings and desktop behavior. The existing Gameplay suites
+verify the remaining settings.
 
 Android Setup retains the original fonts, artwork, positions and row spacing.
 Rows in Setup, Graphics, Sound, Gameplay and Mutators accept touches from

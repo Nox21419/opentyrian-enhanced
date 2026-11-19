@@ -280,6 +280,10 @@ static func _apply_sfx_enabled() -> void:
 
 ## Sets each setting modified since the last call into the game.
 static func apply_settings() -> void:
+	if _mobile_gameplay_rules:
+		settings.bullet_time_enabled = false
+		settings.auto_fire_enabled = true
+		settings.rumble_enabled = false
 	for key in settings:
 		if _applied.get(key) == settings[key]:
 			continue
@@ -393,6 +397,7 @@ var idle := false
 var _busy := true
 var _touch_setup := OS.get_name() == "Android"
 var _mobile_options_disabled := OS.get_name() == "Android"
+static var _mobile_gameplay_rules := OS.get_name() == "Android"
 var _touch_release := preload("res://scripts/touch_release.gd").new()
 ## Row selected on opening (return from a screen opened from
 ## Setup: run_menu keeps its selection during the action); reset to 0 afterwards.
@@ -521,7 +526,7 @@ const MUTATOR_KEYS := ["mut_fast_enemies", "mut_armored", "mut_bullet_hell", "mu
 ## gameplay_menu.c:gameplay_items, in the C order (Anomalies stays
 ## dormant, like in the C code).
 func _gameplay_items() -> Array:
-	return [
+	var items := [
 		_toggle("gp_bullet_time", "gp_bullet_time_desc", "bullet_time_enabled"),
 		_toggle("gp_freeze_frames", "gp_freeze_frames_desc", "hitstop_enabled"),
 		# gameplay_menu.c:dmg_get / dmg_set: two booleans behind a selector.
@@ -555,6 +560,9 @@ func _gameplay_items() -> Array:
 			{"action": func() -> void: _open("mut_header", _mutators_items())}),
 		_item("setup_done", "setup_done_back", Kind.BACK),
 	]
+	for row in [0, 4, 5]:
+		items[row]["unavailable"] = _mobile_options_disabled
+	return items
 
 
 ## graphics_menu.c:visual_fx.c:preset_table — processorType of each preset
