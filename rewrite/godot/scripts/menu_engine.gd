@@ -641,6 +641,9 @@ func _draw_menu_tree(m: Dictionary) -> void:
 		var y: int = g.y_start + (i - m.top) * g.step
 		if it.get("unavailable", false):
 			TyrianText.draw_font_hv_shadow(s, x0, y, TyrianText.L(it.label), s.NORMAL_FONT, s.LEFT, 10, -3, false, 2)
+			var disabled_suffix := value_suffix(it)
+			if disabled_suffix != "":
+				TyrianText.draw_font_hv_shadow(s, x0 + VALUE_X_OFFSET, y, disabled_suffix, s.NORMAL_FONT, s.LEFT, 10, -3, false, 2)
 			continue
 		if it.kind == Kind.CUSTOM:  # render_item: CUSTOM drawing
 			it.draw.call(it, x0, y, i == m.sel)

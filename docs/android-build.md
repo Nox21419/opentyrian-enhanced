@@ -299,6 +299,11 @@ bars keep their existing value mapping. Settings still apply and save through
 the original handlers. Picker popups confirm on release; tapping outside the
 popup cancels without changing the value.
 
+Graphics' Display row also stays visible in grey and cannot be opened on
+Android: its desktop Windowed/monitor chooser does not match Android's
+immersive display. Scaler, Scaling Mode, CRT, available sprite modes, Visual
+Effects and Explosion Style remain enabled. Desktop retains the Display chooser.
+
 Key Bindings, Joystick and Mods remain visible in grey but cannot be opened
 on Android; navigation skips them. Desktop retains those entries and its
 existing mouse-on-press behavior, row targets and picker handling.

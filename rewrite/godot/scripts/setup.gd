@@ -607,6 +607,7 @@ func _graphics_items() -> Array:
 	var sprites := _sprite_items()
 	return [
 		_item("gfx_display", "gfx_display_desc", Kind.PICKER, {
+			"unavailable": _mobile_options_disabled,
 			"get": func() -> int: return settings.display,
 			"set": func(i: int) -> void: settings.display = i,
 			"count": disp_labels.size(), "labels": disp_labels, "popup": true,

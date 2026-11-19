@@ -154,3 +154,24 @@ func test_desktop_keeps_press_activation_and_enabled_entries() -> void:
 	_button(setup, _row(0, 160), true)
 	assert_str(setup.menus.current().header).is_equal("gfx_header")
 	_button(setup, _row(0, 160), false)
+	assert_bool(MenuEngine.selectable(setup.menus.current().items[0])).is_true()
+	_button(setup, _row(0, 160), true)
+	assert_bool(setup.menus.popup_open()).is_true()
+	_button(setup, _row(0, 160), false)
+
+
+func test_mobile_graphics_display_is_disabled_and_other_options_remain_available() -> void:
+	var setup := await _open()
+	_tap(setup, _row(0))
+	var display: Dictionary = setup.menus.current().items[0]
+	var before: int = SetupScreen.settings.display
+	assert_bool(MenuEngine.selectable(display)).is_false()
+	assert_int(setup.menus.selection()).is_equal(1)
+	_tap(setup, _row(0, 160))
+	setup.menus.activate(display)
+	assert_bool(setup.menus.popup_open()).is_false()
+	assert_int(SetupScreen.settings.display).is_equal(before)
+	for row in range(1, setup.menus.current().items.size()):
+		assert_bool(MenuEngine.selectable(setup.menus.current().items[row])).is_true()
+	setup.handle_action(TyrianControls.UP)
+	assert_int(setup.menus.selection()).is_equal(7)
