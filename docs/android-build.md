@@ -716,16 +716,16 @@ dragged off. Fade transitions, the intro title and blank areas ignore taps.
 
 Desktop mouse remains ignored and keyboard/gamepad navigation stays unchanged.
 The intro/menu pass does not adapt Destruct's round controls or help, change its
-CPU/Human setup or alter its simulation. Access still uses the existing title
-DESTRUCT secret code; no title entry was added. `test/destruct_touch_test.gd`
+CPU/Human setup or alter its simulation. Access is available through Side Modes → Destruct → Start Level, as well as
+the existing title DESTRUCT secret code; no title entry was added. `test/destruct_touch_test.gd`
 checks intro actions, all five modes, cancellation, Back and desktop behavior;
 existing Destruct suites exercise rounds and gamepad/key input.
 
 A35 checks verified intro Continue/Back, mode-menu Back, ignored body taps,
 drag-off cancellation, press highlighting and release launching Heli Assault.
 The phone was left at mode selection. The test-created destruct.cfg was removed
-and the original player files verified byte-for-byte. Round touch controls and
-an Android way to enter the title's secret code remain separate work.
+and the original player files verified byte-for-byte. Round touch controls remain separate work; the existing Side Modes route is
+already touch accessible.
 
 ### Destruct pause text touch target
 
@@ -746,3 +746,34 @@ drag-off-and-return cancellation, a held press leaving the frozen frame
 unchanged, and release resuming the round. The phone was left paused again for
 maintainer testing. The test-created destruct.cfg was removed and the original
 player files verified byte-for-byte.
+
+### Destruct Help and remaining-screen audit
+
+Android Help adds Back in the existing small font and footer palette (bank 3,
+brightness 4), right-aligned at x = 304, y = 190. It preserves every original
+help row and the Backspace hint. Its invisible target is x = 252..307,
+y = 184..199. Release over the pressed target returns to the frozen round;
+dragging off cancels even if the finger returns. Tapping the help body or the
+pause-text position does nothing. The target is unavailable during fades, and
+the gesture is cancelled on entry/exit. Desktop keyboard/gamepad dismissal and
+ignored mouse behavior stay unchanged.
+
+The screen-flow audit found four Destruct interfaces: intro, mode selection
+(including optional Custom), pause and Help. All now have Android touch actions.
+There are no separate result/confirmation/settings menus: rounds reload through
+the existing flow, and destruct.cfg remains file configuration. Side Modes
+already provides a touch route into Destruct. Opening pause/Help and returning
+to mode selection from a live round still use their original keys pending the
+separate Destruct gameplay-controls pass. No CPU/Human defaults, round input,
+simulation pacing or RNG behavior changes here.
+
+`test/destruct_help_touch_test.gd` verifies Back release/cancel, frozen simulation
+state and tick count, help/body boundaries and desktop keyboard dismissal.
+The Destruct intro/mode, pause and round-key suites cover the other interfaces.
+
+Phone verification on the A35 confirmed the touch route through Side Modes,
+Help body/drag-off/held gestures leaving the screen unchanged, and Back release
+resuming the round. The original player files were verified byte-for-byte after
+testing. All 15 cases across the Help, intro/mode, pause and round-key suites
+passed with no errors, failures or orphans; formatting and lint checks passed.
+The exported Linux journey/smoke gate remains unavailable without WSL/Linux.

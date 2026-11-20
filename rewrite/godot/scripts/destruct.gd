@@ -168,6 +168,7 @@ var _touch_menus := OS.get_name() == "Android"
 var _menu_touch := TouchRelease.new()
 var _intro_back := false
 var _pause_touch_active := false
+var _help_touch_active := false
 
 
 func _ready() -> void:
@@ -181,9 +182,13 @@ func _ready() -> void:
 	_run.call_deferred()
 
 
-## Desktop retains destruct.c input; Android adapts the intro, mode menu and pause text.
+## Desktop retains destruct.c input; Android adapts the intro, mode menu, pause text and help footer.
 func handle_mouse(event: InputEvent) -> void:
-	if not _touch_menus or not idle or (phase not in ["intro", "menu"] and not _pause_touch_active):
+	if (
+		not _touch_menus
+		or not idle
+		or (phase not in ["intro", "menu"] and not _pause_touch_active and not _help_touch_active)
+	):
 		_menu_touch.cancel()
 		return
 	var target := _touch_target(Vector2i(event.position.floor()))
@@ -200,7 +205,7 @@ func handle_mouse(event: InputEvent) -> void:
 		present()
 	if click == null:
 		return
-	if _pause_touch_active:
+	if _pause_touch_active or _help_touch_active:
 		_newkey = true
 	elif phase == "intro":
 		_intro_back = target == "back"
@@ -213,6 +218,8 @@ func handle_mouse(event: InputEvent) -> void:
 
 
 func _touch_target(p: Vector2i) -> String:
+	if _help_touch_active:
+		return "back" if Rect2i(252, 184, 56, 16).has_point(p) else ""
 	if _pause_touch_active:
 		var width := maxi(64, int(vga.text_width(TyrianText.L("miscText_22"), SMALL_FONT)) + 16)
 		return "resume" if Rect2i(160 - width / 2, 84, width, 20).has_point(p) else ""
@@ -782,6 +789,7 @@ func _pause_screen() -> void:
 
 ## destruct.c:JE_helpScreen.
 func _help_screen() -> void:
+	_menu_touch.cancel()
 	await fade_black(15)
 	vga.copy(VGA_SCREEN2, VGA_SCREEN)
 	vga.clear(VGA_SCREEN, 0)
@@ -798,10 +806,16 @@ func _help_screen() -> void:
 				3
 			)
 	vga.out_text(VGA_SCREEN, 30, 190, TyrianText.L("destructHelp_24"), 3, 4)
+	if _touch_menus:
+		var back := TyrianText.L("gd_back")
+		vga.out_text(VGA_SCREEN, 304 - vga.text_width(back, SMALL_FONT), 190, back, 3, 4)
 	present()
 	await fade_palette(15)
+	_help_touch_active = true
 	phase = "wait"
 	await _wait_newkey()
+	_help_touch_active = false
+	_menu_touch.cancel()
 	phase = "play"
 	await fade_black(15)
 	vga.copy(VGA_SCREEN, VGA_SCREEN2)
