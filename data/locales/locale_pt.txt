@@ -1509,3 +1509,6 @@ endless_touch_resume=Continuar
 endless_touch_new=Nova partida
 
 endless_touch_retry=Tentar de novo
+
+endless_name_confirm=Confirmar
+endless_name_skip=Pular

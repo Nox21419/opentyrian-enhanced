@@ -1563,3 +1563,6 @@ endless_touch_resume=Reprendre
 endless_touch_new=Nouvelle partie
 
 endless_touch_retry=Réessayer
+
+endless_name_confirm=Confirmer
+endless_name_skip=Passer

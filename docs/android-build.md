@@ -573,8 +573,8 @@ are handled even when the soft keyboard supplies no physical scancode.
 Yes or the keyboard's Done action proceeds to the existing save confirmation;
 No cancels without changing the slot. The keyboard is dismissed when leaving
 name entry or the screen. Desktop text entry and bindings are unchanged. This
-pass covers Save Game only; campaign and Endless high-score name entry remain
-separate work.
+pass covers Save Game only; Endless high-score name entry is covered below.
+Campaign high-score name entry remains separate work.
 
 The integration uses Godot's [virtual keyboard API](https://docs.godotengine.org/en/4.6/classes/class_displayserver.html#class-displayserver-method-virtual-keyboard-show)
 and the existing key-event path; the [Android text wrapper in Godot 4.7.2](https://github.com/godotengine/godot/blob/4.7.2-stable/platform/android/java/lib/src/main/java/org/godotengine/godot/input/GodotTextInputWrapper.java)
@@ -630,7 +630,7 @@ original small shaded font. Their targets span x = 16..103, 112..207 and
 cancels. Taps on the table/body do nothing. Retry and New Game both follow the
 existing fresh-run path (Enter/R); Back returns to the title (Escape).
 Desktop mouse, keyboard and gamepad behavior is unchanged. High-score name
-entry remains a separate screen and is not adapted in this pass.
+entry is adapted separately below.
 `test/endless_results_touch_test.gd` covers footer actions, cancellation,
 transition guards, summary continuation and desktop/name-entry click behavior.
 
@@ -639,3 +639,33 @@ launched a fresh run, and Back returned to the title. Body taps and drag-off
 cancelled; holding Retry left the leaderboard visible until release. Test
 leaderboard entries were removed afterward and the original player profile,
 settings and campaign saves were verified byte-for-byte against their backup.
+
+### Endless high-score name entry on Android
+
+Tap and release the original shaded name field to open the Android keyboard.
+Confirm and Skip replace the keyboard hint using the original small shaded font
+and palette (bank 14, brightness 2), centered at x = 100 and 220, y = 140.
+The original uppercase ASCII/glyph checks and fifteen-character limit remain.
+Confirm/Done requires a nonempty name. Skip follows Escape and records PLAYER,
+including if text was entered; it does not discard the qualifying score.
+
+While the keyboard is visible, the original title, wave/score, prompt, field and
+actions move to y = 2, 25, 45, 60 and 85. Fonts, artwork and screen scale stay
+unchanged. The field target is x = 60..260, y = 95..115 normally (55..75 raised).
+Confirm/Skip targets are x = 40..155 / 164..279, y = 136..159 normally and
+82..93 raised. Every touch requires release over its original target; dragging
+off cancels. Keyboard dismissal restores the original layout; confirming,
+skipping or leaving the screen hides it. Desktop editing/bindings are unchanged.
+`test/endless_name_touch_test.gd` checks field gestures, empty confirmation,
+uppercasing, length, logical Backspace/Done, raised targets and cleanup; results
+and existing Endless suites cover the surrounding flow.
+
+Android processes IME deletions and inserted characters in order, including
+Samsung predictive-keyboard replacement batches. This preserves the original
+editor's naming rules while preventing duplicated prefixes from lost deletions.
+
+A35 phone checks verified Samsung keyboard entry/backspace (PHONE → PHON),
+Confirm saving PHON, keyboard Done saving P, and Skip recording PLAYER after
+text entry. Hiding the keyboard restored the normal layout; the raised prompt
+remained above the keyboard. Test scores/run data were removed and the original
+profile, settings and campaign saves restored and verified byte-for-byte.

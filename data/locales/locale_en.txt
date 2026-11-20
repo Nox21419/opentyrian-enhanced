@@ -1563,3 +1563,6 @@ endless_touch_resume=Resume
 endless_touch_new=New Game
 
 endless_touch_retry=Retry
+
+endless_name_confirm=Confirm
+endless_name_skip=Skip

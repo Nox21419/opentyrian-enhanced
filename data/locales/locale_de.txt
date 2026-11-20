@@ -1509,3 +1509,6 @@ endless_touch_resume=Fortsetzen
 endless_touch_new=Neues Spiel
 
 endless_touch_retry=Erneut
+
+endless_name_confirm=Bestätigen
+endless_name_skip=Überspringen

@@ -20,6 +20,13 @@ var idle := false
 var _touch_results := OS.get_name() == "Android"
 var _results_screen := ""
 var _results_touch := TouchRelease.new()
+var _name_active := false
+var _name_text := ""
+var _name_keyboard_requested := false
+var _name_raised := false
+var _name_redraw := false
+var _name_touch := TouchRelease.new()
+var _name_pending: Array = []
 
 
 func _ready() -> void:
@@ -34,6 +41,20 @@ func _unhandled_key_input(event: InputEvent) -> void:
 	if k == null or not k.pressed or k.echo:
 		return
 	var action := TyrianControls.menu_action(event)
+	if _touch_results and _name_active:
+		match k.keycode:
+			KEY_BACKSPACE, KEY_DELETE:
+				action = TyrianControls.DELETE
+			KEY_ENTER, KEY_KP_ENTER:
+				action = TyrianControls.ACCEPT
+			KEY_ESCAPE:
+				action = TyrianControls.BACK
+	if _touch_results and _name_active:
+		if action in [TyrianControls.DELETE, TyrianControls.ACCEPT, TyrianControls.BACK]:
+			_name_pending.append(action)
+		elif k.unicode >= 32 and k.unicode < 127:
+			_name_pending.append(char(k.unicode).to_upper())
+		return
 	_key = action if action != &"" else &"other"
 	# Name entry: the typed character, whatever the action.
 	if k.unicode >= 32 and k.unicode < 127:
@@ -45,19 +66,33 @@ func _unhandled_key_input(event: InputEvent) -> void:
 ## (confirm) and ESCAPE (cancel); its directions, arrows, have
 ## no effect on these screens.
 func _unhandled_input(event: InputEvent) -> void:
-	if _touch_results and not _results_screen.is_empty() and event is InputEventMouse:
+	if _touch_results and (_name_active or not _results_screen.is_empty()) and event is InputEventMouse:
 		handle_mouse(event)
 		return
 	if not (event is InputEventJoypadButton) or not event.pressed:
 		return
 	var action := TyrianControls.menu_action(event)
 	if action in [TyrianControls.ACCEPT, TyrianControls.BACK]:
-		_key = action
+		if _touch_results and _name_active:
+			_name_pending.append(action)
+		else:
+			_key = action
 
 
 ## Mouse (rewrite addition): left click = confirm, right click =
 ## cancel, like Enter / Escape.
 func handle_mouse(event: InputEvent) -> void:
+	if _touch_results and _name_active:
+		if not idle:
+			_name_touch.cancel()
+			return
+		var target := _name_target(Vector2i(event.position.floor()))
+		if _name_touch.feed(event, target) != null:
+			if target == "keyboard":
+				_show_name_keyboard()
+			else:
+				_name_pending.append(TyrianControls.ACCEPT if target == "confirm" else TyrianControls.BACK)
+		return
 	if _touch_results and not _results_screen.is_empty():
 		if not idle:
 			_results_touch.cancel()
@@ -141,28 +176,65 @@ func _run() -> void:
 ## (60, 95)-(260, 115), text JE_outText (70, 100, 8, 3), blinking cursor
 ## (8*16+10 / 8*16+2), help y = 140. Default "PLAYER" (ESCAPE or empty name).
 func _prompt_name(final_score: int) -> String:
-	var name := ""
+	_name_text = ""
+	_name_active = true
+	_name_pending.clear()
+	_name_raised = false
+	_name_touch.cancel()
+	_name_redraw = false
 	var flash := 8 * 16 + 10
 	var fadein := true
-	while true:
+	while is_inside_tree():
 		vga.load_pic(VGA_SCREEN, 2, false)
 		var title := TyrianText.L("endless_new_high_score")
-		TyrianText.dstring(self, TyrianText.font_center(title, LARGE_FONT), 20, title, LARGE_FONT)
+		TyrianText.dstring(
+			self, TyrianText.font_center(title, LARGE_FONT), 2 if _name_raised else 20, title, LARGE_FONT
+		)
 		var buf := TyrianText.L("endless_wave_score_fmt").replace("%d", str(EndlessSession.final_wave)).replace(
 			"%lu", str(final_score)
 		)
-		TyrianText.text_shade(self, TyrianText.font_center(buf, NORMAL_FONT), 50, buf, 15, 4, TyrianText.FULL_SHADE)
+		TyrianText.text_shade(
+			self,
+			TyrianText.font_center(buf, NORMAL_FONT),
+			25 if _name_raised else 50,
+			buf,
+			15,
+			4,
+			TyrianText.FULL_SHADE
+		)
 		var prompt := TyrianText.L("endless_enter_name")
 		TyrianText.text_shade(
-			self, TyrianText.font_center(prompt, SMALL_FONT), 80, prompt, 15, 4, TyrianText.FULL_SHADE
+			self,
+			TyrianText.font_center(prompt, SMALL_FONT),
+			45 if _name_raised else 80,
+			prompt,
+			15,
+			4,
+			TyrianText.FULL_SHADE
 		)
-		vga.bar_shade(VGA_SCREEN, 60, 95, 260, 115)
+		var field_y := 60 if _name_raised else 100
+		vga.bar_shade(VGA_SCREEN, 60, field_y - 5, 260, field_y + 15)
 		flash = 8 * 16 + 2 if flash == 8 * 16 + 10 else 8 * 16 + 10
-		TyrianText.out_text(self, 70, 100, name, 8, 3)
-		var cx := 70 + TyrianText.width(name, SMALL_FONT)
-		vga.fill_rectangle_xy(VGA_SCREEN, cx + 1, 100, cx + 5, 108, flash)
-		var hint := TyrianText.L("endless_enter_esc_hint")
-		TyrianText.text_shade(self, TyrianText.font_center(hint, SMALL_FONT), 140, hint, 14, 2, TyrianText.FULL_SHADE)
+		TyrianText.out_text(self, 70, field_y, _name_text, 8, 3)
+		var cx := 70 + TyrianText.width(_name_text, SMALL_FONT)
+		vga.fill_rectangle_xy(VGA_SCREEN, cx + 1, field_y, cx + 5, field_y + 8, flash)
+		if _touch_results:
+			for choice in [["endless_name_confirm", 100], ["endless_name_skip", 220]]:
+				var label := TyrianText.L(choice[0])
+				TyrianText.text_shade(
+					self,
+					int(choice[1]) - TyrianText.width(label, SMALL_FONT) / 2,
+					85 if _name_raised else 140,
+					label,
+					14,
+					2,
+					TyrianText.FULL_SHADE
+				)
+		else:
+			var hint := TyrianText.L("endless_enter_esc_hint")
+			TyrianText.text_shade(
+				self, TyrianText.font_center(hint, SMALL_FONT), 140, hint, 14, 2, TyrianText.FULL_SHADE
+			)
 		present()
 		if fadein:
 			await fade_palette(15, 0, 255)
@@ -170,27 +242,111 @@ func _prompt_name(final_score: int) -> String:
 		if Capture.active:
 			break
 		# 12 × setDelay(1), interrupted by a key.
+		idle = true
+		_name_redraw = false
 		_key = &""
 		_typed = ""
 		for i in 12:
 			await wait_units(1)
-			if _key != &"":
+			if _key != &"" or _name_redraw or not _name_pending.is_empty():
 				break
-		for c in _typed:
-			if name.length() < ENDLESS_NAME_MAX - 1 and (c == " " or TyrianText.sprite_id(c.unicode_at(0)) >= 0):
-				name += c
-		if _key == TyrianControls.DELETE and name.length() > 0:
-			name = name.substr(0, name.length() - 1)
-		elif _key == TyrianControls.ACCEPT:
-			# endless.c:prompt_endless_name: "if (name_len > 0) quit = true" (ENH-07):
-			# Enter with an empty name is ignored.
-			if name != "":
+		if _touch_results:
+			if _apply_name_pending():
 				break
-		elif _key == TyrianControls.BACK:
-			name = ""
-			break
+		else:
+			for c in _typed:
+				if (
+					_name_text.length() < ENDLESS_NAME_MAX - 1
+					and (c == " " or TyrianText.sprite_id(c.unicode_at(0)) >= 0)
+				):
+					_name_text += c
+			if _key == TyrianControls.DELETE and _name_text.length() > 0:
+				_name_text = _name_text.substr(0, _name_text.length() - 1)
+			elif _key == TyrianControls.ACCEPT:
+				# endless.c:prompt_endless_name: "if (name_len > 0) quit = true" (ENH-07):
+				# Enter with an empty name is ignored.
+				if _name_text != "":
+					break
+			elif _key == TyrianControls.BACK:
+				_name_text = ""
+				break
+	idle = false
+	_hide_name_keyboard()
+	_name_active = false
+	_name_touch.cancel()
 	await fade_black(10)
-	return name if name != "" else "PLAYER"
+	return _name_text if _name_text != "" else "PLAYER"
+
+
+func _apply_name_pending() -> bool:
+	while not _name_pending.is_empty():
+		var entry: Variant = _name_pending.pop_front()
+		if entry is StringName:
+			if entry == TyrianControls.DELETE:
+				_name_text = _name_text.left(maxi(0, _name_text.length() - 1))
+			elif entry == TyrianControls.BACK:
+				_name_text = ""
+				return true
+			elif entry == TyrianControls.ACCEPT and not _name_text.is_empty():
+				return true
+		elif (
+			_name_text.length() < ENDLESS_NAME_MAX - 1
+			and (entry == " " or TyrianText.sprite_id(str(entry).unicode_at(0)) >= 0)
+		):
+			_name_text += str(entry)
+	return false
+
+
+func _name_target(p: Vector2i) -> String:
+	var field_y := 60 if _name_raised else 100
+	if Rect2i(60, field_y - 5, 201, 21).has_point(p):
+		return "keyboard"
+	var button_y := 82 if _name_raised else 136
+	if p.y >= button_y and p.y < button_y + (12 if _name_raised else 24):
+		if p.x >= 40 and p.x < 156:
+			return "confirm"
+		if p.x >= 164 and p.x < 280:
+			return "skip"
+	return ""
+
+
+func _process(_delta: float) -> void:
+	if _touch_results and _name_active and _name_keyboard_requested:
+		_update_name_keyboard_layout(DisplayServer.virtual_keyboard_get_height())
+
+
+func _update_name_keyboard_layout(height: int) -> void:
+	var raised := _touch_results and _name_active and _name_keyboard_requested and height > 0
+	if raised != _name_raised:
+		_name_raised = raised
+		_name_redraw = true
+		_name_touch.cancel()
+
+
+func _show_name_keyboard() -> void:
+	if not _touch_results or not _name_active:
+		return
+	_name_keyboard_requested = true
+	if DisplayServer.has_feature(DisplayServer.FEATURE_VIRTUAL_KEYBOARD):
+		DisplayServer.virtual_keyboard_show(
+			_name_text,
+			Rect2(),
+			DisplayServer.KEYBOARD_TYPE_DEFAULT,
+			ENDLESS_NAME_MAX - 1,
+			_name_text.length(),
+			_name_text.length()
+		)
+
+
+func _hide_name_keyboard() -> void:
+	_update_name_keyboard_layout(0)
+	if _name_keyboard_requested and DisplayServer.has_feature(DisplayServer.FEATURE_VIRTUAL_KEYBOARD):
+		DisplayServer.virtual_keyboard_hide()
+	_name_keyboard_requested = false
+
+
+func _exit_tree() -> void:
+	_hide_name_keyboard()
 
 
 ## endless.c:endless_show_run_summary: image 1, two JE_barShade, title
