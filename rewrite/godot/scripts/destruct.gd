@@ -164,6 +164,9 @@ var _script: Array = []
 var _script_held := {}
 ## Capture: number of ticks played, then exit (--destruct-ticks).
 var _done := false
+var _touch_menus := OS.get_name() == "Android"
+var _menu_touch := TouchRelease.new()
+var _intro_back := false
 
 
 func _ready() -> void:
@@ -177,9 +180,50 @@ func _ready() -> void:
 	_run.call_deferred()
 
 
-## destruct.c has no mouse access (neither JE_mouseStart nor mouse_x): no effect.
-func handle_mouse(_event: InputEvent) -> void:
-	pass
+## Desktop retains destruct.c input; Android adapts only the intro/mode menu.
+func handle_mouse(event: InputEvent) -> void:
+	if not _touch_menus or not idle or phase not in ["intro", "menu"]:
+		_menu_touch.cancel()
+		return
+	var target := _touch_target(Vector2i(event.position.floor()))
+	var click := _menu_touch.feed(event, target)
+	if (
+		phase == "menu"
+		and target.begins_with("mode:")
+		and event is InputEventMouseButton
+		and event.button_index == MOUSE_BUTTON_LEFT
+		and event.pressed
+	):
+		menus.current().sel = int(target.trim_prefix("mode:"))
+		_draw_mode_menu()
+		present()
+	if click == null:
+		return
+	if phase == "intro":
+		_intro_back = target == "back"
+		_newkey = true
+	elif target == "back":
+		_menu_action(TyrianControls.BACK)
+	elif target.begins_with("mode:"):
+		menus.current().sel = int(target.trim_prefix("mode:"))
+		_menu_action(TyrianControls.ACCEPT)
+
+
+func _touch_target(p: Vector2i) -> String:
+	if p.x < 16 or p.x >= 304:
+		return ""
+	if phase == "intro":
+		if p.y >= 174 and p.y < 188:
+			return "continue"
+		if p.y >= 188 and p.y < 200:
+			return "back"
+	elif phase == "menu":
+		if p.y >= 180 and p.y < 200:
+			return "back"
+		var count := DESTRUCT_MODES + int(game.allow_custom())
+		if p.y >= 80 and p.y < 80 + 12 * count:
+			return "mode:%d" % ((p.y - 80) / 12)
+	return ""
 
 
 ## destruct.c:JE_destructGame.
@@ -529,6 +573,8 @@ func _destruct_main() -> void:
 	vga.load_pic(VGA_SCREEN, 11, false)
 	if not _no_intro():
 		await _intro_screen()
+		if _touch_menus and _intro_back:
+			return
 	game.reset_players()
 	while is_inside_tree() and not _done:
 		vga.load_pic(VGA_SCREEN, 11, false)
@@ -559,15 +605,18 @@ func _destruct_main() -> void:
 
 ## destruct.c:JE_introScreen.
 func _intro_screen() -> void:
+	_intro_back = false
+	_menu_touch.cancel()
 	vga.copy(VGA_SCREEN2, VGA_SCREEN)
 	_out_centered(TyrianText.L("specialName_9"), 90, 12, 5)
-	_out_centered(TyrianText.L("miscText_64"), 180, 15, 2)
-	_out_centered(TyrianText.L("miscText_65"), 190, 15, 2)
+	_out_centered(TyrianText.L("ls_continue" if _touch_menus else "miscText_64"), 180, 15, 2)
+	_out_centered(TyrianText.L("gd_back" if _touch_menus else "miscText_65"), 190, 15, 2)
 	present()
 	await fade_palette(15)
 	phase = "intro"
 	await _wait_newkey()
 	phase = ""
+	_menu_touch.cancel()
 	await fade_black(15)
 	vga.copy(VGA_SCREEN, VGA_SCREEN2)
 	present()
@@ -582,12 +631,15 @@ func _out_centered(text: String, y: int, colorbank: int, brightness: int) -> voi
 ## mode (destructModeName[], "Custom" if allow_custom); Enter picks,
 ## Escape returns MODE_NONE (-1).
 func _mode_select() -> int:
+	_menu_touch.cancel()
 	vga.copy(VGA_SCREEN2, VGA_SCREEN)
 	var items := []
 	for i in DESTRUCT_MODES:
 		items.append(MenuEngine.item(TyrianText.L("destructMode_%d" % i), "", MenuEngine.Kind.ACTION))
 	if game.allow_custom():
 		items.append(MenuEngine.item(TyrianText.L("destruct_mode_custom"), "", MenuEngine.Kind.ACTION))
+	if _touch_menus:
+		items.append(MenuEngine.item(TyrianText.L("gd_back"), "", MenuEngine.Kind.ACTION))
 	menus.stack.clear()
 	_mode_result = -2
 	await menus.open(
@@ -597,7 +649,7 @@ func _mode_select() -> int:
 			"render": _draw_mode_menu,
 			"activate_sfx": -1,
 			"draw": false,
-			"on_activate": func(sel: int) -> void: _mode_result = sel,
+			"on_activate": _mode_chosen,
 			"on_back": func() -> void: _mode_result = -1,
 			"redraw_on_other": true,
 		}
@@ -612,10 +664,16 @@ func _mode_select() -> int:
 		await get_tree().process_frame
 	idle = false
 	phase = ""
+	_menu_touch.cancel()
 	await fade_black(15)
 	vga.copy(VGA_SCREEN, VGA_SCREEN2)
 	present()
 	return _mode_result
+
+
+func _mode_chosen(sel: int) -> void:
+	var count := DESTRUCT_MODES + int(game.allow_custom())
+	_mode_result = -1 if _touch_menus and sel == count else sel
 
 
 func _menu_action(action: StringName) -> void:
@@ -631,7 +689,7 @@ func _draw_mode_menu() -> void:
 		vga.text_shade(
 			VGA_SCREEN,
 			160 - vga.text_width(text, SMALL_FONT) / 2,
-			82 + i * 12,
+			190 if _touch_menus and i == m.items.size() - 1 else 82 + i * 12,
 			text,
 			12,
 			4 if i == m.sel else 0,

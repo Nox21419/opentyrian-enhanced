@@ -697,3 +697,32 @@ Backspace produced PHON, Yes recorded PHON at the expected score, No declined
 the entry, drag-off cancelled, and keyboard dismissal restored the headings
 and modal placement. Temporary save/score files were removed, and the original
 profile, saves and settings restored and verified byte-for-byte.
+
+### Destruct intro and mode menu touch navigation
+
+Android retains Destruct's original intro artwork and small-font title. Its
+two existing footer lines become Continue (y = 180) and Back (y = 190), in the
+original palette/brightness. Their targets span x = 16..303, y = 174..187 and
+188..199. Continue opens mode selection; Back returns to the title.
+
+Mode selection keeps its original centered labels at y = 82 + 12 × row,
+palette bank 12 and selection brightness. Invisible row targets span
+x = 16..303, y = 80 + 12 × row through the next 11 pixels. A pressed row uses
+the existing selection highlight. Back is added at y = 190 with a target
+spanning x = 16..303, y = 180..199. It returns to the title, including through
+keyboard navigation. Custom remains available only when destruct.cfg enables
+it. Every touch activates on release over the pressed target and cancels when
+dragged off. Fade transitions, the intro title and blank areas ignore taps.
+
+Desktop mouse remains ignored and keyboard/gamepad navigation stays unchanged.
+This pass does not adapt Destruct's round controls, pause or help, change its
+CPU/Human setup or alter its simulation. Access still uses the existing title
+DESTRUCT secret code; no title entry was added. `test/destruct_touch_test.gd`
+checks intro actions, all five modes, cancellation, Back and desktop behavior;
+existing Destruct suites exercise rounds and gamepad/key input.
+
+A35 checks verified intro Continue/Back, mode-menu Back, ignored body taps,
+drag-off cancellation, press highlighting and release launching Heli Assault.
+The phone was left at mode selection. The test-created destruct.cfg was removed
+and the original player files verified byte-for-byte. Round touch controls and
+an Android way to enter the title's secret code remain separate work.
