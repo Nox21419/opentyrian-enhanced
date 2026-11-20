@@ -715,7 +715,7 @@ it. Every touch activates on release over the pressed target and cancels when
 dragged off. Fade transitions, the intro title and blank areas ignore taps.
 
 Desktop mouse remains ignored and keyboard/gamepad navigation stays unchanged.
-This pass does not adapt Destruct's round controls, pause or help, change its
+The intro/menu pass does not adapt Destruct's round controls or help, change its
 CPU/Human setup or alter its simulation. Access still uses the existing title
 DESTRUCT secret code; no title entry was added. `test/destruct_touch_test.gd`
 checks intro actions, all five modes, cancellation, Back and desktop behavior;
@@ -726,3 +726,23 @@ drag-off cancellation, press highlighting and release launching Heli Assault.
 The phone was left at mode selection. The test-created destruct.cfg was removed
 and the original player files verified byte-for-byte. Round touch controls and
 an Android way to enter the title's secret code remain separate work.
+
+### Destruct pause text touch target
+
+On Android, tap and release the existing centered PAUSED text to resume the
+round. The font, palette, position (y = 90), frozen backdrop and original
+music-volume behavior are unchanged. Its invisible target is 20 pixels high
+(y = 84..103), centered at x = 160, with width equal to the localized text
+plus 16 pixels of padding (minimum 64 pixels). Dragging off cancels even if
+the finger returns; other areas ignore touches. Desktop still ignores mouse
+input and resumes from its existing keyboard/gamepad path. This does not add
+a way to open pause by touch or change Destruct help/gameplay controls.
+`test/destruct_pause_touch_test.gd` verifies release/cancel behavior, target
+boundaries, unchanged simulation state/tick count while held, music volume
+restoration and desktop keyboard behavior.
+
+A35 checks opened pause with an injected P key, then verified ignored body taps,
+drag-off-and-return cancellation, a held press leaving the frozen frame
+unchanged, and release resuming the round. The phone was left paused again for
+maintainer testing. The test-created destruct.cfg was removed and the original
+player files verified byte-for-byte.

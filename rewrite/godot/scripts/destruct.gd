@@ -167,6 +167,7 @@ var _done := false
 var _touch_menus := OS.get_name() == "Android"
 var _menu_touch := TouchRelease.new()
 var _intro_back := false
+var _pause_touch_active := false
 
 
 func _ready() -> void:
@@ -180,9 +181,9 @@ func _ready() -> void:
 	_run.call_deferred()
 
 
-## Desktop retains destruct.c input; Android adapts only the intro/mode menu.
+## Desktop retains destruct.c input; Android adapts the intro, mode menu and pause text.
 func handle_mouse(event: InputEvent) -> void:
-	if not _touch_menus or not idle or phase not in ["intro", "menu"]:
+	if not _touch_menus or not idle or (phase not in ["intro", "menu"] and not _pause_touch_active):
 		_menu_touch.cancel()
 		return
 	var target := _touch_target(Vector2i(event.position.floor()))
@@ -199,7 +200,9 @@ func handle_mouse(event: InputEvent) -> void:
 		present()
 	if click == null:
 		return
-	if phase == "intro":
+	if _pause_touch_active:
+		_newkey = true
+	elif phase == "intro":
 		_intro_back = target == "back"
 		_newkey = true
 	elif target == "back":
@@ -210,6 +213,9 @@ func handle_mouse(event: InputEvent) -> void:
 
 
 func _touch_target(p: Vector2i) -> String:
+	if _pause_touch_active:
+		var width := maxi(64, int(vga.text_width(TyrianText.L("miscText_22"), SMALL_FONT)) + 16)
+		return "resume" if Rect2i(160 - width / 2, 84, width, 20).has_point(p) else ""
 	if p.x < 16 or p.x >= 304:
 		return ""
 	if phase == "intro":
@@ -757,6 +763,8 @@ func _tick_delay() -> void:
 
 ## destruct.c:JE_pauseScreen.
 func _pause_screen() -> void:
+	_menu_touch.cancel()
+	_pause_touch_active = true
 	var volume: int = Music.music_volume
 	Music.set_volume(volume / 2)
 	vga.copy(VGA_SCREEN2, VGA_SCREEN)
@@ -764,6 +772,8 @@ func _pause_screen() -> void:
 	present()
 	phase = "wait"
 	await _wait_newkey()
+	_pause_touch_active = false
+	_menu_touch.cancel()
 	phase = "play"
 	vga.copy(VGA_SCREEN, VGA_SCREEN2)
 	present()
