@@ -930,3 +930,28 @@ release opening the round menu, held/drag-off cancellation, Help returning to
 a stable frozen menu, Resume restarting play, and Exit returning to mode
 selection. The game was left in the new pause menu. Original player files were
 verified byte-for-byte, and the test-created destruct.cfg was removed.
+
+### Opt-in Endless anomaly-card picker
+
+The dormant `--endless-anomalies` picker keeps its original cards, layout,
+fonts, palette, selection frame and mandatory choice. Android highlights a
+card when pressed and confirms only on release over that same card. Leaving
+its rectangle (including entering a gap or another card) cancels even after
+returning. Outside taps, right clicks, unpaired releases and touches during
+fades do nothing. Keyboard/gamepad navigation cancels any pending touch;
+the original keyboard choice and no-cancel rules remain. Desktop retains hover
+and press activation. Normal Endless play still does not enable this picker.
+No card draw, deck, effect, score, RNG or simulation behavior changes.
+
+All 12 cases across `endless_pick_touch_test.gd`, `endless_prompt_test.gd` and
+`endless_resume_touch_test.gd` passed without errors, failures or orphans.
+Formatting, lint and diff checks passed. The exported Linux journey/smoke gate
+remains unavailable without WSL/Linux.
+
+- [ ] Deferred phone test: use a temporary test launch/build with
+  `--endless-anomalies` to verify each card, hold/release, gap/cross-card/drag-back
+  cancellation, and the selected card being applied. Keep the regular Android
+  build's default behavior unchanged after testing.
+
+The Android APK built successfully and was installed on the A35. Anomalies remain
+disabled by default; on-device picker verification is deferred as listed above.
