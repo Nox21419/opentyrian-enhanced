@@ -1558,3 +1558,6 @@ gd_display_scaler=Scaler: %s
 gd_display_scale_mode=Scaling Mode: %s
 
 ls_continue=Continue
+
+endless_touch_resume=Resume
+endless_touch_new=New Game

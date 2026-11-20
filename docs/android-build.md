@@ -605,3 +605,16 @@ if the finger returns. Selecting a battle opens Difficulty with the original
 episode and battle selection. Desktop retains its three rows, text-only mouse
 targets and keyboard/gamepad navigation. `test/timed_touch_test.gd` checks these
 routes, cancellation, boundaries and desktop behavior.
+
+### Endless Resume / New Game touch choices
+
+Android replaces the resume prompt's keyboard hint with localized Resume and
+New Game labels, retaining its original small font, palette bank 14, brightness
+4, shaded text and y = 130 footer. The title, wave/score and deck stay unchanged.
+Resume is centered at x = 86 and New Game at x = 234. Their disjoint targets are
+x = 16..155 and 164..303, y = 126..149. A release over the pressed choice
+activates; moving off cancels, including when returning. Body taps do nothing.
+Resume follows the existing Enter path; New Game follows Escape. Desktop mouse,
+keyboard and gamepad behavior and anomaly-card input are unchanged.
+`test/endless_resume_touch_test.gd` checks both results, cancellation, boundaries
+and desktop input; `test/endless_prompt_test.gd` retains the original route checks.

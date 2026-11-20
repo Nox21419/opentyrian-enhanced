@@ -1504,3 +1504,6 @@ gd_display_scaler=Escalonador: %s
 gd_display_scale_mode=Modo de escala: %s
 
 ls_continue=Continuar
+
+endless_touch_resume=Continuar
+endless_touch_new=Nova partida

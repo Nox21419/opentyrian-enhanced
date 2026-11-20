@@ -43,6 +43,9 @@ var _pick_count := 0
 var _pick_cursor := 0
 ## A hover changed the selected card: wakes the wait to redraw.
 var _wake := false
+var _touch_resume := OS.get_name() == "Android"
+var _resume_active := false
+var _resume_touch := TouchRelease.new()
 
 
 func _ready() -> void:
@@ -77,6 +80,14 @@ func _unhandled_input(event: InputEvent) -> void:
 ## rewrite.
 func handle_mouse(event: InputEvent) -> void:
 	TyrianMouse.note(event)
+	if _touch_resume and _resume_active:
+		if not idle:
+			_resume_touch.cancel()
+			return
+		var target := _resume_target(Vector2i(event.position.floor()))
+		if _resume_touch.feed(event, target) != null:
+			_key = TyrianControls.ACCEPT if target == "resume" else TyrianControls.BACK
+		return
 	if TyrianMouse.is_wheel(event):
 		return
 	if _pick_count > 0 and event is InputEventMouseMotion:
@@ -98,7 +109,19 @@ func handle_mouse(event: InputEvent) -> void:
 				_pick_cursor = i
 				_key = TyrianControls.ACCEPT
 		return
-	_key = TyrianControls.BACK if event.button_index == MOUSE_BUTTON_RIGHT else TyrianControls.ACCEPT
+	_key = (
+		TyrianControls.BACK if event.button_index == MOUSE_BUTTON_RIGHT else TyrianControls.ACCEPT
+	)
+
+
+func _resume_target(p: Vector2i) -> String:
+	if p.y < 126 or p.y >= 150:
+		return ""
+	if p.x >= 16 and p.x < 156:
+		return "resume"
+	if p.x >= 164 and p.x < 304:
+		return "new"
+	return ""
 
 
 ## Rank of the draw card under point `p` (320×200 coordinates), -1
@@ -157,18 +180,40 @@ func _prepare_from_cmdline() -> void:
 ## FONT_SHAPES centered y = 60, "Wave %d - Score %lu" (+ "(2 players)")
 ## TINY_FONT centered y = 100 (15, 4), help y = 130 (14, 4), FULL_SHADE.
 func resume_prompt(info: Dictionary) -> bool:
+	_resume_active = true
+	_resume_touch.cancel()
 	vga.clear(VGA_SCREEN, 0)
 	var title := TyrianText.L("endless_resume_title")
 	TyrianText.dstring(self, TyrianText.font_center(title, LARGE_FONT), 60, title, LARGE_FONT)
-	var line := TyrianText.L("endless_resume_fmt").replace("%d", str(int(info.get("levels_completed", 0)) + 1)).replace(
-		"%lu", str(int(info.get("score", 0)))
+	var line := (
+		TyrianText
+		. L("endless_resume_fmt")
+		. replace("%d", str(int(info.get("levels_completed", 0)) + 1))
+		. replace("%lu", str(int(info.get("score", 0))))
 	)
 	if bool(info.get("two_player", false)):
 		line += "  " + TyrianText.L("endless_resume_2p")
-	TyrianText.text_shade(self, TyrianText.font_center(line, SMALL_FONT), 100, line, 15, 4, TyrianText.FULL_SHADE)
+	TyrianText.text_shade(
+		self, TyrianText.font_center(line, SMALL_FONT), 100, line, 15, 4, TyrianText.FULL_SHADE
+	)
 	_draw_deck_initials(info.get("deck", []), 112)
-	var hint := TyrianText.L("endless_resume_hint")
-	TyrianText.text_shade(self, TyrianText.font_center(hint, SMALL_FONT), 130, hint, 14, 4, TyrianText.FULL_SHADE)
+	if _touch_resume:
+		for choice in [["endless_touch_resume", 86], ["endless_touch_new", 234]]:
+			var label := TyrianText.L(choice[0])
+			TyrianText.text_shade(
+				self,
+				int(choice[1]) - TyrianText.width(label, SMALL_FONT) / 2,
+				130,
+				label,
+				14,
+				4,
+				TyrianText.FULL_SHADE
+			)
+	else:
+		var hint := TyrianText.L("endless_resume_hint")
+		TyrianText.text_shade(
+			self, TyrianText.font_center(hint, SMALL_FONT), 130, hint, 14, 4, TyrianText.FULL_SHADE
+		)
 	present()
 	await fade_palette(10, 0, 255)
 	idle = Capture.active
@@ -180,6 +225,8 @@ func resume_prompt(info: Dictionary) -> bool:
 			break
 		if k == TyrianControls.BACK:
 			break
+	_resume_active = false
+	_resume_touch.cancel()
 	result = resume
 	if not Capture.active:
 		await fade_black(10)
@@ -200,7 +247,9 @@ func _draw_deck_initials(cards: Variant, y: int) -> void:
 	x += TyrianText.width(label, SMALL_FONT)
 	for l: Array in letters:
 		x += 6
-		TyrianText.text_shade(self, x, y, l[0], RANK_BANK[l[1]], RANK_BRIGHT[l[1]], TyrianText.FULL_SHADE)
+		TyrianText.text_shade(
+			self, x, y, l[0], RANK_BANK[l[1]], RANK_BRIGHT[l[1]], TyrianText.FULL_SHADE
+		)
 		x += TyrianText.width(l[0], SMALL_FONT)
 
 
@@ -220,7 +269,9 @@ func pick(cards: PackedInt32Array) -> int:
 		vga.bar_shade(VGA_SCREEN, 0, 0, 319, 199)
 		vga.bar_shade(VGA_SCREEN, 0, 0, 319, 199)
 		var title := TyrianText.L("anom_pick_title")
-		TyrianText.dstring(self, (320 - TyrianText.width(title, LARGE_FONT)) / 2, 14, title, LARGE_FONT)
+		TyrianText.dstring(
+			self, (320 - TyrianText.width(title, LARGE_FONT)) / 2, 14, title, LARGE_FONT
+		)
 		var n := cards.size()
 		var x0 := (320 - (n * CARD_W + (n - 1) * CARD_GAP)) / 2
 		for i in n:
@@ -263,10 +314,16 @@ func _draw_card(card: int, x: int, y: int, selected: bool) -> void:
 	var rank := int(TyrianEndless.card_rank(card))
 	vga.fill_rectangle_xy(VGA_SCREEN, x, y, x + CARD_W - 1, y + CARD_H - 1, PANEL_FILL)
 	vga.fill_rectangle_xy(VGA_SCREEN, x, y, x + CARD_W - 1, y, PANEL_BORDER)
-	vga.fill_rectangle_xy(VGA_SCREEN, x, y + CARD_H - 1, x + CARD_W - 1, y + CARD_H - 1, PANEL_BORDER)
+	vga.fill_rectangle_xy(
+		VGA_SCREEN, x, y + CARD_H - 1, x + CARD_W - 1, y + CARD_H - 1, PANEL_BORDER
+	)
 	vga.fill_rectangle_xy(VGA_SCREEN, x, y, x, y + CARD_H - 1, PANEL_BORDER)
-	vga.fill_rectangle_xy(VGA_SCREEN, x + CARD_W - 1, y, x + CARD_W - 1, y + CARD_H - 1, PANEL_BORDER)
-	vga.fill_rectangle_xy(VGA_SCREEN, x + 2, y + CARD_H - 3, x + CARD_W - 3, y + CARD_H - 3, PANEL_ACCENT)
+	vga.fill_rectangle_xy(
+		VGA_SCREEN, x + CARD_W - 1, y, x + CARD_W - 1, y + CARD_H - 1, PANEL_BORDER
+	)
+	vga.fill_rectangle_xy(
+		VGA_SCREEN, x + 2, y + CARD_H - 3, x + CARD_W - 3, y + CARD_H - 3, PANEL_ACCENT
+	)
 	vga.fill_rectangle_xy(VGA_SCREEN, x + 3, y + 3, x + CARD_W - 4, y + 9, RANK_COLOR[rank])
 	vga.fill_rectangle_xy(VGA_SCREEN, x + 3, y + 10, x + CARD_W - 4, y + 10, PANEL_ACCENT)
 	var name := TyrianText.L("anom_%s_name" % id)
@@ -309,7 +366,15 @@ func _draw_card(card: int, x: int, y: int, selected: bool) -> void:
 		var right := x + CARD_W + SELECTION_FRAME - 1
 		var top := y - SELECTION_FRAME
 		var bottom := y + CARD_H + SELECTION_FRAME - 1
-		vga.fill_rectangle_xy(VGA_SCREEN, left, top, right, top + SELECTION_FRAME - 1, SELECTION_COLOR)
-		vga.fill_rectangle_xy(VGA_SCREEN, left, bottom - SELECTION_FRAME + 1, right, bottom, SELECTION_COLOR)
-		vga.fill_rectangle_xy(VGA_SCREEN, left, top, left + SELECTION_FRAME - 1, bottom, SELECTION_COLOR)
-		vga.fill_rectangle_xy(VGA_SCREEN, right - SELECTION_FRAME + 1, top, right, bottom, SELECTION_COLOR)
+		vga.fill_rectangle_xy(
+			VGA_SCREEN, left, top, right, top + SELECTION_FRAME - 1, SELECTION_COLOR
+		)
+		vga.fill_rectangle_xy(
+			VGA_SCREEN, left, bottom - SELECTION_FRAME + 1, right, bottom, SELECTION_COLOR
+		)
+		vga.fill_rectangle_xy(
+			VGA_SCREEN, left, top, left + SELECTION_FRAME - 1, bottom, SELECTION_COLOR
+		)
+		vga.fill_rectangle_xy(
+			VGA_SCREEN, right - SELECTION_FRAME + 1, top, right, bottom, SELECTION_COLOR
+		)

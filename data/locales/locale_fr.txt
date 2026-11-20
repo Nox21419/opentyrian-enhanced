@@ -1558,3 +1558,6 @@ gd_display_scaler=Filtre : %s
 gd_display_scale_mode=Echelle : %s
 
 ls_continue=Continuer
+
+endless_touch_resume=Reprendre
+endless_touch_new=Nouvelle partie
