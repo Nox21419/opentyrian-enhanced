@@ -38,6 +38,7 @@ signal help_requested
 var menus := MenuEngine.new(self)
 var _closing := false
 var _help_open := false
+var _help_background := PackedByteArray()
 var _touch_pause := OS.get_name() == "Android"
 var _touch_release := TouchRelease.new()
 
@@ -152,6 +153,8 @@ func _items() -> Array:
 
 
 func _open_help() -> void:
+	# Help uses the shared VGA_SCREEN2 surface too; retain the shaded pause image.
+	_help_background = vga.indices(VGA_SCREEN2)
 	_touch_release.cancel()
 	_help_open = true
 	set_process_unhandled_input(false)
@@ -160,6 +163,9 @@ func _open_help() -> void:
 
 
 func resume_from_help() -> void:
+	if not _help_background.is_empty():
+		vga.set_indices(VGA_SCREEN2, _help_background)
+		_help_background = PackedByteArray()
 	_touch_release.cancel()
 	_help_open = false
 	show()

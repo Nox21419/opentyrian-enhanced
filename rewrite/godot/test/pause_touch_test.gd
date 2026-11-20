@@ -199,6 +199,7 @@ func test_help_release_and_cancel_return_to_same_frozen_pause_menu() -> void:
 	var menu := _menu(level)
 	assert_int(menu.menus.current().items.size()).is_equal(7)
 	assert_str(menu.menus.current().items[4].label).is_equal("ig_help")
+	var background: PackedByteArray = menu.vga.indices(menu.VGA_SCREEN2)
 	var tick: int = level.sim.tick()
 	var state: int = level.sim.state_hash()
 	_button(menu, Vector2(30, 101), true)
@@ -229,6 +230,7 @@ func test_help_release_and_cancel_return_to_same_frozen_pause_menu() -> void:
 	assert_object(level._help_screen).is_null()
 	assert_object(level._pause_menu).is_same(menu)
 	assert_bool(menu.visible).is_true()
+	assert_that(menu.vga.indices(menu.VGA_SCREEN2)).is_equal(background)
 	assert_bool(menu.is_processing_unhandled_input()).is_true()
 	assert_int(menu.menus.current().sel).is_equal(4)
 	for _frame in 5:

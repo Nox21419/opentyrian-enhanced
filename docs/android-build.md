@@ -885,3 +885,14 @@ format checks, locale glyph/width checks and diff checks passed. The Android
 APK built successfully and was installed on the A35. The touch-only flow has
 not yet been verified on the phone. The exported Linux journey/smoke gate
 remains unavailable without WSL/Linux.
+
+Phone testing found that Help overwrote the shared VGA_SCREEN2 buffer used for
+the pause background. The pause menu now retains its shaded background indices
+while Help is open and restores them before redrawing. The regression test
+compares the complete restored background byte-for-byte; all eight pause-touch
+cases passed after this correction.
+
+On-device retesting confirmed held/cancelled gestures on both Help panels,
+the restored pause background, a stable paused image, and Return resuming play.
+The corrected APK was installed and left paused on the A35; original player
+files were verified byte-for-byte after testing.
