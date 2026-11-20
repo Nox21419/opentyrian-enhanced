@@ -1561,3 +1561,5 @@ ls_continue=Continua
 
 endless_touch_resume=Riprendi
 endless_touch_new=Nuova partita
+
+endless_touch_retry=Riprova

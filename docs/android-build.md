@@ -618,3 +618,24 @@ Resume follows the existing Enter path; New Game follows Escape. Desktop mouse,
 keyboard and gamepad behavior and anomaly-card input are unchanged.
 `test/endless_resume_touch_test.gd` checks both results, cancellation, boundaries
 and desktop input; `test/endless_prompt_test.gd` retains the original route checks.
+
+### Endless results touch footers
+
+Android keeps the summary and leaderboard artwork, text, score columns and
+palette. Continue replaces the summary keyboard hint at y = 188; its target
+is x = 16..303, y = 176..199. The leaderboard replaces its keyboard hints with
+Retry, New Game and Back centered at x = 60, 160 and 260, y = 188, using the
+original small shaded font. Their targets span x = 16..103, 112..207 and
+216..303, y = 176..199. Release activates; dragging off or across choices
+cancels. Taps on the table/body do nothing. Retry and New Game both follow the
+existing fresh-run path (Enter/R); Back returns to the title (Escape).
+Desktop mouse, keyboard and gamepad behavior is unchanged. High-score name
+entry remains a separate screen and is not adapted in this pass.
+`test/endless_results_touch_test.gd` covers footer actions, cancellation,
+transition guards, summary continuation and desktop/name-entry click behavior.
+
+On the A35, summary Continue opened the leaderboard, Retry and New Game each
+launched a fresh run, and Back returned to the title. Body taps and drag-off
+cancelled; holding Retry left the leaderboard visible until release. Test
+leaderboard entries were removed afterward and the original player profile,
+settings and campaign saves were verified byte-for-byte against their backup.

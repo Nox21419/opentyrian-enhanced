@@ -1507,3 +1507,5 @@ ls_continue=Continuar
 
 endless_touch_resume=Reanudar
 endless_touch_new=Nueva partida
+
+endless_touch_retry=Reintentar

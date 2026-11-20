@@ -17,6 +17,9 @@ var _typed := ""
 var _key: StringName = &""
 ## True when the screen is waiting for a key (capture tool).
 var idle := false
+var _touch_results := OS.get_name() == "Android"
+var _results_screen := ""
+var _results_touch := TouchRelease.new()
 
 
 func _ready() -> void:
@@ -42,6 +45,9 @@ func _unhandled_key_input(event: InputEvent) -> void:
 ## (confirm) and ESCAPE (cancel); its directions, arrows, have
 ## no effect on these screens.
 func _unhandled_input(event: InputEvent) -> void:
+	if _touch_results and not _results_screen.is_empty() and event is InputEventMouse:
+		handle_mouse(event)
+		return
 	if not (event is InputEventJoypadButton) or not event.pressed:
 		return
 	var action := TyrianControls.menu_action(event)
@@ -52,9 +58,43 @@ func _unhandled_input(event: InputEvent) -> void:
 ## Mouse (rewrite addition): left click = confirm, right click =
 ## cancel, like Enter / Escape.
 func handle_mouse(event: InputEvent) -> void:
+	if _touch_results and not _results_screen.is_empty():
+		if not idle:
+			_results_touch.cancel()
+			return
+		var target := _results_target(Vector2i(event.position.floor()))
+		if _results_touch.feed(event, target) != null:
+			_key = (
+				TyrianControls.BACK
+				if target == "back"
+				else (TyrianControls.RETRY if target == "retry" else TyrianControls.ACCEPT)
+			)
+		return
 	if not TyrianMouse.is_button_press(event):
 		return
-	_key = TyrianControls.BACK if event.button_index == MOUSE_BUTTON_RIGHT else TyrianControls.ACCEPT
+	_key = (TyrianControls.BACK if event.button_index == MOUSE_BUTTON_RIGHT else TyrianControls.ACCEPT)
+
+
+func _results_target(p: Vector2i) -> String:
+	if p.y < 176 or p.y >= 200 or p.x < 16 or p.x >= 304:
+		return ""
+	if _results_screen == "summary":
+		return "continue"
+	if _results_screen == "board":
+		if p.x < 104:
+			return "retry"
+		if p.x >= 112 and p.x < 208:
+			return "new"
+		if p.x >= 216:
+			return "back"
+	return ""
+
+
+func _result_label(key: String, x: int, hue: int, brightness: int) -> void:
+	var label := TyrianText.L(key)
+	TyrianText.text_shade(
+		self, x - TyrianText.width(label, SMALL_FONT) / 2, 188, label, hue, brightness, TyrianText.FULL_SHADE
+	)
 
 
 func _wait_key() -> StringName:
@@ -157,6 +197,8 @@ func _prompt_name(final_score: int) -> String:
 ## FONT_SHAPES y = 12, rows from y = 44 (label x = 60, value
 ## right-aligned at x = 260, spacing 12), help centered y = 188.
 func _summary(final_score: int) -> void:
+	_results_screen = "summary"
+	_results_touch.cancel()
 	# Image 2 (like the leaderboard): image 1 let the shop's frames and icons show through.
 	vga.load_pic(VGA_SCREEN, 2, false)
 	vga.load_palette(0)
@@ -188,14 +230,21 @@ func _summary(final_score: int) -> void:
 			var id := str(TyrianEndless.card_id(card))
 			TyrianText.text_shade(self, 68, y, TyrianText.L("anom_%s_name" % id), 14, 4, TyrianText.FULL_SHADE)
 			y += 10
-	var hint := TyrianText.L("endless_summary_hint")
-	TyrianText.text_shade(self, (320 - TyrianText.width(hint, SMALL_FONT)) / 2, 188, hint, 14, 6, TyrianText.FULL_SHADE)
+	if _touch_results:
+		_result_label("ls_continue", 160, 14, 6)
+	else:
+		var hint := TyrianText.L("endless_summary_hint")
+		TyrianText.text_shade(
+			self, (320 - TyrianText.width(hint, SMALL_FONT)) / 2, 188, hint, 14, 6, TyrianText.FULL_SHADE
+		)
 	present()
 	await fade_palette(10, 0, 255)
 	while true:
 		var k := await _wait_key()
 		if Capture.active or k == TyrianControls.ACCEPT or k == TyrianControls.BACK:
 			break
+	_results_screen = ""
+	_results_touch.cancel()
 	await fade_black(10)
 
 
@@ -204,6 +253,8 @@ func _summary(final_score: int) -> void:
 ## (spacing 11), "no score" at (100, 100), help y = 183 and 190.
 ## ENTER or R: new game (endless_try_retry); ESCAPE: title.
 func _leaderboard(board: Array) -> void:
+	_results_screen = "board"
+	_results_touch.cancel()
 	vga.load_pic(VGA_SCREEN, 2, false)
 	var title := TyrianText.L("endless_leaderboard_title")
 	TyrianText.dstring(self, TyrianText.font_center(title, LARGE_FONT), 10, title, LARGE_FONT)
@@ -234,7 +285,7 @@ func _leaderboard(board: Array) -> void:
 			shown = EndlessSession.shorten_name(nm, 11) + " *"
 		if int(e.get("players", 1)) == 2:
 			var mark := TyrianText.L("endless_two_player_mark")
-			shown = (EndlessSession.shorten_name(nm, 7) + " *") if mut else EndlessSession.shorten_name(nm, 9)
+			shown = ((EndlessSession.shorten_name(nm, 7) + " *") if mut else EndlessSession.shorten_name(nm, 9))
 			TyrianText.text_shade(
 				self, cols[2] - 4 - TyrianText.width(mark, SMALL_FONT), y, mark, 12, 4, TyrianText.FULL_SHADE
 			)
@@ -250,15 +301,20 @@ func _leaderboard(board: Array) -> void:
 		TyrianText.text_shade(
 			self, cols[1], y + 3, "* = %s" % TyrianText.L("mut_score_legend"), 12, 4, TyrianText.FULL_SHADE
 		)
-	# Help centered, 10 px apart.
-	var retry_hint := TyrianText.L("endless_retry_hint")
-	var return_hint := TyrianText.L("endless_return_hint")
-	TyrianText.text_shade(
-		self, TyrianText.font_center(retry_hint, SMALL_FONT), 180, retry_hint, 14, 4, TyrianText.FULL_SHADE
-	)
-	TyrianText.text_shade(
-		self, TyrianText.font_center(return_hint, SMALL_FONT), 190, return_hint, 15, 4, TyrianText.FULL_SHADE
-	)
+	if _touch_results:
+		_result_label("endless_touch_retry", 60, 14, 4)
+		_result_label("endless_touch_new", 160, 14, 4)
+		_result_label("gd_back", 260, 15, 4)
+	else:
+		# Help centered, 10 px apart.
+		var retry_hint := TyrianText.L("endless_retry_hint")
+		var return_hint := TyrianText.L("endless_return_hint")
+		TyrianText.text_shade(
+			self, TyrianText.font_center(retry_hint, SMALL_FONT), 180, retry_hint, 14, 4, TyrianText.FULL_SHADE
+		)
+		TyrianText.text_shade(
+			self, TyrianText.font_center(return_hint, SMALL_FONT), 190, return_hint, 15, 4, TyrianText.FULL_SHADE
+		)
 	present()
 	await fade_palette(10, 0, 255)
 	if Capture.active:

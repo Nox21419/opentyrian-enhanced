@@ -1561,3 +1561,5 @@ ls_continue=Continue
 
 endless_touch_resume=Resume
 endless_touch_new=New Game
+
+endless_touch_retry=Retry
