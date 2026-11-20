@@ -835,3 +835,26 @@ passed with no errors, failures or orphans. Formatting, lint and diff checks
 passed, and the Android APK built successfully. ADB had no connected device,
 so installation and on-device verification remain outstanding. The exported
 Linux journey/smoke gate remains unavailable without WSL/Linux.
+
+### In-game Help touch dismissal
+
+Android's two in-game Help panels (normally opened with F1) keep all existing
+artwork, text and footer hints. A touch anywhere within the 320×200 image
+advances panel one or closes panel two on release. Moving more than eight
+logical pixels from the initial press, or leaving the image, cancels even if
+the finger returns; small jitter is tolerated. Unpaired releases do nothing.
+Changing panels through another input also cancels the pending gesture. Mouse
+events are consumed while Help is open so they cannot reach the frozen level.
+Keyboard/gamepad behavior and desktop mouse press activation are unchanged.
+This pass does not add a touch control for opening Help.
+
+`test/in_game_help_touch_test.gd` exercises both real Help panels over a running
+level, verifying frozen tick/state while held, one panel per release, drag/offscreen
+cancellation, unpaired releases, keyboard/gamepad input and the desktop click
+path. Closing Help must resume simulation ticks.
+
+All 13 cases across the in-game Help touch and existing pause suites passed
+with no errors, failures or orphans. Formatting, lint and diff checks passed.
+The Android APK built successfully and was installed on the A35; on-device
+Help gesture verification remains pending. The exported Linux journey/smoke
+gate remains unavailable without WSL/Linux.

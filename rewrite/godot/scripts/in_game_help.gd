@@ -11,6 +11,9 @@ const KEYS_Y := 13
 const KEYS_STEP := 10
 
 var _closing := false
+var _touch_menus := OS.get_name() == "Android"
+var _touch := TouchRelease.new()
+var _touch_press := Vector2.ZERO
 ## Panel displayed: 1 = the C's help, 2 = keys and mouse (divergence no. 57).
 var _panel := 1
 
@@ -88,6 +91,19 @@ func _hbox(x: int, y: int, messagenum: int, boxwidth: int, color := 5) -> void:
 
 ## "while (!(newkey || newmouse))": any key, any click, any button.
 func _unhandled_input(event: InputEvent) -> void:
+	if _touch_menus and event is InputEventMouse:
+		get_viewport().set_input_as_handled()
+		if _closing or not idle:
+			_touch.cancel()
+			return
+		var target := "advance" if Rect2(0, 0, 320, 200).has_point(event.position) else ""
+		if event is InputEventMouseButton and event.button_index == MOUSE_BUTTON_LEFT and event.pressed:
+			_touch_press = event.position
+		elif event.position.distance_to(_touch_press) > 8:
+			_touch.cancel()
+		if _touch.feed(event, target) != null:
+			handle_action(&"")
+		return
 	if (
 		(event is InputEventKey and event.pressed and not event.echo)
 		or TyrianMouse.is_button_press(event)
@@ -99,6 +115,7 @@ func _unhandled_input(event: InputEvent) -> void:
 
 ## Keys of the capture tool (handle_event) and of the keyboard.
 func handle_action(_action: StringName) -> void:
+	_touch.cancel()
 	if _closing:
 		return
 	if _panel == 1:
