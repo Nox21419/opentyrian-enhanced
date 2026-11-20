@@ -54,6 +54,13 @@ var _delay2_end_ms := 0
 ## (typed character, or TyrianControls action ACCEPT / BACK / DELETE).
 var _name_keys: Array = []
 var _click := Vector2(-1, -1)
+var _touch_name := OS.get_name() == "Android"
+var _name_touch := TouchRelease.new()
+var _name_text := ""
+var _name_keyboard_requested := false
+var _name_offset := 0
+var _name_redraw := false
+var _name_ready := false
 
 
 func _ready() -> void:
@@ -580,35 +587,48 @@ func _enter_name(score: int, p: int, two_p: bool, timed: bool, muts: int, mult: 
 		Music.play_song(Music.SONG_HIGH_SCORES)
 	var flash := 8 * 16 + 10
 	var fadein := true
-	var name := ""
+	_name_text = ""
 	var cancel := false
 	if timed:
 		vga.load_pic(VGA_SCREEN, 13, false)
+	var background: PackedByteArray = vga.indices(VGA_SCREEN) if _touch_name else PackedByteArray()
 	vga.bar_shade(VGA_SCREEN, 65, 55, 255, 155)
+	_name_offset = 0
+	_name_redraw = false
+	_name_ready = false
+	_name_touch.cancel()
+	_click = Vector2(-1, -1)
 	name_entry = true
 	mouse_cursor = true
 	_name_keys.clear()
 	var quit := false
 	while not quit and is_inside_tree():
+		_name_redraw = false
+		var offset := _name_offset
+		if _touch_name:
+			vga.set_indices(VGA_SCREEN, background)
+			vga.bar_shade(VGA_SCREEN, 65, 55 + offset, 255, 155 + offset)
 		var congrats := TyrianText.L("miscText_51")
-		TyrianText.dstring(self, TyrianText.font_center(congrats, LARGE_FONT), 3, congrats, LARGE_FONT)
+		if offset == 0:
+			TyrianText.dstring(self, TyrianText.font_center(congrats, LARGE_FONT), 3, congrats, LARGE_FONT)
 		var line := TyrianText.L("miscText_%d" % ((58 + p if two_p else 53) - 1))
-		TyrianText.dstring(self, TyrianText.font_center(line, NORMAL_FONT), 30, line, NORMAL_FONT)
-		vga.blit_sprite(VGA_SCREEN, 50, 50, OPTION_SHAPES, 35)
+		if offset == 0:
+			TyrianText.dstring(self, TyrianText.font_center(line, NORMAL_FONT), 30, line, NORMAL_FONT)
+		vga.blit_sprite(VGA_SCREEN, 50, 50 + offset, OPTION_SHAPES, 35)
 		if two_p:
 			TyrianText.text_shade(
 				self,
 				60,
-				55,
+				55 + offset,
 				"%s %s" % [TyrianText.L("miscText_%d" % (48 + p)), TyrianText.L("miscText_53")],
 				11,
 				4,
 				TyrianText.FULL_SHADE
 			)
 		else:
-			TyrianText.text_shade(self, 60, 55, TyrianText.L("miscText_53"), 11, 4, TyrianText.FULL_SHADE)
+			TyrianText.text_shade(self, 60, 55 + offset, TyrianText.L("miscText_53"), 11, 4, TyrianText.FULL_SHADE)
 		TyrianText.text_shade(
-			self, 70, 70, "%s %d" % [TyrianText.L("misc_score2"), score], 11, 4, TyrianText.FULL_SHADE
+			self, 70, 70 + offset, "%s %d" % [TyrianText.L("misc_score2"), score], 11, 4, TyrianText.FULL_SHADE
 		)
 		if muts != 0:
 			var notice := (
@@ -616,25 +636,39 @@ func _enter_name(score: int, p: int, two_p: bool, timed: bool, muts: int, mult: 
 				if mult > 1.0
 				else TyrianText.L("mut_score_notice")
 			)
-			TyrianText.text_shade(self, 70, 103, notice, 15, 2, TyrianText.FULL_SHADE)
+			TyrianText.text_shade(self, 70, 103 + offset, notice, 15, 2, TyrianText.FULL_SHADE)
+		if _touch_name:
+			for button in [["misc_yes", 99], ["misc_no", 194]]:
+				var label := TyrianText.L(button[0])
+				TyrianText.out_text_adjust(
+					self,
+					int(button[1]) - TyrianText.width(label, LARGE_FONT) / 2,
+					128 + offset,
+					label,
+					15,
+					-5,
+					LARGE_FONT,
+					true
+				)
 		# Blinking cursor until a key or a click.
 		var got := false
 		while not got and is_inside_tree():
 			flash = 8 * 16 + 2 if flash == 8 * 16 + 10 else 8 * 16 + 10
-			TyrianText.out_text(self, 65, 89, name, 8, 3)
-			var cx := 65 + TyrianText.width(name, SMALL_FONT)
-			vga.bar_shade(VGA_SCREEN, cx + 2, 90, cx + 6, 95)
-			vga.fill_rectangle_xy(VGA_SCREEN, cx + 1, 89, cx + 5, 94, flash)
+			TyrianText.out_text(self, 65, 89 + offset, _name_text, 8, 3)
+			var cx := 65 + TyrianText.width(_name_text, SMALL_FONT)
+			vga.bar_shade(VGA_SCREEN, cx + 2, 90 + offset, cx + 6, 95 + offset)
+			vga.fill_rectangle_xy(VGA_SCREEN, cx + 1, 89 + offset, cx + 5, 94 + offset, flash)
 			for i in 14:
 				present()
 				if fadein:
 					# highscore.c:475-482: fade between JE_mouseStart and JE_mouseReplace.
 					await fade_palette_over_pointer(15)
 					fadein = false
+				_name_ready = true
 				if Capture.active:
 					_name_keys.append(TyrianControls.ACCEPT)
 				await wait_units(1)
-				if not _name_keys.is_empty() or _click.x >= 0:
+				if not _name_keys.is_empty() or _click.x >= 0 or _name_redraw:
 					got = true
 					break
 		if not Music.is_playing():
@@ -654,7 +688,7 @@ func _enter_name(score: int, p: int, two_p: bool, timed: bool, muts: int, mult: 
 			if k is StringName:
 				match k:
 					TyrianControls.DELETE:
-						name = name.left(maxi(name.length() - 1, 0))
+						_name_text = _name_text.left(maxi(_name_text.length() - 1, 0))
 					TyrianControls.BACK:
 						quit = true
 						cancel = true
@@ -662,12 +696,18 @@ func _enter_name(score: int, p: int, two_p: bool, timed: bool, muts: int, mult: 
 						quit = true
 			else:
 				var up := str(k).to_upper()
-				if (up == " " or TyrianText.sprite_id(up.unicode_at(0)) >= 0) and name.length() < HIGH_SCORE_NAME_MAX:
-					name += up
+				if (
+					(up == " " or TyrianText.sprite_id(up.unicode_at(0)) >= 0)
+					and _name_text.length() < HIGH_SCORE_NAME_MAX
+				):
+					_name_text += up
 		_name_keys.clear()
+	_hide_name_keyboard()
+	_name_ready = false
+	_name_touch.cancel()
 	name_entry = false
 	mouse_cursor = false
-	return {"name": name, "cancel": cancel}
+	return {"name": _name_text, "cancel": cancel}
 
 
 ## Table after the entry: "High Scores", episode (or battle), the
@@ -742,6 +782,25 @@ func _unhandled_input(event: InputEvent) -> void:
 	TyrianMouse.note(event)
 	if not name_entry:
 		return
+	if _touch_name and event is InputEventMouse:
+		if not _name_ready:
+			_name_touch.cancel()
+			return
+		var point := Vector2i(event.position.floor()) - Vector2i(0, _name_offset)
+		var target := ""
+		if Rect2i(60, 82, 195, 22).has_point(point):
+			target = "keyboard"
+		elif point.y > 123 and point.y < 149:
+			if point.x > 56 and point.x < 142:
+				target = "yes"
+			elif point.x > 151 and point.x < 237:
+				target = "no"
+		if _name_touch.feed(event, target) != null:
+			if target == "keyboard":
+				_show_name_keyboard()
+			else:
+				_name_keys.append(TyrianControls.ACCEPT if target == "yes" else TyrianControls.BACK)
+		return
 	if TyrianMouse.is_button_press(event):
 		_click = event.position
 		return
@@ -761,6 +820,45 @@ func _unhandled_input(event: InputEvent) -> void:
 		var action := TyrianControls.menu_action(event)
 		if action in [TyrianControls.ACCEPT, TyrianControls.BACK]:
 			_name_keys.append(action)
+
+
+func _process(_delta: float) -> void:
+	if _touch_name and name_entry and _name_keyboard_requested:
+		_update_name_keyboard_layout(DisplayServer.virtual_keyboard_get_height())
+
+
+func _update_name_keyboard_layout(height: int) -> void:
+	var offset := -50 if _touch_name and name_entry and _name_keyboard_requested and height > 0 else 0
+	if offset != _name_offset:
+		_name_offset = offset
+		_name_redraw = true
+		_name_touch.cancel()
+
+
+func _show_name_keyboard() -> void:
+	if not _touch_name or not name_entry:
+		return
+	_name_keyboard_requested = true
+	if DisplayServer.has_feature(DisplayServer.FEATURE_VIRTUAL_KEYBOARD):
+		DisplayServer.virtual_keyboard_show(
+			_name_text,
+			Rect2(),
+			DisplayServer.KEYBOARD_TYPE_DEFAULT,
+			HIGH_SCORE_NAME_MAX,
+			_name_text.length(),
+			_name_text.length()
+		)
+
+
+func _hide_name_keyboard() -> void:
+	_update_name_keyboard_layout(0)
+	if _name_keyboard_requested and DisplayServer.has_feature(DisplayServer.FEATURE_VIRTUAL_KEYBOARD):
+		DisplayServer.virtual_keyboard_hide()
+	_name_keyboard_requested = false
+
+
+func _exit_tree() -> void:
+	_hide_name_keyboard()
 
 
 func _any_button() -> bool:

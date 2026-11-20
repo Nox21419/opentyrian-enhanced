@@ -574,7 +574,7 @@ Yes or the keyboard's Done action proceeds to the existing save confirmation;
 No cancels without changing the slot. The keyboard is dismissed when leaving
 name entry or the screen. Desktop text entry and bindings are unchanged. This
 pass covers Save Game only; Endless high-score name entry is covered below.
-Campaign high-score name entry remains separate work.
+Campaign/Timed Battle high-score name entry is covered below.
 
 The integration uses Godot's [virtual keyboard API](https://docs.godotengine.org/en/4.6/classes/class_displayserver.html#class-displayserver-method-virtual-keyboard-show)
 and the existing key-event path; the [Android text wrapper in Godot 4.7.2](https://github.com/godotengine/godot/blob/4.7.2-stable/platform/android/java/lib/src/main/java/org/godotengine/godot/input/GodotTextInputWrapper.java)
@@ -669,3 +669,31 @@ Confirm saving PHON, keyboard Done saving P, and Skip recording PLAYER after
 text entry. Hiding the keyboard restored the normal layout; the raised prompt
 remained above the keyboard. Test scores/run data were removed and the original
 profile, settings and campaign saves restored and verified byte-for-byte.
+
+### Campaign and Timed Battle high-score name entry
+
+On Android, releasing a tap over the original name field (x = 60..254,
+y = 82..103) opens the native keyboard prefilled with the current name. The
+original modal artwork, fonts, palette and blinking cursor stay in use. Android
+draws the original Yes/No lettering from Save Game into the existing button
+boxes (the desktop high-score screen leaves those boxes unlabelled). While the keyboard is visible, the modal and all of its text/targets
+move up 50 pixels, putting its top at y = 0. The two headings above the modal
+are temporarily hidden to avoid overlap; dismissing the keyboard restores them
+and the original modal placement. The full screen is never resized.
+
+Yes/Done confirms; No follows the original cancel path. All touch actions
+activate on release and cancel when dragged off. The editor retains its ordered
+input queue (including Samsung IME replacement batches), uppercase ASCII/glyph
+checks, 28-character limit and acceptance of an empty name. Campaign and Timed
+Battle keep their original, different cancellation/persistence rules; this pass
+does not change score qualification, ranking or recorded values. Desktop mouse,
+keyboard and gamepad behavior remains unchanged. The keyboard is hidden on
+completion or scene exit. `test/story_name_touch_test.gd` checks both entry
+variants, touch cancellation, keyboard editing, shifted targets and desktop
+clicks; `test/story_test.gd` checks full campaign/Timed Battle persistence flows.
+
+A35 checks used a temporary end-of-episode campaign save: Samsung typing and
+Backspace produced PHON, Yes recorded PHON at the expected score, No declined
+the entry, drag-off cancelled, and keyboard dismissal restored the headings
+and modal placement. Temporary save/score files were removed, and the original
+profile, saves and settings restored and verified byte-for-byte.
