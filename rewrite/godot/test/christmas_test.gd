@@ -18,7 +18,9 @@ func after_test() -> void:
 
 
 func _screen() -> Node:
-	return XmasPrompt.new()
+	var screen := XmasPrompt.new()
+	screen._touch_menus = false
+	return screen
 
 
 # --- Season -------------------------------------------------------------------
@@ -157,3 +159,63 @@ func test_christmas_sheets_replace_shots_ships_and_powerups() -> void:
 	Christmas.active = true
 	var festive := TyrianAssets.sheet("main_08_player_ships")
 	assert_object(festive).is_not_same(plain)
+
+
+func test_android_release_activates_each_wider_choice() -> void:
+	for choice in 2:
+		var s := _screen()
+		s._touch_menus = true
+		s.idle = true
+		var event := _click(MOUSE_BUTTON_LEFT, Vector2(100 + choice * 120, 140))
+		s.handle_mouse(event)
+		assert_int(s.selected).is_equal(choice)
+		assert_int(s.answer).is_equal(-1)
+		event.pressed = false
+		s.handle_mouse(event)
+		assert_int(s.answer).is_equal(1 - choice)
+		s.free()
+
+
+func test_android_drag_off_cancels_even_after_return() -> void:
+	for destination in [Vector2(180, 126), Vector2(40, 40)]:
+		var s := _screen()
+		s._touch_menus = true
+		s.idle = true
+		var event := _click(MOUSE_BUTTON_LEFT, Vector2(140, 126))
+		s.handle_mouse(event)
+		var motion := InputEventMouseMotion.new()
+		motion.position = destination
+		s.handle_mouse(motion)
+		motion.position = event.position
+		s.handle_mouse(motion)
+		event.pressed = false
+		s.handle_mouse(event)
+		assert_int(s.answer).is_equal(-1)
+		s.free()
+
+
+func test_android_ignores_fade_body_and_unpaired_release() -> void:
+	var s := _screen()
+	s._touch_menus = true
+	var event := _click(MOUSE_BUTTON_LEFT, Vector2(140, 126))
+	s.handle_mouse(event)
+	s.idle = true
+	event.pressed = false
+	s.handle_mouse(event)
+	assert_int(s.answer).is_equal(-1)
+	s.handle_mouse(_click(MOUSE_BUTTON_RIGHT, Vector2(140, 126)))
+	event = _click(MOUSE_BUTTON_LEFT, Vector2(40, 40))
+	s.handle_mouse(event)
+	event.pressed = false
+	s.handle_mouse(event)
+	assert_int(s.answer).is_equal(-1)
+	s.free()
+
+
+func test_android_choice_boundaries() -> void:
+	assert_int(XmasPrompt.touch_choice_at(Vector2(96, 112))).is_equal(0)
+	assert_int(XmasPrompt.touch_choice_at(Vector2(159, 143))).is_equal(0)
+	assert_int(XmasPrompt.touch_choice_at(Vector2(160, 112))).is_equal(1)
+	assert_int(XmasPrompt.touch_choice_at(Vector2(223, 143))).is_equal(1)
+	for point in [Vector2(95, 126), Vector2(224, 126), Vector2(140, 111), Vector2(140, 144)]:
+		assert_int(XmasPrompt.touch_choice_at(point)).is_equal(-1)

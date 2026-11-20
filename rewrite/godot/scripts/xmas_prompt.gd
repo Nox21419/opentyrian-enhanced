@@ -33,6 +33,8 @@ const SCENE_TITLE := "res://scenes/title.tscn"
 ## True when the screen is waiting for a key (capture tool).
 var idle := false
 ## Selected choice (0: Yes, 1: No) and answer: -1 pending, 0 no, 1 yes.
+var _touch_menus := OS.get_name() == "Android"
+var _menu_touch := TouchRelease.new()
 var selected := 0
 var answer := -1
 var _flakes_x := PackedInt32Array()
@@ -166,6 +168,19 @@ func handle_action(action: StringName) -> void:
 ## xmas.c, mouse: hovering a word selects it; left click on a word = confirm;
 ## right click anywhere = cancel. A wheel button does not count.
 func handle_mouse(event: InputEvent) -> void:
+	if _touch_menus:
+		if not idle or answer >= 0:
+			_menu_touch.cancel()
+			return
+		var choice := touch_choice_at(event.position)
+		var target := str(choice) if choice >= 0 else ""
+		var click := _menu_touch.feed(event, target)
+		if event is InputEventMouseButton and event.button_index == MOUSE_BUTTON_LEFT and event.pressed and choice >= 0:
+			selected = choice
+		if click != null:
+			selected = choice
+			_finish(false)
+		return
 	if answer >= 0 or TyrianMouse.is_wheel(event):
 		return
 	if event is InputEventMouseMotion:
@@ -182,3 +197,12 @@ func handle_mouse(event: InputEvent) -> void:
 		_finish(true)
 	elif event.button_index == MOUSE_BUTTON_LEFT and clicked >= 0:
 		_finish(false)
+
+
+## Wider Android targets share the original midpoint without overlapping.
+static func touch_choice_at(p: Vector2) -> int:
+	if Rect2(96, 112, 64, 32).has_point(p):
+		return 0
+	if Rect2(160, 112, 64, 32).has_point(p):
+		return 1
+	return -1

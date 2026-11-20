@@ -160,8 +160,9 @@ music/SFX, stable pacing, landscape rotation and letterboxing. Test Home → res
 screen off/on, cold relaunch, and an APK update without uninstalling. Save/settings
 interaction beyond pointer-accessible menus may need a keyboard/controller. Record the
 actual Android version, ABI and page size rather than assuming what “newest” means.
-The proof-of-concept preset passes `--no-xmas` so the December Christmas prompt
-cannot interrupt the idle route while no keyboard/controller is available.
+The Android preset now uses normal seasonal Christmas activation. In December,
+the original Yes/No prompt appears at startup and supports touch. The initial
+proof-of-concept `--no-xmas` override was removed after adapting that prompt.
 
 ## Validation
 
@@ -777,3 +778,33 @@ resuming the round. The original player files were verified byte-for-byte after
 testing. All 15 cases across the Help, intro/mode, pause and round-key suites
 passed with no errors, failures or orphans; formatting and lint checks passed.
 The exported Linux journey/smoke gate remains unavailable without WSL/Linux.
+
+### Christmas prompt touch choices
+
+Android keeps the original Yes/No lettering, positions, highlight and snowflakes.
+Only the invisible targets grow: Yes covers x = 96..159, No x = 160..223,
+both at y = 112..143. A press selects the original highlight; release over the
+same choice confirms. Moving off cancels even after returning, and body taps,
+unpaired releases and input during the initial fade do nothing. Desktop retains
+its original hover, click, right-click cancel and keyboard/gamepad behavior.
+The seasonal activation rules and Christmas assets are unchanged.
+
+All 18 cases in `test/christmas_test.gd` passed with no failures, errors or
+orphans, including Android release/cancel and the existing desktop checks.
+GDScript formatting, lint and `git diff --check` passed. The exported Linux
+journey/smoke gate remains unavailable without WSL/Linux.
+
+The Android APK built successfully and was installed on the A35. The seasonal
+prompt was not exercised on the phone outside December; release/cancel behavior
+was verified by the automated suite without changing the phone date.
+
+## Deferred phone testing
+
+- [ ] Christmas prompt: install the APK with the seasonal override removed
+  (installation was deferred by the maintainer). Verify the prompt appears on
+  a December cold launch, or use a temporary test build that opens the prompt
+  directly without changing the phone date. Test Yes and No separately, held
+  touches, dragging off and returning, and taps outside the choices. Confirm
+  Yes enables Christmas art/audio, No keeps normal assets, and both return to
+  the title. Verify normal startup outside December. Automated tests passed;
+  these on-device checks are still outstanding.
