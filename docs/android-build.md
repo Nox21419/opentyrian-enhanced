@@ -18,8 +18,8 @@ Data, Upgrade Ship, Options and Next Level and their child screens activate
 on release using their original targets.
 Setup, Graphics, Sound, Gameplay, Mutators and picker popups also activate on
 release, with wider invisible row targets. Jukebox uses its existing text for
-touch controls. Setup's Key Bindings, Joystick and Mods entries are grey and
-unavailable on Android.
+touch controls. Setup's Key Bindings and Joystick entries are grey and
+unavailable on Android. Mods toggles a pack when a tap is released on its row.
 High Scores keeps its original arrows with wider touch targets and adds a
 small Back label; both activate on release and cancel when dragged off.
 Replays uses its original rows and scroll indicators as release-activated
@@ -36,8 +36,13 @@ End-of-level Statistics replaces its footer hint with Continue; a release over
 the wide footer target advances, while dragging off cancels.
 The top-left corner has an `II` Pause icon; its menu and Quit confirmation
 activate on release and cancel when dragged off.
+Save Game keeps its original name box; tapping the name field opens the Android
+keyboard while preserving its uppercase, 14-character naming rules.
 Other menus still use their existing pointer/click behavior. Dedicated in-level
-touch buttons for sidekicks and weapon switching are not implemented. No HD art or example mods ship.
+touch buttons for sidekicks and weapon switching are not implemented. No HD art
+ships. The five example mod packs are bundled, extracted and read by the mod
+loader (after the player's own mods folder), disabled as on desktop until the
+player enables them in Setup → Mods.
 Without input, leave the title idle for 30 seconds after the intro
 to see the built-in recorded gameplay demo. This is an experimental target,
 not a claim of phone performance or full Android support.
@@ -125,7 +130,9 @@ Debug signing is for personal testing; release signing/distribution is separate.
 
 `Game._ready()` extracts the bundle before its first native campaign/profile
 load. Files go to `user://bundled/runtime-v1/`, and `GamePaths` resolves native
-data there. Every startup verifies file hashes, reuses intact files and repairs
+data there. The bundle holds the `data/` allowlist, notices and licenses, and
+`mods/<pack>/`: each `rewrite/mods` folder with a `mod.json`, selected as
+`package.sh` selects them (`_retired/` excluded, links refused). Every startup verifies file hashes, reuses intact files and repairs
 missing/corrupt/changed files via temporary writes and renames. Nothing recursively
 deletes the cache, saves or settings. Player files and user mods use Android's
 app-private `user://`; no shared-storage permission is requested. Uninstalling
@@ -336,8 +343,8 @@ Android: its desktop Windowed/monitor chooser does not match Android's
 immersive display. Scaler, Scaling Mode, CRT, available sprite modes, Visual
 Effects and Explosion Style remain enabled. Desktop retains the Display chooser.
 
-Key Bindings, Joystick and Mods remain visible in grey but cannot be opened
-on Android; navigation skips them. Desktop retains those entries and its
+Key Bindings and Joystick remain visible in grey but cannot be opened
+on Android; navigation skips them. Mods opens (see Mods touch toggles). Desktop retains those entries and its
 existing mouse-on-press behavior, row targets and picker handling.
 
 Jukebox's existing text becomes touch targets without new widgets: tap the
@@ -431,6 +438,26 @@ keyboard and gamepad behavior.
 `test/instructions_touch_test.gd` covers every topic and page, cancellation,
 page limits, Exit, embedded close signaling, desktop input and visible footer
 controls. Run it with the help glyph, key-help and mouse-menu suites.
+
+### Mods touch toggles
+
+Setup → Mods opens on Android. The screen keeps its original rows, ON/OFF/ERR
+labels and colors, and the info card below the list. Pressing a mod row
+highlights it and shows its card; releasing over the same row toggles it with
+the original click sound. Dragging off before release cancels the toggle. Row
+targets span x = 8..311 and y = 28..135 in 12-pixel rows; only shown mod rows
+are targets. Open mods folder and Install a mod (.zip) are drawn grey (Setup's
+unavailable style), are not targets, and keyboard/gamepad navigation skips
+them: Android cannot open the app-private folder in a file manager, and the
+.zip picker is unverified there. Back uses x = 252..307, y = 188..199 with the
+localized label centered at (280, 192), replacing the keyboard hint. Leaving
+the screen reloads mods as on desktop. Packs ship disabled; enabling one adds
+its content exactly as on desktop, and with every pack off gameplay is
+unchanged. With more than nine rows, only the shown window is reachable by
+touch. Desktop keeps the keyboard-only screen, its action rows and its hint.
+
+`test/mods_touch_test.gd` covers release toggling, drag-off cancellation,
+the grey action rows, the Back target and the unchanged desktop behavior.
 
 ### Bootstrap and packaging
 
@@ -529,3 +556,38 @@ cancellation and focus loss, frozen simulation state, settings and persistence,
 Return, both Quit answers, icon width and desktop icon absence.
 Existing pause-menu, pause, visual-effects and touch-flight suites check the
 other input paths and gameplay input preservation.
+
+
+### Save Game name entry with the Android keyboard
+
+Android retains the original name box, blinking cursor, fonts, palette and Yes/No
+buttons. Release a tap over the name field (x = 60..254, y = 82..103) to open the
+phone keyboard, prefilled with the current name and its cursor at the end.
+Dragging off cancels the keyboard request. Text and backspace use the existing
+name editor: names remain uppercase, limited to fourteen characters, with the
+existing supported-character checks. Android logical Backspace/Delete and Enter
+are handled even when the soft keyboard supplies no physical scancode.
+
+Yes or the keyboard's Done action proceeds to the existing save confirmation;
+No cancels without changing the slot. The keyboard is dismissed when leaving
+name entry or the screen. Desktop text entry and bindings are unchanged. This
+pass covers Save Game only; campaign and Endless high-score name entry remain
+separate work.
+
+The integration uses Godot's [virtual keyboard API](https://docs.godotengine.org/en/4.6/classes/class_displayserver.html#class-displayserver-method-virtual-keyboard-show)
+and the existing key-event path; the [Android text wrapper in Godot 4.7.2](https://github.com/godotengine/godot/blob/4.7.2-stable/platform/android/java/lib/src/main/java/org/godotengine/godot/input/GodotTextInputWrapper.java)
+forwards inserted characters, backspaces and Done as key events.
+`test/save_name_touch_test.gd` checks field release/cancellation, logical-key
+editing, length limits, saved names, untouched cancelled saves, desktop behavior
+and keyboard cleanup on scene exit. Existing Options and save suites check the
+surrounding navigation, confirmation and persistence paths.
+
+While the Android keyboard is visible, only the original name modal moves up
+fifty game pixels, aligning its artwork with the top of the screen. Its font,
+size and artwork stay unchanged, and the background remains full size. The
+field and Yes/No touch areas move by the same offset. Hiding the keyboard
+restores the original modal position; leaving name entry clears the offset.
+Desktop uses the original drawing and input geometry throughout.
+`test/save_name_touch_test.gd` also verifies the shifted drawing and touch
+areas, restoration, unchanged screen size and cancellation from the moved No
+button without writing a save.

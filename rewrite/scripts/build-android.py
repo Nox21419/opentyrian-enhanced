@@ -1,8 +1,9 @@
 #!/usr/bin/env python3
 """Build the ARM64 Android proof of concept using already imported host assets.
 
-No Gradle project, touch controls, HD assets or shipped mods. Use --bundle-only
-to rebuild the deterministic native-data ZIP without a compiler or Android SDK.
+No Gradle project or HD assets. The shipped mod packs are bundled (disabled, as
+on desktop). Use --bundle-only to rebuild the deterministic native-data ZIP
+without a compiler or Android SDK.
 """
 
 import argparse
@@ -52,9 +53,29 @@ SoundFont: TimGM6mb, Tim Brechbill and David Bolton, GPL v2 (see licenses/).
 Synthesizer: rustysynth, Nobuaki Tanaka, MIT (see licenses/); midly, Unlicense.
 Sharp pixel-art shader: libretro/glsl-shaders, Hyllian (MIT), Zenju (GPL v3).
 Godot: MIT, https://godotengine.org/license/ (includes engine third-party notices).
-No HD assets or example mod packs in this proof of concept.
+No HD assets in this proof of concept. Example mod packs: mods/ (shipped disabled).
 See docs/asset-rights.md in the source repository.
 """
+
+
+def mod_files(repo: Path) -> dict[str, bytes]:
+    """Same selection as package.sh: each top-level rewrite/mods folder with a mod.json.
+
+    _retired/ (no top-level mod.json) and loose files are left out; links are refused.
+    """
+    mods = repo / "rewrite/mods"
+    result = {}
+    for folder in sorted(mods.iterdir()):
+        if not folder.is_dir() or not (folder / "mod.json").is_file():
+            continue
+        if folder.is_symlink():
+            raise ValueError(f"Mod link refused: {folder}")
+        for path in sorted(folder.rglob("*")):
+            if path.is_symlink():
+                raise ValueError(f"Mod link refused: {path}")
+            if path.is_file():
+                result["mods/" + path.relative_to(mods).as_posix()] = path.read_bytes()
+    return result
 
 
 def bundle_files(repo: Path) -> dict[str, bytes]:
@@ -76,6 +97,7 @@ def bundle_files(repo: Path) -> dict[str, bytes]:
         "licenses/TimGM6mb-LICENSE.txt": repo / "rewrite/licenses/TimGM6mb-LICENSE.txt",
     }.items():
         result[name] = path.read_bytes()
+    result.update(mod_files(repo))
     result["DATA-NOTICES.txt"] = NOTICES.encode()
     return result
 

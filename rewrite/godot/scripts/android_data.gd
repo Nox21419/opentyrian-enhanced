@@ -76,7 +76,11 @@ static func safe_name(name: String) -> bool:
 		if part in ["", ".", ".."]:
 			return false
 	# Never accept arbitrary player paths from a bundle, even inside the cache.
-	return name.begins_with("data/") or name.begins_with("licenses/") or name in ["COPYING", "DATA-NOTICES.txt"]
+	# mods/ is the shipped example packs (cache only; the player's own mods are in UserData).
+	for prefix in ["data/", "licenses/", "mods/"]:
+		if name.begins_with(prefix):
+			return true
+	return name in ["COPYING", "DATA-NOTICES.txt"]
 
 
 static func _write_atomic(path: String, bytes: PackedByteArray) -> bool:

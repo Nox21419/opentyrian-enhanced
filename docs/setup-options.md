@@ -23,8 +23,8 @@ See [Android title-menu validation](android-build.md#title-touch-menu-first-menu
 
 ## Option behavior and persistence
 
-On Android, Setup's Key Bindings, Joystick and Mods entries are grey and
-unavailable. The available Setup menus and their children use wider invisible
+On Android, Setup's Key Bindings and Joystick entries are grey and
+unavailable; Mods toggles a pack on tap release (docs/android-build.md). The available Setup menus and their children use wider invisible
 touch targets. Graphics' desktop Display chooser is also grey and unavailable
 on Android; the remaining Graphics choices stay enabled. The menus
 activate on release, cancelling when dragged off. Jukebox

@@ -8,6 +8,8 @@
 ## Folders read, from highest to lowest priority (for equal names):
 ##   1. userdata/mods                — the player's mods, and those created in the editor;
 ##   2. <repo>/rewrite/mods          — mods shipped with the rewrite.
+## (Packages also read <shipped>/mods; Android reads only 1 and the extracted
+## <user>/bundled/runtime-v1/mods, see GamePaths.)
 ## A single format (ADR 0083): mods of the C version (<data>/mods) are not
 ## read; those in the repo are converted into rewrite/mods.
 ##
@@ -48,7 +50,9 @@ func _ready() -> void:
 
 func dirs() -> PackedStringArray:
 	if OS.get_name() == "Android":
-		return PackedStringArray([USER_MODS])
+		# Both absolute (OS.get_user_data_dir()): the player's mods, then the example
+		# packs that AndroidData extracts from the APK before this autoload runs.
+		return PackedStringArray([USER_MODS, GamePaths.shipped("mods")])
 	return PackedStringArray(
 		[
 			ProjectSettings.globalize_path(USER_MODS),

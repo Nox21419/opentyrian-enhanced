@@ -24,6 +24,11 @@ const ACTION_ROWS := [
 	["gd_mods_install", "gd_mods_install_desc"],
 ]
 
+## Android: a release on a mod row toggles it (dragging off cancels); the two
+## action rows are grey (no file manager or .zip picker); Back replaces the keys hint.
+## Desktop keeps the keyboard-only screen of mod_manager.c.
+var _touch_mods := OS.get_name() == "Android"
+var _touch_release := TouchRelease.new()
 var mods: Array = []
 ## Selected row.
 var index: int:
@@ -78,6 +83,7 @@ func _open(sel := 0) -> void:
 			{
 				"activate": func(_it: Dictionary) -> void: open_folder(),
 				"adjust": func(_it: Dictionary, _dir: int) -> void: pass,
+				"unavailable": _touch_mods,
 			}
 		)
 	)
@@ -89,6 +95,7 @@ func _open(sel := 0) -> void:
 			{
 				"activate": func(_it: Dictionary) -> void: choose_zip(),
 				"adjust": func(_it: Dictionary, _dir: int) -> void: pass,
+				"unavailable": _touch_mods,
 			}
 		)
 	)
@@ -117,6 +124,11 @@ func _row_count() -> int:
 	return mods.size() + ACTION_ROWS.size()
 
 
+## First row shown when row `sel` is selected (the list follows the selection).
+func _first_row(sel: int) -> int:
+	return clampi(sel - ROWS + 1, 0, maxi(0, _row_count() - ROWS))
+
+
 ## Drawing of the screen in the 8-bit framebuffer, with the hues and
 ## brightness values of mod_manager.c:mod_manager_menu (JE_textShade FULL_SHADE,
 ## TINY font) on image 2 and its palette: title 15/4, name 15/4 selected and
@@ -130,9 +142,11 @@ func _redraw() -> void:
 	_text(TyrianText.L("mods_header"), 160, 5, 15, 4, TyrianText.Align.CENTER)
 	if not Mods.available():
 		_text(TyrianText.L("gd_mods_unavailable"), 160, 60, 4, 2, TyrianText.Align.CENTER)
+		if _touch_mods:
+			_draw_back()
 		screen.present()
 		return
-	var first := clampi(index - ROWS + 1, 0, maxi(0, _row_count() - ROWS))
+	var first := _first_row(index)
 	for i in range(first, mini(first + ROWS, _row_count())):
 		var y := 28 + (i - first) * 12
 		var sel := i == index
@@ -157,17 +171,36 @@ func _redraw() -> void:
 		_text(TyrianText.L("gd_mods_none"), 160, 60, 15, 2, TyrianText.Align.CENTER)
 	var y0 := 28 + ROWS * 12 + 4
 	if index >= mods.size():
-		_draw_action_detail(index - mods.size(), y0)
+		# Android: the action rows are unavailable, their card is not shown
+		# (only reached when the list has no mod at all).
+		if not _touch_mods:
+			_draw_action_detail(index - mods.size(), y0)
 	else:
 		_draw_mod_detail(mods[index], y0)
-	_text(TyrianText.L("gd_mods_keys"), 160, 190, 15, 4, TyrianText.Align.CENTER)
+	if _touch_mods:
+		_draw_back()
+	else:
+		_text(TyrianText.L("gd_mods_keys"), 160, 190, 15, 4, TyrianText.Align.CENTER)
 	screen.present()
+
+
+## Android footer: the localized Back label of Replays / Achievements (same place).
+func _draw_back() -> void:
+	TyrianText.draw_font_hv_shadow(
+		screen, 280, 192, TyrianText.L("gd_back"), TyrianScreen.SMALL_FONT, TyrianScreen.CENTERED, 15, 4, false, 2
+	)
 
 
 ## Action row; the install row carries the result of the last
 ## installation, like a mod's error reason on its row.
 func _draw_action_row(a: int, y: int, sel: bool) -> void:
 	var label := TyrianText.L(ACTION_ROWS[a][0])
+	if _touch_mods:
+		# Grey like Setup's unavailable rows (MenuEngine: hue 10, value -3).
+		TyrianText.draw_font_hv_shadow(
+			screen, 12, y, label, TyrianScreen.SMALL_FONT, TyrianScreen.LEFT, 10, -3, false, 2
+		)
+		return
 	_text(label, 12, y, 15, 4 if sel else 2)
 	if a == 1 and not install_message.is_empty():
 		_text_after(label, 12, y, install_message, _install_hue(), 2)
@@ -298,8 +331,11 @@ func _text(s: String, x: int, y: int, hue: int, brightness: int, align := Tyrian
 
 
 func _unhandled_input(event: InputEvent) -> void:
-	# mod_manager.c has no mouse access: no hover, no click, no cursor.
+	# mod_manager.c has no mouse access: no hover, no click, no cursor
+	# (desktop). Android: touch, through handle_mouse.
 	if event is InputEventMouse:
+		if _touch_mods:
+			handle_mouse(event)
 		return
 	# "Install a mod" dialog open: the screen no longer reacts. On Windows,
 	# the native dialog cannot be closed programmatically (hide() leaves it displayed);
@@ -320,9 +356,60 @@ func _unhandled_input(event: InputEvent) -> void:
 ## Menu action (shared InputMap, ADR 0120), handled by the shared engine.
 ## Without GDExtension, only exiting remains possible.
 func handle_action(action: StringName) -> void:
+	_touch_release.cancel()
 	if not Mods.available() and action != TyrianControls.BACK:
 		return
+	if _touch_mods and action in [TyrianControls.UP, TyrianControls.DOWN]:
+		var next := clampi(index + (-1 if action == TyrianControls.UP else 1), 0, maxi(0, mods.size() - 1))
+		if next != index:
+			menus.current().sel = next
+			Sfx.play(Sfx.CURSOR)
+			menus.draw()
+		return
 	menus.handle_action(action)
+
+
+## Android touch (game coordinates, 320×200), like Replays: a press highlights the
+## mod row, a release over the same row toggles it (S_CLICK); dragging off cancels.
+## Back activates on release too. Desktop never calls this (no mouse in mod_manager.c).
+func handle_mouse(event: InputEvent) -> void:
+	if not _touch_mods or menus.stack.is_empty() or dialog_open() or not event is InputEventMouse:
+		_touch_release.cancel()
+		return
+	TyrianMouse.note(event)
+	var target := _touch_target(Vector2i(event.position.floor()))
+	if (
+		event is InputEventMouseButton
+		and event.pressed
+		and event.button_index == MOUSE_BUTTON_LEFT
+		and target.begins_with("row:")
+	):
+		var row := int(target.trim_prefix("row:"))
+		# Highlight only if the list would not scroll under the finger.
+		if _first_row(row) == _first_row(index):
+			menus.hover(menus.current(), row)
+	if _touch_release.feed(event, target) == null:
+		return
+	if target == "back":
+		handle_action(TyrianControls.BACK)
+	elif target.begins_with("row:"):
+		menus.current().sel = int(target.trim_prefix("row:"))
+		toggle()
+		_redraw()
+
+
+## Touch target under `p`: "back", "row:<mod index>" (shown mod rows only;
+## the grey action rows are not targets) or "".
+func _touch_target(p: Vector2i) -> String:
+	if Rect2i(252, 188, 56, 12).has_point(p):
+		return "back"
+	if not Mods.available():
+		return ""
+	if p.x >= 8 and p.x < ROW_RIGHT + 4 and p.y >= 28 and p.y < 28 + ROWS * 12:
+		var row := _first_row(index) + (p.y - 28) / 12
+		if row < mods.size():
+			return "row:%d" % row
+	return ""
 
 
 ## mod_manager.c, R key: data reload without waiting for the menu

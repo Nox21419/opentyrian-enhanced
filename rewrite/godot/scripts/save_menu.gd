@@ -92,6 +92,12 @@ var _message := ""
 ## Name entry in progress (handle_event captures it); keys received, in
 ## order: character (String) or action (StringName).
 var _typing := false
+var _mobile_name_keyboard := OS.get_name() == "Android"
+const NAME_TOUCH_RECT := Rect2i(60, 82, 195, 22)
+var _name_text := ""
+var _name_keyboard_requested := false
+var _name_modal_offset := 0
+var _name_redraw := false
 ## Key or button capture in progress (_wait_capture): `_capture_wants_pad`
 ## true for a gamepad assignment; `_capture_event`: the event retained.
 var _capturing := false
@@ -724,33 +730,41 @@ func _choose(sel: int) -> void:
 ## uppercase letters, Backspace, Enter confirms, Esc cancels).
 ## Returns the name, or null if cancelled.
 func _prompt_name(initial: String) -> Variant:
-	var name := initial.left(NAME_MAX)
+	_name_text = initial.left(NAME_MAX)
 	var flash := 8 * 16 + 10
+	var name_background: PackedByteArray = vga.indices(VGA_SCREEN) if _mobile_name_keyboard else PackedByteArray()
 	vga.bar_shade(VGA_SCREEN, 65, 55, 255, 155)
+	_name_modal_offset = 0
+	_name_redraw = false
 	_typing = true
 	_pending.clear()
 	var result: Variant = null
-	while true:
-		vga.blit_sprite(VGA_SCREEN, 50, 50, OPTION_SHAPES, 35)
-		TyrianText.text_shade(self, 60, 55, TyrianText.L("miscText_0"), 11, 4, TyrianText.DARKEN)
-		TyrianText.text_shade(self, 70, 70, Game.level_name, 11, 4, TyrianText.DARKEN)
+	while is_inside_tree():
+		_name_redraw = false
+		var offset := _name_modal_offset
+		if _mobile_name_keyboard:
+			vga.set_indices(VGA_SCREEN, name_background)
+			vga.bar_shade(VGA_SCREEN, 65, 55 + offset, 255, 155 + offset)
+		vga.blit_sprite(VGA_SCREEN, 50, 50 + offset, OPTION_SHAPES, 35)
+		TyrianText.text_shade(self, 60, 55 + offset, TyrianText.L("miscText_0"), 11, 4, TyrianText.DARKEN)
+		TyrianText.text_shade(self, 70, 70 + offset, Game.level_name, 11, 4, TyrianText.DARKEN)
 		flash = 8 * 16 + 2 if flash == 8 * 16 + 10 else 8 * 16 + 10
-		var line := TyrianText.L("miscText_1") + name
-		TyrianText.out_text(self, 65, 89, line, 8, 3)
+		var line := TyrianText.L("miscText_1") + _name_text
+		TyrianText.out_text(self, 65, 89 + offset, line, 8, 3)
 		var w := 65 + TyrianText.width(line.replace("~", ""), SMALL_FONT)
-		vga.bar_shade(VGA_SCREEN, w + 2, 90, w + 6, 95)
-		vga.fill_rectangle_xy(VGA_SCREEN, w + 1, 89, w + 5, 94, flash)
+		vga.bar_shade(VGA_SCREEN, w + 2, 90 + offset, w + 6, 95 + offset)
+		vga.fill_rectangle_xy(VGA_SCREEN, w + 1, 89 + offset, w + 5, 94 + offset, flash)
 		var ok := TyrianText.L(SAVE_BOX_YES)
 		var cancel := TyrianText.L(SAVE_BOX_NO)
-		TyrianText.out_text_adjust(self, 54 + 45 - TyrianText.width(ok, LARGE_FONT) / 2, 128, ok, 15, -5, LARGE_FONT,
+		TyrianText.out_text_adjust(self, 54 + 45 - TyrianText.width(ok, LARGE_FONT) / 2, 128 + offset, ok, 15, -5, LARGE_FONT,
 				true)
-		TyrianText.out_text_adjust(self, 149 + 45 - TyrianText.width(cancel, LARGE_FONT) / 2, 128, cancel, 15, -5,
+		TyrianText.out_text_adjust(self, 149 + 45 - TyrianText.width(cancel, LARGE_FONT) / 2, 128 + offset, cancel, 15, -5,
 				LARGE_FONT, true)
 		present()
 		# 14 × setDelay(1), interrupted by a key.
 		idle = _pending.is_empty()
 		for i in 14:
-			if not _pending.is_empty():
+			if not _pending.is_empty() or _name_redraw:
 				break
 			await wait_units(1)
 		idle = false
@@ -760,22 +774,56 @@ func _prompt_name(initial: String) -> Variant:
 			if k is StringName:
 				match k:
 					TyrianControls.DELETE:
-						if name.length() > 0:
-							name = name.left(name.length() - 1)
+						if _name_text.length() > 0:
+							_name_text = _name_text.left(_name_text.length() - 1)
 							Sfx.play(Sfx.CLICK)
 					TyrianControls.ACCEPT:
-						result = name.strip_edges(false, true)
+						result = _name_text.strip_edges(false, true)
 						done = true
 					TyrianControls.BACK:
 						Sfx.play(Sfx.SPRING)
 						done = true
-			elif name.length() < NAME_MAX and (k == " " or TyrianText.sprite_id(String(k).unicode_at(0)) >= 0):
+			elif _name_text.length() < NAME_MAX and (k == " " or TyrianText.sprite_id(String(k).unicode_at(0)) >= 0):
 				Sfx.play(Sfx.CURSOR)
-				name += k
+				_name_text += k
 		if done:
 			break
+	_hide_name_keyboard()
 	_typing = false
 	return result
+
+
+func _process(_delta: float) -> void:
+	if _mobile_name_keyboard and _typing and _name_keyboard_requested:
+		_update_name_keyboard_layout(DisplayServer.virtual_keyboard_get_height())
+
+
+func _update_name_keyboard_layout(height: int) -> void:
+	var offset := -50 if _mobile_name_keyboard and _typing and _name_keyboard_requested and height > 0 else 0
+	if offset != _name_modal_offset:
+		_name_modal_offset = offset
+		_name_redraw = true
+		_touch_release.cancel()
+
+
+func _show_name_keyboard() -> void:
+	if not _mobile_name_keyboard or not _typing:
+		return
+	_name_keyboard_requested = true
+	if DisplayServer.has_feature(DisplayServer.FEATURE_VIRTUAL_KEYBOARD):
+		DisplayServer.virtual_keyboard_show(_name_text, Rect2(), DisplayServer.KEYBOARD_TYPE_DEFAULT,
+			NAME_MAX, _name_text.length(), _name_text.length())
+
+
+func _hide_name_keyboard() -> void:
+	_update_name_keyboard_layout(0)
+	if _name_keyboard_requested and DisplayServer.has_feature(DisplayServer.FEATURE_VIRTUAL_KEYBOARD):
+		DisplayServer.virtual_keyboard_hide()
+	_name_keyboard_requested = false
+
+
+func _exit_tree() -> void:
+	_hide_name_keyboard()
 
 
 ## Name entry: typed character (uppercase) or control key, whatever
@@ -802,6 +850,15 @@ func handle_event(event: InputEvent) -> void:
 		return
 	idle = false
 	var action := TyrianControls.menu_action(event)
+	# Android's soft keyboard can send logical keys without physical scancodes.
+	if _mobile_name_keyboard:
+		match k.keycode:
+			KEY_BACKSPACE, KEY_DELETE:
+				action = TyrianControls.DELETE
+			KEY_ENTER, KEY_KP_ENTER:
+				action = TyrianControls.ACCEPT
+			KEY_ESCAPE:
+				action = TyrianControls.BACK
 	if action in [TyrianControls.ACCEPT, TyrianControls.BACK, TyrianControls.DELETE]:
 		_pending.append(action)
 		return
@@ -854,10 +911,13 @@ func _touch_target(p: Vector2i) -> String:
 	if _capturing:
 		return "capture" if Rect2i(0, 0, 320, 200).has_point(p) else ""
 	if _typing:
-		if p.y > 123 and p.y < 149:
-			if p.x > 56 and p.x < 142:
+		var name_point := p - Vector2i(0, _name_modal_offset)
+		if _mobile_name_keyboard and NAME_TOUCH_RECT.has_point(name_point):
+			return "name:keyboard"
+		if name_point.y > 123 and name_point.y < 149:
+			if name_point.x > 56 and name_point.x < 142:
 				return "name:yes"
-			if p.x > 151 and p.x < 237:
+			if name_point.x > 151 and name_point.x < 237:
 				return "name:no"
 		return ""
 	if menus.stack.is_empty():
@@ -884,7 +944,10 @@ func _handle_mouse(event: InputEvent) -> void:
 	if _typing:
 		if not TyrianMouse.is_button_press(event):
 			return
-		var p: Vector2 = event.position
+		var p: Vector2 = event.position - Vector2(0, _name_modal_offset)
+		if _mobile_name_keyboard and NAME_TOUCH_RECT.has_point(Vector2i(p.floor())):
+			_show_name_keyboard()
+			return
 		if p.y > 123 and p.y < 149 and p.x > 56 and p.x < 142:
 			_pending.append(TyrianControls.ACCEPT)
 		elif p.y > 123 and p.y < 149 and p.x > 151 and p.x < 237:

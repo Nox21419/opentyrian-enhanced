@@ -62,6 +62,14 @@ class AndroidBundleTests(unittest.TestCase):
                 self.assertFalse(
                     any("reference/" in name or "/mods/" in name or name.endswith(".snd") for name in names)
                 )
+                # Shipped packs, as package.sh selects them: folders with mod.json, never _retired/.
+                packs = sorted(p.name for p in (BUILD.REPO / "rewrite/mods").iterdir() if (p / "mod.json").is_file())
+                self.assertEqual(len(packs), 5)
+                for pack in packs:
+                    self.assertIn(f"mods/{pack}/mod.json", names)
+                self.assertFalse(any(name.startswith("mods/_retired/") for name in names))
+                mod_names = [name for name in names if name.startswith("mods/")]
+                self.assertTrue(all(name.count("/") >= 2 for name in mod_names))
                 manifest = json.loads(archive.read("manifest.json"))
                 self.assertEqual(set(manifest["files"]), set(names) - {"manifest.json"})
                 for name, digest in manifest["files"].items():

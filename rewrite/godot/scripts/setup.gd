@@ -473,7 +473,7 @@ func _setup_items() -> Array:
 		_item("setup_joystick", "setup_joystick_desc", Kind.ACTION,
 			{"action": _open_joystick, "unavailable": _mobile_options_disabled}),
 		_item("setup_mods", "setup_mods_desc", Kind.ACTION,
-			{"action": _open_mods, "unavailable": _mobile_options_disabled}),
+			{"action": _open_mods}),
 		_item("setup_jukebox", "setup_jukebox_desc", Kind.ACTION, {"action": _open_jukebox}),
 		_item("setup_done", "setup_done_main", Kind.BACK),
 	]

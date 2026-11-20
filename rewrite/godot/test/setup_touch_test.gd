@@ -76,9 +76,9 @@ func test_root_wide_targets_release_and_drag_cancel() -> void:
 	assert_bool(TyrianMouse.any_button_down()).is_false()
 
 
-func test_mobile_control_and_mod_rows_are_disabled_and_skipped() -> void:
+func test_mobile_control_rows_are_disabled_and_mods_remains_available() -> void:
 	var setup := await _open()
-	for row in [3, 4, 5]:
+	for row in [3, 4]:
 		var item: Dictionary = setup.menus.current().items[row]
 		assert_bool(MenuEngine.selectable(item)).is_false()
 		_tap(setup, _row(row, 160))
@@ -87,7 +87,10 @@ func test_mobile_control_and_mod_rows_are_disabled_and_skipped() -> void:
 		assert_str(Effects.current_game_scene().scene_file_path).is_equal(Game.SCENE_SETUP)
 	setup.menus.current().sel = 2
 	setup.handle_action(TyrianControls.DOWN)
-	assert_int(setup.menus.selection()).is_equal(6)
+	assert_int(setup.menus.selection()).is_equal(5)
+	assert_bool(MenuEngine.selectable(setup.menus.current().items[5])).is_true()
+	_tap(setup, _row(5))
+	assert_str(Effects.current_game_scene().get_script().resource_path).is_equal("res://scripts/mods_menu.gd")
 
 
 func test_gameplay_and_mutator_changes_wait_for_release_and_save() -> void:

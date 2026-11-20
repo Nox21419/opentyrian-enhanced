@@ -39,7 +39,16 @@ func test_bundle_names_cannot_escape_or_target_player_files() -> void:
 		"../save", "data/../../save", "/data/file", "data\\file", "C:/data/file", "saves/slot.json", "data//f"
 	]:
 		assert_bool(AndroidData.safe_name(name)).is_false()
-	for name in ["data/tyrian.hdt", "data/midi/01-song.mid", "licenses/rustysynth-LICENSE.txt", "COPYING"]:
+	for name in ["mods/../saves/slot.json", "mods//mod.json", "modsx/mod.json", "mods"]:
+		assert_bool(AndroidData.safe_name(name)).is_false()
+	for name in [
+		"data/tyrian.hdt",
+		"data/midi/01-song.mid",
+		"licenses/rustysynth-LICENSE.txt",
+		"COPYING",
+		"mods/alien_ship_pack/mod.json",
+		"mods/alien_ship_pack/sprites/ship.png",
+	]:
 		assert_bool(AndroidData.safe_name(name)).is_true()
 
 
