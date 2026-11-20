@@ -680,6 +680,35 @@ func _build_hud() -> void:
 	_pause_label.visible = false
 	_hud.add_child(_pause_label)
 	_build_touch_pause_label()
+	_sync_touch_weapons()
+
+
+func _reset_touch_weapons() -> void:
+	if _touch_weapons != null:
+		_touch_weapons.update_state(PackedInt32Array(), false)
+
+
+func _sync_touch_weapons() -> void:
+	if not _touch_pause or not interactive or demo or replaying or sim == null:
+		_reset_touch_weapons()
+		return
+	if _touch_weapons == null:
+		_touch_weapons = TouchWeapons.new()
+		_touch_weapons.name = "TouchWeapons"
+		_hud.add_child(_touch_weapons)
+	if _hud_vga != null:
+		_hud_vga.touch_layout = true
+	_touch_weapons.update_state(
+		sim.hud_state(),
+		(
+			not paused
+			and _pause_menu == null
+			and _quit_box == null
+			and _help_screen == null
+			and not _entry_fade_active()
+			and not _game_over_shown()
+		)
+	)
 
 
 func _build_touch_pause_label() -> void:
@@ -724,6 +753,7 @@ func _physics_process(_delta: float) -> void:
 		return
 	if not interactive or paused or _quit_box != null or _pause_menu != null or _help_screen != null:
 		_touch_flight.reset()
+		_reset_touch_weapons()
 		# mainint.c:JE_inGameSetup presents the screen on every turn (JE_showVGA) and
 		# video.c:449 decays the shake there: the menu does not stay shifted.
 		if interactive and not paused and sim != null and sim.has_method("shake_present_frame"):
@@ -792,7 +822,8 @@ func _physics_process(_delta: float) -> void:
 	_mouse_dx = 0
 	_mouse_dy = 0
 	var p2 := Game.read_input_mask_p2() if _two_players() else 0
-	var mask := Game.read_input_mask()
+	_sync_touch_weapons()
+	var mask := Game.read_input_mask() | (_touch_weapons.consume_mask() if _touch_weapons != null else 0)
 	# mainint.c: the achievements list consumes the arrows (INPUT_MENU_*), the
 	# ship does not move while it is browsed.
 	if hotkeys.overlays.achievements_active:
@@ -901,6 +932,7 @@ func _freeze_for_debrief() -> void:
 ## sidekicks, middle weapon switch (keyboard.c, SDL_MOUSEBUTTONDOWN).
 var _mouse_mask := 0
 var _touch_flight := TouchFlight.new()
+var _touch_weapons: TouchWeapons
 var _touch_pause := OS.get_name() == "Android"
 const TOUCH_PAUSE_RECT := Rect2(0, 0, 56, 16)
 var _pause_touch_finger := -1
@@ -1093,9 +1125,13 @@ func _input(event: InputEvent) -> void:
 		):
 			if _touch_pause and _pause_touch_event(event):
 				return
+			_sync_touch_weapons()
+			if _touch_weapons != null and _touch_weapons.feed(event):
+				return
 			_touch_flight.feed(event)
 		else:
 			_touch_flight.reset()
+			_reset_touch_weapons()
 			_pause_touch_finger = -1
 			_pause_touch_armed = false
 		return
@@ -1139,6 +1175,7 @@ func _pause_touch_event(event: InputEvent) -> bool:
 				_pause_touch_armed = false
 				if activate:
 					_touch_flight.reset()
+					_reset_touch_weapons()
 					open_pause_menu()
 			return true
 		if (
@@ -1174,6 +1211,7 @@ var _resumed_frame := -10
 func set_paused(on: bool) -> void:
 	if on:
 		_touch_flight.reset()
+		_reset_touch_weapons()
 	if on == paused:
 		return
 	paused = on
@@ -1330,6 +1368,7 @@ static func _resumes_pause(event: InputEvent) -> bool:
 func _notification(what: int) -> void:
 	if what == NOTIFICATION_APPLICATION_FOCUS_OUT or what == NOTIFICATION_EXIT_TREE:
 		_touch_flight.reset()
+		_reset_touch_weapons()
 		_pause_touch_finger = -1
 		_pause_touch_armed = false
 	# Level exited (Escape, exit box, title): the recording closes
@@ -1561,6 +1600,7 @@ func open_pause_menu() -> void:
 	if _pause_menu != null:
 		return
 	_touch_flight.reset()
+	_reset_touch_weapons()
 	_pause_touch_finger = -1
 	_pause_touch_armed = false
 	if _touch_pause_label != null:
@@ -1757,6 +1797,7 @@ func advance(ticks: int, mask_at: Callable, mouse_at := Callable()) -> void:
 
 
 func _refresh() -> void:
+	_sync_touch_weapons()
 	_update_layers()
 	_update_enemies()
 	_update_shots()

@@ -25,7 +25,8 @@ impl TyrianSim {
     /// 18 galaga, 19 smoothies[5], 20 shield, 21 armor, 22 cash, 23 superbombs
     /// of player 2, 24/25 lives (`*lives`) of players 1 and 2,
     /// 26 sidekick_level of player 2, 27 last row occupied at the top of
-    /// the play area by a text or a bar (-1 if none).
+    /// the play area by a text or a bar (-1 if none), 28/29 shop graphics
+    /// of manually fired sidekicks (0 for absent/automatic sidekicks).
     #[func]
     fn hud_state(&self) -> PackedInt32Array {
         let Some(sim) = self.sim.as_ref() else {
@@ -68,6 +69,16 @@ impl TyrianSim {
             q.items.sidekick_level as i32,
             top_text_bottom(w),
         ]);
+        for i in 0..2 {
+            let graphic = w.tables.options.get(sk.items.sidekick[i].index()).map_or(0, |o| {
+                if o.wport > 0 && (sk.sidekick[i].ammo_max > 0 || o.pwr > 0) {
+                    o.itemgraphic as i32
+                } else {
+                    0
+                }
+            });
+            v.push(graphic);
+        }
         PackedInt32Array::from(v)
     }
 

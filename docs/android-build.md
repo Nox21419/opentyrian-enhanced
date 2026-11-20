@@ -5,7 +5,8 @@ It uses the existing Compatibility renderer, Original graphics and landscape
 orientation. During a level, **hold one finger on the playfield to steer and fire**;
 drag to move the target, and lift to stop firing. The ship approaches the finger
 at the existing movement speed and stays inside its normal bounds. Extra fingers
-are ignored; pause or focus loss cancels the held input. The title screen has
+can operate the Android weapon controls while the steering finger stays held;
+pause or focus loss cancels held input. The title screen has
 an Android-only two-column layout of the original gold menu text, including
 a visible Side Modes entry with the same lettering.
 The Players screen keeps its original single-column text, adds Back and wider
@@ -40,8 +41,10 @@ The top-left corner has an `II` Pause icon; its menu and Quit confirmation
 activate on release and cancel when dragged off.
 Save Game keeps its original name box; tapping the name field opens the Android
 keyboard while preserving its uppercase, 14-character naming rules.
-Other menus still use their existing pointer/click behavior. Dedicated in-level
-touch buttons for sidekicks and weapon switching are not implemented. No HD art
+Other menus still use their existing pointer/click behavior. In-level Android
+weapon controls sit just above the bottom-left message bar: the left manual
+sidekick icon, Mode, and the right manual sidekick icon. The score is right-aligned
+at the top-right of the play area. No HD art
 ships. The five example mod packs are bundled, extracted and read by the mod
 loader (after the player's own mods folder), disabled as on desktop until the
 player enables them in Setup → Mods.
@@ -955,3 +958,55 @@ remains unavailable without WSL/Linux.
 
 The Android APK built successfully and was installed on the A35. Anomalies remain
 disabled by default; on-device picker verification is deferred as listed above.
+
+
+### Gameplay weapon touch controls
+
+Android interactive levels use the approved compact row just above the bottom
+message bar. Original shop sidekick artwork is scaled to 65%, with the original
+normal menu font for Mode. The left icon starts at the playfield's left edge;
+the three positions stay fixed when either sidekick icon is absent. Invisible,
+non-overlapping touch areas cover x 0–18, 18–48 and 48–70, y 162–184. The bottom
+bar remains available for level, combo and system messages. The original score
+font and colors are retained, right-aligned four pixels from the playfield's
+right edge at y 3; desktop retains its original score position.
+
+A sidekick icon is shown when the equipped sidekick has a weapon port and uses
+manual ammunition or charging, matching the shop preview's visibility rule.
+Automatic sidekicks and empty slots have no icon or reserved touch interception.
+Each control activates only on release of a finger whose initial press was on
+that same control. Dragging off cancels permanently, including if the finger
+returns. A finger already steering can drag over and release on any control
+without activating it or interrupting steering. Separate fingers can operate
+controls while the original finger continues steering.
+
+A release supplies one tick of the existing keyboard-style mode/sidekick input.
+Repeated taps have a released tick between pulses so each mode-switch edge is
+visible to the simulation. Firing cooldowns, ammunition, charging, weapon modes,
+movement, simulation timing and RNG remain owned by the unchanged simulation.
+Pausing, Help, focus loss and leaving the level discard pending button input.
+Controls are absent from desktop, demos and replay playback.
+
+`touch_weapons_test.gd` covers all three release gestures, drag-off/return,
+cross-control cancellation, steering across targets, simultaneous fingers,
+cancelled events, hidden controls and repeated taps. `level_touch_weapons_test.gd`
+verifies actual rear-mode changes, separate left/right ammunition consumption,
+automatic versus charged sidekick visibility, pause cleanup and Android versus
+desktop score placement. The existing flight and pause touch suites also run.
+
+
+All 22 cases across these four suites passed without errors, failures or
+orphans. Host and Android native builds, APK signing/alignment validation,
+GDScript lint/format, Rust formatting and `git diff --check` passed. The updated
+APK was installed on the A35. Phone checks confirmed the compact row and score
+placement, mode switching and separate sidekick ammo consumption only on
+release. Drag-off/return cancelled all three controls; steering through the row
+changed neither mode nor ammo (normal ammo refill continued). All five original
+player files were restored and verified byte-for-byte after the temporary test
+loadout. The game was left paused with that loadout in memory for inspection.
+
+The exported Linux package journey/smoke gate remains unavailable because this
+host has no WSL/Linux installation. Strict Clippy is blocked by existing
+warnings in `tyrian-sim`; `--no-deps` also identifies the pre-existing
+`mem_replace_with_default` warning at `tyrian-godot/src/shop.rs:518` under the
+installed Rust 1.100 toolchain. Those unrelated sources were not changed.

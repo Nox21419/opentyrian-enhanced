@@ -75,6 +75,7 @@ enum {
 ## Size of a TyrianSim.take_hud_ops() record.
 const OP_SIZE := 8
 
+var touch_layout := false
 var vga: RefCounted
 var _texture: ImageTexture
 ## HD (AI) mode: upscaled dashboard frame (HdInterface); the play
@@ -735,10 +736,14 @@ func _draw_in_game_displays(h: PackedInt32Array, endless: PackedInt64Array) -> v
 			# Deliberate divergence from the original (fixed x 230): player 2's
 			# money is right-aligned on the right edge of "Player 2".
 			var cash_x := 30 if i == 0 else 285 - int(ClassDB.class_call_static("TyrianVga", "text_width", cash, 2))
+			var cash_y := 175
+			if touch_layout and i == 0:
+				cash_x = PLAY_AREA_X + PLAY_W - 4 - int(ClassDB.class_call_static("TyrianVga", "text_width", cash, 2))
+				cash_y = 3
 			if h[SMOOTHIE6] != 0:
-				vga.text_shade(s, cash_x, 175, cash, 8, 8, TyrianText.FULL_SHADE)
+				vga.text_shade(s, cash_x, cash_y, cash, 8, 8, TyrianText.FULL_SHADE)
 			else:
-				vga.text_shade(s, cash_x, 175, cash, 2, 4, TyrianText.FULL_SHADE)
+				vga.text_shade(s, cash_x, cash_y, cash, 2, 4, TyrianText.FULL_SHADE)
 		if h[SPECIAL_GR] > 0:
 			vga.blit_sprite2(s, 25, 1, "main:9", h[SPECIAL_GR], 0, 0, true)
 		# "Lives Left": arcade (one player) or two players.
