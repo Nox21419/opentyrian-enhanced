@@ -115,3 +115,74 @@ func test_desktop_keeps_mouse_ignored_and_keyboard_closes_help() -> void:
 	assert_str(screen.phase).is_equal("wait")
 	screen.handle_event(TyrianControls.key_event(KEY_ENTER))
 	await _resumed(screen, tick)
+
+
+func _round_menu() -> Node:
+	var screen := await _open()
+	screen.handle_event(TyrianControls.key_event(KEY_ENTER))
+	await _phase(screen, "menu")
+	screen.handle_event(TyrianControls.key_event(KEY_ENTER))
+	await _phase(screen, "play")
+	_button(screen, Vector2(20, 8), true)
+	assert_bool(screen._round_pause_requested).is_false()
+	_button(screen, Vector2(20, 8), false)
+	await _phase(screen, "round_pause")
+	return screen
+
+
+func test_round_menu_help_returns_frozen_and_resume_restores_vga() -> void:
+	var screen := await _round_menu()
+	var tick: int = screen._tick
+	var state: PackedInt32Array = screen.game.state()
+	var image: PackedByteArray = screen.vga.indices(screen.VGA_SCREEN)
+	_tap(screen, Vector2(160, 104))
+	await _phase(screen, "wait")
+	assert_bool(screen._help_touch_active).is_true()
+	_tap(screen, Vector2(280, 194))
+	await _phase(screen, "round_pause")
+	screen.handle_event(TyrianControls.key_event(KEY_UP))
+	await get_tree().create_timer(0.1).timeout
+	assert_int(screen._tick).is_equal(tick)
+	assert_that(screen.game.state()).is_equal(state)
+	assert_that(screen.vga.indices(screen.VGA_SCREEN)).is_equal(image)
+	_tap(screen, Vector2(160, 84))
+	await _resumed(screen, tick)
+	assert_bool(screen._round_menu_open).is_false()
+
+
+func test_round_menu_exit_and_drag_cancel_preserve_round_state() -> void:
+	var screen := await _round_menu()
+	var tick: int = screen._tick
+	var state: PackedInt32Array = screen.game.state()
+	_button(screen, Vector2(160, 124), true)
+	var motion := InputEventMouseMotion.new()
+	motion.position = Vector2.ZERO
+	screen.handle_mouse(motion)
+	motion.position = Vector2(160, 124)
+	screen.handle_mouse(motion)
+	_button(screen, Vector2(160, 124), false)
+	await get_tree().create_timer(0.1).timeout
+	assert_str(screen.phase).is_equal("round_pause")
+	assert_int(screen._tick).is_equal(tick)
+	assert_that(screen.game.state()).is_equal(state)
+	_tap(screen, Vector2(160, 124))
+	await _phase(screen, "menu")
+	assert_int(screen._tick).is_equal(tick)
+	assert_that(screen.game.state()).is_equal(state)
+
+
+func test_live_pause_icon_drag_off_cancels_and_desktop_has_no_icon() -> void:
+	var screen := await _open()
+	screen.handle_event(TyrianControls.key_event(KEY_ENTER))
+	await _phase(screen, "menu")
+	screen.handle_event(TyrianControls.key_event(KEY_ENTER))
+	await _phase(screen, "play")
+	_button(screen, Vector2(20, 8), true)
+	var motion := InputEventMouseMotion.new()
+	motion.position = Vector2(100, 100)
+	screen.handle_mouse(motion)
+	_button(screen, Vector2(20, 8), false)
+	assert_bool(screen._round_pause_requested).is_false()
+	assert_object(screen._pause_icon).is_not_null()
+	var desktop := await _open(false)
+	assert_object(desktop._pause_icon).is_null()

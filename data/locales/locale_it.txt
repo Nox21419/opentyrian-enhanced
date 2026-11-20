@@ -1569,3 +1569,6 @@ endless_name_skip=Salta
 
 # Android pause menu
 ig_help=Aiuto
+
+gd_resume=Riprendi
+gd_exit_to_modes=Scelta modalità

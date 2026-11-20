@@ -896,3 +896,37 @@ On-device retesting confirmed held/cancelled gestures on both Help panels,
 the restored pause background, a stable paused image, and Return resuming play.
 The corrected APK was installed and left paused on the A35; original player
 files were verified byte-for-byte after testing.
+
+### Destruct live-round pause menu
+
+Android adds the same top-left `II` icon (normal menu font, two pixels between
+bars) as the main game, with a 56×20 invisible release/cancel target. It appears
+only during live rounds. The icon is a separate presentation node: it never
+writes into Destruct's native VGA/terrain canvas.
+
+Releasing the icon requests a pause at the next existing tick boundary, before
+another native tick. The compact menu shades x = 56..263, y = 70..140 and draws
+Resume, Help and Exit to Mode Selection centered at y = 80, 100 and 120 using
+Destruct's tiny font, palette bank 12 and selected brightness 4. Its row targets
+are x = 56..263, y = 76..135. Dragging off cancels even after returning.
+Help opens the existing Help screen; Back returns to this menu, still frozen.
+Resume restores the complete saved VGA image before native processing resumes.
+Exit uses the existing STATE_INIT route to mode selection without another tick.
+Music is halved while paused and restored on leaving the menu. Desktop keeps
+its existing P/F1/Escape input and gains no icon or menu.
+
+The Destruct Help touch suite also verifies this round-menu flow, frozen native
+state/ticks, restored menu image after Help, Resume, Exit without a tick,
+drag cancellation and desktop icon absence. No native simulation code, CPU
+settings, movement, damage, collisions or RNG behavior changes.
+
+All 18 Destruct cases passed with no errors, failures or orphans. Formatting,
+lint, strict locale, glyph, width and diff checks passed. The Android APK built
+successfully and was installed on the A35. The exported Linux journey/smoke
+gate remains unavailable without WSL/Linux.
+
+A35 phone testing confirmed the touch-only route through Side Modes, icon
+release opening the round menu, held/drag-off cancellation, Help returning to
+a stable frozen menu, Resume restarting play, and Exit returning to mode
+selection. The game was left in the new pause menu. Original player files were
+verified byte-for-byte, and the test-created destruct.cfg was removed.

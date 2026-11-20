@@ -1569,3 +1569,6 @@ endless_name_skip=Passer
 
 # Android pause menu
 ig_help=Aide
+
+gd_resume=Reprendre
+gd_exit_to_modes=Choix du mode

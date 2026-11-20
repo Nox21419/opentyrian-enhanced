@@ -169,6 +169,11 @@ var _menu_touch := TouchRelease.new()
 var _intro_back := false
 var _pause_touch_active := false
 var _help_touch_active := false
+var _round_pause_requested := false
+var _round_menu_open := false
+var _round_menu_choice := ""
+var _round_menu_sel := 0
+var _pause_icon: TyrianText
 
 
 func _ready() -> void:
@@ -179,6 +184,20 @@ func _ready() -> void:
 		var p := AudioStreamPlayer2D.new()
 		add_child(p)
 		_channels.append(p)
+	if _touch_menus:
+		_pause_icon = TyrianText.new()
+		_pause_icon.font = TyrianText.FontKind.NORMAL
+		_pause_icon.outline = true
+		_pause_icon.text = "I"
+		_pause_icon.position = Vector2(2, 2)
+		var bar := TyrianText.new()
+		bar.font = TyrianText.FontKind.NORMAL
+		bar.outline = true
+		bar.text = "I"
+		bar.position.x = TyrianText.measure("I", TyrianText.FontKind.NORMAL) + 2
+		_pause_icon.add_child(bar)
+		add_child(_pause_icon)
+		_pause_icon.hide()
 	_run.call_deferred()
 
 
@@ -186,8 +205,10 @@ func _ready() -> void:
 func handle_mouse(event: InputEvent) -> void:
 	if (
 		not _touch_menus
-		or not idle
-		or (phase not in ["intro", "menu"] and not _pause_touch_active and not _help_touch_active)
+		or (not idle and phase != "play")
+		or (
+			phase not in ["intro", "menu", "play", "round_pause"] and not _pause_touch_active and not _help_touch_active
+		)
 	):
 		_menu_touch.cancel()
 		return
@@ -205,7 +226,12 @@ func handle_mouse(event: InputEvent) -> void:
 		present()
 	if click == null:
 		return
-	if _pause_touch_active or _help_touch_active:
+	if target == "pause":
+		_round_pause_requested = true
+	elif target.begins_with("round:"):
+		_round_menu_sel = int(target.trim_prefix("round:"))
+		_round_menu_choice = ["resume", "help", "exit"][_round_menu_sel]
+	elif _pause_touch_active or _help_touch_active:
 		_newkey = true
 	elif phase == "intro":
 		_intro_back = target == "back"
@@ -223,6 +249,12 @@ func _touch_target(p: Vector2i) -> String:
 	if _pause_touch_active:
 		var width := maxi(64, int(vga.text_width(TyrianText.L("miscText_22"), SMALL_FONT)) + 16)
 		return "resume" if Rect2i(160 - width / 2, 84, width, 20).has_point(p) else ""
+	if phase == "round_pause":
+		if Rect2i(56, 76, 208, 60).has_point(p):
+			return "round:%d" % ((p.y - 76) / 20)
+		return ""
+	if phase == "play":
+		return "pause" if not _round_menu_open and _pointer_hidden == 0 and Rect2i(0, 0, 56, 20).has_point(p) else ""
 	if p.x < 16 or p.x >= 304:
 		return ""
 	if phase == "intro":
@@ -454,6 +486,22 @@ static func _key_id(ev: InputEventKey) -> int:
 ## Every keyboard event goes through here (Effects, capture tool):
 ## keyboard.c:service_SDL_events (keysactive, newkey, lastkey_scan).
 func handle_event(event: InputEvent) -> void:
+	if _round_menu_open and phase == "round_pause":
+		if event is InputEventKey and not event.pressed:
+			_keys[_key_id(event)] = false
+			return
+		if event is InputEventKey and event.echo:
+			return
+		match TyrianControls.menu_action(event):
+			TyrianControls.UP:
+				_round_menu_sel = (_round_menu_sel + 2) % 3
+			TyrianControls.DOWN:
+				_round_menu_sel = (_round_menu_sel + 1) % 3
+			TyrianControls.ACCEPT, TyrianControls.SELECT:
+				_round_menu_choice = ["resume", "help", "exit"][_round_menu_sel]
+			TyrianControls.BACK:
+				_round_menu_choice = "resume"
+		return
 	if not (event is InputEventKey):
 		# keyboard.c: the gamepad becomes menu keys (newkey).
 		if event is InputEventJoypadButton and event.pressed:
@@ -712,6 +760,11 @@ func _draw_mode_menu() -> void:
 
 ## destruct.c:DE_RunTick.
 func _run_tick() -> int:
+	if _round_pause_requested:
+		_round_pause_requested = false
+		if await _round_touch_menu():
+			phase = ""
+			return STATE_INIT
 	_tick += 1
 	_script_tick()
 	for id in _capture_release.keys():
@@ -838,3 +891,52 @@ func _play_sounds(queue: PackedInt32Array) -> void:
 		p.position = Vector2(queue[i + 2], 100)
 		p.volume_db = Sfx._volume_db() + (0.0 if queue[i] == 7 else -6.0)
 		p.play()
+
+
+func _process(_delta: float) -> void:
+	if _pause_icon != null:
+		_pause_icon.visible = (
+			phase == "play" and not _round_menu_open and not _round_pause_requested and _pointer_hidden == 0
+		)
+
+
+## Save the shared VGA image: menu pixels must never enter the native round.
+func _round_touch_menu() -> bool:
+	var background: PackedByteArray = vga.indices(VGA_SCREEN)
+	var volume: int = Music.music_volume
+	Music.set_volume(volume / 2)
+	_round_menu_open = true
+	_round_menu_sel = 0
+	_round_menu_choice = ""
+	_menu_touch.cancel()
+	if _pause_icon != null:
+		_pause_icon.hide()
+	while is_inside_tree():
+		phase = "round_pause"
+		idle = true
+		vga.set_indices(VGA_SCREEN, background)
+		vga.bar_shade(VGA_SCREEN, 56, 70, 263, 140)
+		for i in 3:
+			_out_centered(
+				TyrianText.L(["gd_resume", "ig_help", "gd_exit_to_modes"][i]),
+				80 + 20 * i,
+				12,
+				4 if i == _round_menu_sel else 0
+			)
+		present()
+		await get_tree().process_frame
+		if _round_menu_choice == "help":
+			_round_menu_choice = ""
+			idle = false
+			await _help_screen()
+			_menu_touch.cancel()
+		elif not _round_menu_choice.is_empty():
+			break
+	idle = false
+	_round_menu_open = false
+	_menu_touch.cancel()
+	vga.set_indices(VGA_SCREEN, background)
+	present()
+	Music.set_volume(volume)
+	phase = "play"
+	return _round_menu_choice == "exit"
