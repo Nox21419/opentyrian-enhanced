@@ -13,6 +13,8 @@ touch areas, and greys out/disables its two-player and network entries.
 Episode Select keeps its original five labels and placement, adds Back and
 wider touch areas, and activates a choice on release. Difficulty Select uses
 the same release-to-select adaptation with Back to Episode or Timed Battle.
+Timed Battle retains its three original battle labels with wider release targets
+and Back to the title.
 The shop root Game Menu also activates on release within wider column targets.
 Data, Upgrade Ship, Options and Next Level and their child screens activate
 on release using their original targets.
@@ -196,7 +198,7 @@ On this Android screen, 2 Player Arcade and 2 Player Endless are grey and
 unavailable, as is Modem/Network Game. Touch, keyboard and controller confirms
 all enforce the restriction. Nearby-device multiplayer is not implemented.
 Desktop retains its original layout and working two-player choices. This
-change does not adapt Timed Battle or other routes to side modes.
+change does not adapt other routes to side modes. Timed Battle is adapted below.
 Episode and Difficulty Select have their own adaptations below.
 
 On the phone, check that a tap beside the lettering selects the correct row,
@@ -591,3 +593,15 @@ Desktop uses the original drawing and input geometry throughout.
 `test/save_name_touch_test.gd` also verifies the shifted drawing and touch
 areas, restoration, unchanged screen size and cancellation from the moved No
 button without writing a save.
+
+### Timed Battle selection touch navigation
+
+Android keeps all three original battle labels at y = 54 + 24 × row, with
+invisible targets spanning x = 16..303 and 24 pixels per row (starting two
+pixels above each label). Back uses the original gold menu font at (160, 185),
+with its target spanning x = 16..303, y = 184..199, and returns to the title.
+Choices activate on release over the pressed row; dragging off cancels even
+if the finger returns. Selecting a battle opens Difficulty with the original
+episode and battle selection. Desktop retains its three rows, text-only mouse
+targets and keyboard/gamepad navigation. `test/timed_touch_test.gd` checks these
+routes, cancellation, boundaries and desktop behavior.

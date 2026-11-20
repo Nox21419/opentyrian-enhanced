@@ -60,6 +60,7 @@ var _busy := true
 var _touch_players := OS.get_name() == "Android"
 var _touch_episode := OS.get_name() == "Android"
 var _touch_difficulty := OS.get_name() == "Android"
+var _touch_timed := OS.get_name() == "Android"
 var _touch_pressed := -1
 ## Choice in progress: mode, episode (1-based), battle (timeBattleSelection).
 var mode := MODE_FULL
@@ -158,6 +159,14 @@ func _row_under_pointer(p: Vector2i, y0: int, dy: int) -> int:
 		if p.y >= 184:
 			return 5  # Back sits below the five unchanged episode labels.
 		return mini((p.y - y0 + 2) / dy, 4)
+	if _touch_timed and current_screen == "timed":
+		if p.x < 16 or p.x >= 304:
+			return -1
+		if p.y >= 184 and p.y < 200:
+			return 3
+		if p.y >= y0 - 2 and p.y < y0 - 2 + dy * 3:
+			return (p.y - y0 + 2) / dy
+		return -1
 	if _touch_players and current_screen == "gameplay":
 		if p.x < 16 or p.x >= 304 or p.y < y0 - 2 or p.y >= y0 - 2 + dy * items.size():
 			return -1
@@ -264,10 +273,19 @@ func _open_timed() -> void:
 	var items := []
 	for i in 3:
 		items.append(_row(TyrianText.L("timedBattle_%d" % (i + 1)), -1, func() -> bool: return false))
+	if _touch_timed:
+		var back := _row(TyrianText.L("gd_back"), -1, func() -> bool: return false)
+		back.draw = func(_it: Dictionary, _x: int, _y: int, selected: bool) -> void:
+			TyrianText.draw_font_hv_shadow(self, 160, 185, TyrianText.L("gd_back"),
+				NORMAL_FONT, CENTERED, 15, -2 if selected else -4, false, 2)
+		items.append(back)
 	await _open("timed", "timedBattle_0", items, 54, 24, _timed_chosen, _to_title)
 
 
 func _timed_chosen(sel: int) -> void:
+	if _touch_timed and sel == 3:
+		menus.back()
+		return
 	Sfx.play(Sfx.SELECT)
 	_busy = true
 	idle = false
@@ -504,7 +522,8 @@ func wait_input() -> void:
 func handle_mouse(event: InputEvent) -> void:
 	var touch := (_touch_players and current_screen == "gameplay") \
 		or (_touch_episode and current_screen == "episode") \
-		or (_touch_difficulty and current_screen == "difficulty")
+		or (_touch_difficulty and current_screen == "difficulty") \
+		or (_touch_timed and current_screen == "timed")
 	if not touch or modal_active:
 		super(event)
 		return
