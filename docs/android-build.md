@@ -808,3 +808,30 @@ was verified by the automated suite without changing the phone date.
   Yes enables Christmas art/audio, No keeps normal assets, and both return to
   the title. Verify normal startup outside December. Automated tests passed;
   these on-device checks are still outstanding.
+
+### Campaign story and intermission touch input
+
+Android preserves the original story/intermission artwork, text, hints and
+layout. A left-button touch anywhere inside the 320×200 game image now counts
+on release, rather than press. Movement more than eight logical pixels from
+the initial press, or leaving the image, cancels the gesture permanently even
+if the finger returns. Small finger jitter is tolerated. Unpaired releases do
+nothing. Existing input-reset boundaries also discard pending gestures so a
+held touch cannot carry across pages or from text reveal into the next wait.
+
+This applies to the story screen's existing any-button paths, including text
+reveal, animation skips, episode-end pages, credits and the score table. It
+retains their existing timing and skip behavior, changing only when Android
+pointer input is accepted. Name entry keeps its separate keyboard/Yes/No touch
+handling. Desktop mouse, keyboard and gamepad paths are unchanged.
+
+`test/story_page_touch_test.gd` checks held/released taps advancing actual page
+waits, drag cancellation, input resets, name-entry isolation and desktop mouse/
+Android keyboard behavior. The existing story and name-entry suites cover
+campaign transitions and high-score entry.
+
+All 15 cases across story-page touch, story-name touch and campaign story suites
+passed with no errors, failures or orphans. Formatting, lint and diff checks
+passed, and the Android APK built successfully. ADB had no connected device,
+so installation and on-device verification remain outstanding. The exported
+Linux journey/smoke gate remains unavailable without WSL/Linux.

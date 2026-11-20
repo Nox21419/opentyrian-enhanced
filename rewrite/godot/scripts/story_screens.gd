@@ -56,6 +56,8 @@ var _name_keys: Array = []
 var _click := Vector2(-1, -1)
 var _touch_name := OS.get_name() == "Android"
 var _name_touch := TouchRelease.new()
+var _story_touch := TouchRelease.new()
+var _story_press := Vector2.ZERO
 var _name_text := ""
 var _name_keyboard_requested := false
 var _name_offset := 0
@@ -158,7 +160,7 @@ func _wipe_up(n: int) -> void:
 	vga.load_pic(VGA_SCREEN, n, false)
 	var pic: PackedByteArray = vga.indices(VGA_SCREEN)
 	var old: PackedByteArray = vga.indices(VGA_SCREEN2)
-	_input_seen = false
+	_reset_story_input()
 	for z in 200:
 		if _input_seen or not is_inside_tree():
 			break
@@ -178,7 +180,7 @@ func _play_anim(file: String, speed: int) -> void:
 	vga.set_palette(0, 255)
 	vga.clear(VGA_SCREEN, 0)
 	present()
-	_input_seen = false
+	_reset_story_input()
 	# setDelay(speed) before each image, wait_delay after: fixed rate,
 	# measured from the first image (without accumulating timer latency).
 	var period_ms := speed * DELAY_PERIOD * 1000.0
@@ -204,7 +206,7 @@ func _play_anim(file: String, speed: int) -> void:
 func _display_text(lines: PackedStringArray) -> void:
 	# Only keys pressed during this screen count (the C code reads the
 	# new SDL events at each JE_anyButton).
-	_input_seen = false
+	_reset_story_input()
 	var y := 2 if warning_red else 55
 	for line in lines:
 		await _out_char_glow(10, y, line)
@@ -215,7 +217,7 @@ func _display_text(lines: PackedStringArray) -> void:
 	var press := TyrianText.L("misc_press_key")
 	await _out_char_glow(TyrianText.font_center(press, SMALL_FONT), 7 * 16 + 6 if warning_red else 184, press)
 	idle = true
-	_input_seen = false
+	_reset_story_input()
 	if not Capture.active:
 		while is_inside_tree():
 			if _warning_display:
@@ -448,7 +450,7 @@ func play_credits() -> void:
 	var ship_accel := 0
 	var ticks_max := lines.size() * 20 * 3
 	var ticks := 0
-	_input_seen = false
+	_reset_story_input()
 	# The C's setDelay(1) waits exactly 1 unit; here the deadline accumulates so that the
 	# engine's frame rate (14 ms at 70 fps) does not lengthen each tick.
 	var next_tick_ms := float(_now_ms())
@@ -715,7 +717,7 @@ func _enter_name(score: int, p: int, two_p: bool, timed: bool, muts: int, mult: 
 func _show_table(table: int, slot: int, timed: bool) -> void:
 	await fade_black(15)
 	# The Enter that confirmed the name must not skip the glow or the wait.
-	_input_seen = false
+	_reset_story_input()
 	vga.load_pic(VGA_SCREEN, 2, false)
 	var title := TyrianText.L("hs_title")
 	TyrianText.dstring(self, TyrianText.font_center(title, LARGE_FONT), 10, title, LARGE_FONT)
@@ -776,6 +778,28 @@ func _out_text_glow(x: int, y: int, s: String, brightness: int) -> void:
 
 
 # --- Inputs and utilities -------------------------------------------------------
+
+
+## Android keeps tap-anywhere but treats a drag as cancellation.
+func _input(event: InputEvent) -> void:
+	if not _touch_name or not event is InputEventMouse:
+		super._input(event)
+		return
+	if name_entry:
+		_story_touch.cancel()
+		return
+	var target := "advance" if Rect2(0, 0, 320, 200).has_point(event.position) else ""
+	if event is InputEventMouseButton and event.button_index == MOUSE_BUTTON_LEFT and event.pressed:
+		_story_press = event.position
+	elif event.position.distance_to(_story_press) > 8:
+		_story_touch.cancel()
+	if _story_touch.feed(event, target) != null:
+		_input_seen = true
+
+
+func _reset_story_input() -> void:
+	_input_seen = false
+	_story_touch.cancel()
 
 
 func _unhandled_input(event: InputEvent) -> void:
@@ -870,7 +894,7 @@ func _any_button() -> bool:
 ## wait_input / "while (!JE_anyButton())": a key, a click or a button.
 func _wait_any_button() -> void:
 	idle = true
-	_input_seen = false
+	_reset_story_input()
 	if not Capture.active:
 		while is_inside_tree() and not _any_button():
 			await get_tree().process_frame
