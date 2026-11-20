@@ -858,3 +858,30 @@ with no errors, failures or orphans. Formatting, lint and diff checks passed.
 The Android APK built successfully and was installed on the A35; on-device
 Help gesture verification remains pending. The exported Linux journey/smoke
 gate remains unavailable without WSL/Linux.
+
+### Android pause-menu Help entry
+
+Android adds Help between Game Speed and Return, using the existing menu font,
+palette, selection behavior and release/cancel touch handling. The shaded
+background extends down by one 20-pixel row (bottom y = 157); Help is at y = 100,
+Return at y = 120 and Quit at y = 140. Other rows keep their original positions.
+The same seven rows have full-height invisible touch targets.
+
+Help temporarily hides the pause menu and disables its input while showing the
+two existing Help panels. Closing Help restores the same pause menu with Help
+selected. The simulation remains frozen throughout and resumes only after
+Return. Pause settings retain their values and save through the existing close
+path. The six translated Help labels use `ig_help`. Desktop keeps its original
+six rows and F1 behavior.
+
+The pause-touch suite checks the complete pause → Help → pause → Return flow,
+including frozen ticks/state, release/cancel, retained selection and desktop row
+preservation. Existing Help and pause-menu suites cover panel navigation,
+settings, Quit and F1.
+
+All 24 cases across pause-touch, Help-touch and pause-menu suites passed with
+no errors, failures or orphans. GDScript formatting/lint, strict locale key and
+format checks, locale glyph/width checks and diff checks passed. The Android
+APK built successfully and was installed on the A35. The touch-only flow has
+not yet been verified on the phone. The exported Linux journey/smoke gate
+remains unavailable without WSL/Linux.

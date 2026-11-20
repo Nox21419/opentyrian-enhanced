@@ -93,9 +93,9 @@ func test_top_left_label_release_freezes_and_return_resumes() -> void:
 		await get_tree().physics_frame
 	assert_int(level.sim.tick()).is_equal(tick)
 	assert_int(level.sim.state_hash()).is_equal(state)
-	_button(menu, Vector2(15, 101), true)
+	_button(menu, Vector2(15, 121), true)
 	assert_object(level._pause_menu).is_not_null()
-	_button(menu, Vector2(15, 101), false)
+	_button(menu, Vector2(15, 121), false)
 	assert_object(level._pause_menu).is_null()
 	assert_bool(level._touch_pause_label.visible).is_true()
 	assert_bool(level._touch_flight.active()).is_false()
@@ -144,7 +144,7 @@ func test_settings_wait_for_release_cancel_and_save_on_close() -> void:
 	var speed := int(SETUP.settings.game_speed)
 	_tap(menu, Vector2(30, 81))
 	assert_int(int(SETUP.settings.game_speed)).is_equal(speed + 1 if speed < 5 else 1)
-	_tap(menu, Vector2(30, 101))
+	_tap(menu, Vector2(30, 121))
 	var cfg := ConfigFile.new()
 	assert_int(cfg.load(SETUP.SETTINGS_PATH)).is_equal(OK)
 	assert_bool(bool(cfg.get_value("setup", "music_disabled"))).is_equal(not muted)
@@ -153,9 +153,9 @@ func test_settings_wait_for_release_cancel_and_save_on_close() -> void:
 func test_quit_confirmation_requires_release_and_no_resumes() -> void:
 	var level := await _level()
 	var menu := _menu(level)
-	_button(menu, Vector2(30, 121), true)
+	_button(menu, Vector2(30, 141), true)
 	assert_bool(menu.modal_active).is_false()
-	_button(menu, Vector2(30, 121), false)
+	_button(menu, Vector2(30, 141), false)
 	await get_tree().process_frame
 	assert_bool(menu.modal_active).is_true()
 	_button(menu, Vector2(90, 135), true)
@@ -175,7 +175,7 @@ func test_quit_confirmation_requires_release_and_no_resumes() -> void:
 func test_quit_yes_returns_to_title() -> void:
 	var level := await _level()
 	var menu := _menu(level)
-	_tap(menu, Vector2(30, 121))
+	_tap(menu, Vector2(30, 141))
 	await get_tree().process_frame
 	_tap(menu, Vector2(90, 135))
 	for _frame in 120:
@@ -192,3 +192,60 @@ func test_pause_icon_fits_target_and_desktop_has_no_label() -> void:
 	var level: Node = Game.goto_scene(Game.SCENE_LEVEL)
 	assert_bool(level._touch_pause).is_false()
 	assert_object(level._touch_pause_label).is_null()
+
+
+func test_help_release_and_cancel_return_to_same_frozen_pause_menu() -> void:
+	var level := await _level()
+	var menu := _menu(level)
+	assert_int(menu.menus.current().items.size()).is_equal(7)
+	assert_str(menu.menus.current().items[4].label).is_equal("ig_help")
+	var tick: int = level.sim.tick()
+	var state: int = level.sim.state_hash()
+	_button(menu, Vector2(30, 101), true)
+	assert_object(level._help_screen).is_null()
+	var motion := InputEventMouseMotion.new()
+	motion.position = Vector2(280, 170)
+	menu.mouse_event(motion)
+	_button(menu, Vector2(30, 101), false)
+	assert_object(level._help_screen).is_null()
+	_tap(menu, Vector2(30, 101))
+	var help: Node = level._help_screen
+	assert_object(help).is_not_null()
+	assert_bool(menu.visible).is_false()
+	assert_bool(menu.is_processing_unhandled_input()).is_false()
+	help._touch_menus = true
+	for _frame in 5:
+		await get_tree().physics_frame
+	assert_int(level.sim.tick()).is_equal(tick)
+	assert_int(level.sim.state_hash()).is_equal(state)
+	for _panel in 2:
+		var event := InputEventMouseButton.new()
+		event.position = Vector2(140, 100)
+		event.button_index = MOUSE_BUTTON_LEFT
+		event.pressed = true
+		help._unhandled_input(event)
+		event.pressed = false
+		help._unhandled_input(event)
+	assert_object(level._help_screen).is_null()
+	assert_object(level._pause_menu).is_same(menu)
+	assert_bool(menu.visible).is_true()
+	assert_bool(menu.is_processing_unhandled_input()).is_true()
+	assert_int(menu.menus.current().sel).is_equal(4)
+	for _frame in 5:
+		await get_tree().physics_frame
+	assert_int(level.sim.tick()).is_equal(tick)
+	assert_int(level.sim.state_hash()).is_equal(state)
+	_tap(menu, Vector2(30, 121))
+	for _frame in 5:
+		await get_tree().physics_frame
+	assert_int(level.sim.tick()).is_greater(tick)
+
+
+func test_desktop_pause_has_original_six_rows() -> void:
+	var level := await _level()
+	level._touch_pause = false
+	level.open_pause_menu()
+	var items: Array = level._pause_menu.menus.current().items
+	assert_int(items.size()).is_equal(6)
+	assert_str(items[4].label).is_equal("ig_return")
+	assert_str(items[5].label).is_equal("ig_quit")

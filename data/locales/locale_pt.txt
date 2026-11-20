@@ -1512,3 +1512,6 @@ endless_touch_retry=Tentar de novo
 
 endless_name_confirm=Confirmar
 endless_name_skip=Pular
+
+# Android pause menu
+ig_help=Ajuda

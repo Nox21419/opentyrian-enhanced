@@ -1566,6 +1566,7 @@ func open_pause_menu() -> void:
 	if _touch_pause_label != null:
 		_touch_pause_label.visible = false
 	var menu: Node = PAUSE_MENU.new()
+	menu._touch_pause = _touch_pause
 	menu.name = "PauseMenu"
 	menu.z_index = Z.HUD + 2
 	add_child(menu)
@@ -1579,6 +1580,7 @@ func open_pause_menu() -> void:
 		return
 	_pause_menu = menu
 	menu.closed.connect(_on_pause_menu_closed)
+	menu.help_requested.connect(open_help.bind(true))
 
 
 ## JE_doInGameSetup: "Quit" confirmed -> reallyEndLevel and playerEndLevel.
@@ -1623,19 +1625,21 @@ func _quit_level() -> void:
 
 
 ## mainint.c:JE_inGameHelp (F1).
-func open_help() -> void:
-	if _help_screen != null or _pause_menu != null:
+func open_help(from_pause := false) -> void:
+	if _help_screen != null or (_pause_menu != null and not from_pause):
 		return
 	var help: Node = IN_GAME_HELP.new()
 	help.name = "InGameHelp"
 	help.z_index = Z.HUD + 2
 	add_child(help)
-	if _hud_vga != null:
+	if _hud_vga != null and _pause_menu == null:
 		_hud_vga.prepare_frozen_screen(sim)
 	if not help.open_help(self):
-		if _hud_vga != null:
+		if _hud_vga != null and _pause_menu == null:
 			_hud_vga.release_frozen_screen()
 		help.queue_free()
+		if from_pause and _pause_menu != null:
+			_pause_menu.resume_from_help()
 		return
 	_help_screen = help
 	help.closed.connect(_on_help_closed)
@@ -1646,6 +1650,9 @@ func open_help() -> void:
 func _on_help_closed() -> void:
 	_help_screen.queue_free()
 	_help_screen = null
+	if _pause_menu != null:
+		_pause_menu.resume_from_help()
+		return
 	_resumed_frame = Engine.get_physics_frames()
 	_any_key_pressed = false
 	if _hud_vga != null:

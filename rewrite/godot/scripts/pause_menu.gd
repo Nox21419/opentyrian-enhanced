@@ -33,9 +33,11 @@ const QUIT_BOX_NO_X := Vector2i(152, 236)
 
 ## Close: `quit` true if "Quit" was confirmed.
 signal closed(quit: bool)
+signal help_requested
 
 var menus := MenuEngine.new(self)
 var _closing := false
+var _help_open := false
 var _touch_pause := OS.get_name() == "Android"
 var _touch_release := TouchRelease.new()
 
@@ -45,10 +47,11 @@ var _touch_release := TouchRelease.new()
 func open_menu(lvl: Node) -> bool:
 	if not freeze(lvl):
 		return false
-	vga.bar_shade(VGA_SCREEN, 3, 13, 217, 137)
-	vga.bar_shade(VGA_SCREEN, 5, 15, 215, 135)
-	vga.bar_shade(VGA_SCREEN, 5, 15, 215, 135)
-	vga.bar_shade(VGA_SCREEN, 5, 15, 215, 135)
+	var bottom := 157 if _touch_pause else 137
+	vga.bar_shade(VGA_SCREEN, 3, 13, 217, bottom)
+	vga.bar_shade(VGA_SCREEN, 5, 15, 215, bottom - 2)
+	vga.bar_shade(VGA_SCREEN, 5, 15, 215, bottom - 2)
+	vga.bar_shade(VGA_SCREEN, 5, 15, 215, bottom - 2)
 	vga.copy(VGA_SCREEN2, VGA_SCREEN)
 	(
 		menus
@@ -78,7 +81,7 @@ func _restore_frozen_level() -> void:
 
 
 func _items() -> Array:
-	return [
+	var items := [
 		(
 			MenuEngine
 			. item(
@@ -142,6 +145,26 @@ func _items() -> Array:
 		MenuEngine.item("ig_return", "", Kind.BACK),
 		MenuEngine.item("ig_quit", "", Kind.ACTION, {"action": _quit_action}),
 	]
+
+	if _touch_pause:
+		items.insert(4, MenuEngine.item("ig_help", "", Kind.ACTION, {"action": _open_help}))
+	return items
+
+
+func _open_help() -> void:
+	_touch_release.cancel()
+	_help_open = true
+	set_process_unhandled_input(false)
+	hide()
+	help_requested.emit()
+
+
+func resume_from_help() -> void:
+	_touch_release.cancel()
+	_help_open = false
+	show()
+	set_process_unhandled_input(true)
+	menus.draw()
 
 
 # --- Rows (mainint.c: volume_row_*, vfx_row_*, speed_row_*) -----------------
@@ -279,7 +302,7 @@ func _process(_delta: float) -> void:
 
 func handle_action(action: StringName) -> void:
 	_touch_release.cancel()
-	if _closing or modal_input(action):
+	if _closing or _help_open or modal_input(action):
 		return
 	menus.handle_action(action)
 
@@ -287,7 +310,7 @@ func handle_action(action: StringName) -> void:
 ## Keyboard and gamepad through menu actions (TyrianScreen.handle_event);
 ## mouse like menu_tree.c:run_menu (hover, left click, right click = exit).
 func _unhandled_input(event: InputEvent) -> void:
-	if _closing:
+	if _closing or _help_open:
 		return
 	if event is InputEventMouseMotion or event is InputEventMouseButton:
 		mouse_event(event)
@@ -301,7 +324,7 @@ func mouse_event(event: InputEvent) -> void:
 		_mouse_event(event)
 		return
 	TyrianMouse.note(event)
-	if _closing or not event is InputEventMouse:
+	if _closing or _help_open or not event is InputEventMouse:
 		_touch_release.cancel()
 		return
 	var p := Vector2i(make_input_local(event).position)
@@ -329,7 +352,7 @@ func _touch_target(p: Vector2i) -> String:
 	if modal_active:
 		var answer: Variant = quit_box_answer(p)
 		return "" if answer == null else ("yes" if answer else "no")
-	if Rect2i(8, 18, 210, 120).has_point(p):
+	if Rect2i(8, 18, 210, PAUSE_STEP * menus.current().items.size()).has_point(p):
 		var i := (p.y - 18) / PAUSE_STEP
 		# Crossing from a volume label to its bar cancels instead of muting.
 		var part := ":label" if p.x < PAUSE_VALUE_X else ":value"

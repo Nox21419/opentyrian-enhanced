@@ -1566,3 +1566,6 @@ endless_touch_retry=Retry
 
 endless_name_confirm=Confirm
 endless_name_skip=Skip
+
+# Android pause menu
+ig_help=Help
