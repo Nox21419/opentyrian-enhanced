@@ -547,7 +547,7 @@ most 4 MiB and 2048 px per side, etc. — details in `MODDING.md` §9).
 ### Mods shipped with the game
 
 Five packs come with the game, disabled; enable any of them, or all five at once, in
-**Setup → Mods**. Ships are sold in every shop. Mod weapons unlock gradually
+**Setup → Mods**. Mod ships and weapons unlock gradually
 throughout the campaign, with the strongest arriving in Episodes 4–5; see the
 [availability schedule](mod-weapon-progression.md). The shop list scrolls when
 a category contains more items than fit on screen.

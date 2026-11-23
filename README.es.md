@@ -50,7 +50,7 @@ Tyrian es el shoot 'em up vertical de culto de 1995 creado por Eclipse Software:
 
 ## 🧩 Packs de mods y creación de mods
 
-El juego incluye cinco packs, todos desactivados hasta que los actives en **Opciones → Mods**. Están dibujados al estilo del Tyrian original, están equilibrados frente a los objetos originales del mismo precio y pueden activarse todos a la vez. Las armas se desbloquean gradualmente durante la campaña; las naves siguen disponibles en todas las tiendas.
+El juego incluye cinco packs, todos desactivados hasta que los actives en **Opciones → Mods**. Están dibujados al estilo del Tyrian original, están equilibrados frente a los objetos originales del mismo precio y pueden activarse todos a la vez. Las armas y las naves se desbloquean gradualmente durante la campaña.
 
 | Pack | Qué añade |
 |---|---|

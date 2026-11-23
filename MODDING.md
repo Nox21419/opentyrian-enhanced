@@ -175,7 +175,7 @@ typo or a leftover of an old format is reported, never silently ignored.
 | `cost` | shop price |
 | `icon_sprite` | NAME of the shop icon (a PNG of the mod or an original sprite) |
 | `always_available` | sold in every shop (§5.9) |
-| `shop_unlock` | weapons only: campaign availability from an episode and optional shop sections (§5.9) |
+| `shop_unlock` | weapons and ships: campaign availability from an episode and optional shop sections (§5.9) |
 
 The engine assigns a free slot to each item, in folder order: at most 20 weapons, 14 ships,
 13 sidekicks, 9 shields and 16 specials, all mods together. An item past that limit is refused
@@ -285,14 +285,14 @@ The weapon a special fires is the one of its `base`. Shops never sell specials: 
 items (at most 10). The list of a category scrolls, five rows at a time; the C version stopped at
 10 items in all, which hid the items of a second pack (ADR 0134).
 
-Weapons can instead use a staged campaign unlock:
+Weapons and ships can instead use a staged campaign unlock:
 
 ```json5
 { "name": "Late Cannon", "base": "Pulse-Cannon",
   "shop_unlock": { "episode": 3, "sections": [7, 9, 11] } }
 ```
 
-`episode` is required (integer 1..5). Before that episode the weapon is not
+`episode` is required (integer 1..5). Before that episode the item is not
 added to shop stock. In that episode, omitting `sections` offers it in every
 shop; otherwise it is offered only in the listed **episode-script shop
 sections**, not level-file numbers or level counts. Numeric section order is
@@ -304,12 +304,12 @@ not a profile achievement or a saved global unlock.
 `sections`, when present, must contain 1..128 unique integers in 1..65535.
 Unknown keys, fractions, empty lists and `always_available: true` together
 with `shop_unlock` are errors. `always_available: false` is allowed with an
-unlock. Without either field, the weapon is not injected into shop stock.
+unlock. Without either field, the item is not injected into shop stock.
 Existing `always_available` mods keep their behavior. The same 16-item
-per-category capacity covers all potential mod stock, including gated guns.
+per-category capacity covers all potential mod stock, including gated weapons and ships.
 
 Only stock is gated. Item definitions and saved equipment remain loaded;
-an equipped weapon is retained and can still be upgraded in an earlier shop.
+an equipped ship or weapon is retained in an earlier shop; weapons can still be upgraded.
 Once sold there, it cannot be repurchased until that shop offers it. Vanilla
 shop inventories, prices and combat rules are unchanged. See the shipped
 [schedule](docs/mod-weapon-progression.md) for examples.

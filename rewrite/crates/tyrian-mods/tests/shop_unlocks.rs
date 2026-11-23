@@ -60,7 +60,7 @@ fn campaign_milestones_unlock_the_shipped_weapons_in_stages() {
             18,
             "availability never removes weapon definitions"
         );
-        assert_eq!(r.shop_at(section)["ships"].len(), 14, "weapon gating must not change ships");
+        assert_eq!(r.tables.as_ref().unwrap().ships.iter().skip(19).filter(|s| !s.name.text().is_empty()).count(), 14);
     }
     let early = names(&resolve(&set, 1), 2);
     assert_eq!(early, vec!["Hazudra Crescent Fan", "Zica Plasma Halo", "Spore Burst"]);
@@ -72,7 +72,7 @@ fn campaign_milestones_unlock_the_shipped_weapons_in_stages() {
 fn every_explicit_unlock_section_is_an_actual_shop_in_the_original_script() {
     let set = set();
     let r = resolve(&set, 1);
-    for u in r.weapon_unlocks.values() {
+    for u in r.weapon_unlocks.values().chain(r.ship_unlocks.values()) {
         let bytes = std::fs::read(root().join(format!("data/levels{}.dat", u.episode))).unwrap();
         let script = EpisodeScript::parse(&bytes).unwrap();
         let sections = script.sections();
@@ -196,4 +196,101 @@ fn malformed_unlocks_fail_closed_and_legacy_always_available_still_works() {
     let r = set.resolve(1, &items);
     assert!(r.diagnostics.count(Severity::Error) > 0);
     assert!(r.shop["weapons"].is_empty());
+}
+
+fn ship_names(r: &ResolvedMods, section: u16) -> Vec<String> {
+    let t = r.tables.as_ref().unwrap();
+    r.shop_at(section)["ships"].iter().map(|id| t.ships[*id as usize].name.text()).collect()
+}
+
+#[test]
+fn shipped_ships_follow_armor_tiers_and_corrected_prices() {
+    let set = set();
+    for (ep, section, count) in
+        [(1, 2, 3), (1, 15, 3), (1, 17, 3), (1, 9, 5), (1, 40, 5), (2, 1, 8), (3, 1, 10), (4, 1, 12), (5, 1, 14)]
+    {
+        let r = resolve(&set, ep);
+        assert_eq!(ship_names(&r, section).len(), count, "ep{ep} section {section}");
+        assert_eq!(r.ship_unlocks.len(), 14);
+    }
+    assert_eq!(ship_names(&resolve(&set, 1), 2), vec!["Zica Ember", "Hazudra Stinger", "Spore Wisp"]);
+    let r = resolve(&set, 5);
+    let t = r.tables.as_ref().unwrap();
+    for (name, cost, armor) in [("Spore Wisp", 7500, 13), ("Carapace Beetle", 35000, 28), ("Hive Mother", 52000, 29)] {
+        let s = t.ships.iter().find(|s| s.name.text() == name).unwrap();
+        assert_eq!((s.cost, s.dmg), (cost, armor));
+    }
+    for (pack, early, late) in [("alien_ship_pack", 2, 8), ("bio_ships_pack", 1, 6)] {
+        let mut alone = set.clone();
+        let folders: Vec<_> = alone.folders.iter().map(|f| f.folder.clone()).collect();
+        for f in folders {
+            alone.set_enabled(&f, f == pack);
+        }
+        assert_eq!(ship_names(&resolve(&alone, 1), 2).len(), early);
+        assert_eq!(ship_names(&resolve(&alone, 5), 1).len(), late);
+    }
+}
+
+#[test]
+fn equipped_late_ship_survives_full_early_stock() {
+    let r = resolve(&set(), 1);
+    let t = r.tables.as_ref().unwrap();
+    let id = t.ships.iter().position(|s| s.name.text() == "Hive Mother").unwrap() as u8;
+    assert!(!r.shop_at(2)["ships"].contains(&id));
+    let items = Items { ship: tyrian_sim::ShipId(id), ..Default::default() };
+    let always = AlwaysAvailable { ships: r.shop_at(2)["ships"].clone(), ..Default::default() };
+    let session = ShopSession::with_always_available(t, items, 100000, &[(1..=10).collect()], 1, &always);
+    assert_eq!(session.items.ship, items.ship);
+    assert_eq!(session.item_avail[0].iter().filter(|x| **x == id).count(), 1);
+}
+#[test]
+fn malformed_ship_unlocks_fail_closed_and_legacy_still_works() {
+    let mut set = set();
+    set.folders.clear();
+    let bad = [
+        "null",
+        "[]",
+        "{}",
+        r#"{"episode":0}"#,
+        r#"{"episode":6}"#,
+        r#"{"episode":1.5}"#,
+        r#"{"episode":"2"}"#,
+        r#"{"episode":2,"section":4}"#,
+        r#"{"episode":2,"sections":[]}"#,
+        r#"{"episode":2,"sections":[0]}"#,
+        r#"{"episode":2,"sections":[65536]}"#,
+        r#"{"episode":2,"sections":[4.5]}"#,
+        r#"{"episode":2,"sections":[4,4]}"#,
+        r#"{"episode":2,"sections":"4"}"#,
+    ];
+    for raw in bad {
+        set.folders = vec![ModFolder {
+            folder: "test".into(),
+            enabled: true,
+            root: Some(
+                json::parse(&format!(r#"{{"format_version":1,"ships":[{{"name":"Locked","shop_unlock":{raw}}}]}}"#))
+                    .unwrap(),
+            ),
+            ..Default::default()
+        }];
+        let (_, items) = episode_items(&root().join("data"), 1).unwrap();
+        let r = set.resolve(1, &items);
+        assert!(r.diagnostics.count(Severity::Error) > 0, "accepted {raw}");
+        assert!(r.shop["ships"].is_empty());
+    }
+    for fields in [r#""always_available":true"#, r#""always_available":false,"shop_unlock":{"episode":1}"#] {
+        set.folders[0].root =
+            Some(json::parse(&format!(r#"{{"format_version":1,"ships":[{{"name":"Legacy",{fields}}}]}}"#)).unwrap());
+        assert_eq!(ship_names(&resolve(&set, 1), 2), vec!["Legacy"]);
+    }
+    set.folders[0].root = Some(
+        json::parse(
+            r#"{"format_version":1,"ships":[{"name":"Conflict","always_available":true,"shop_unlock":{"episode":2}}]}"#,
+        )
+        .unwrap(),
+    );
+    let (_, items) = episode_items(&root().join("data"), 1).unwrap();
+    let r = set.resolve(1, &items);
+    assert!(r.diagnostics.count(Severity::Error) > 0);
+    assert!(r.shop["ships"].is_empty());
 }

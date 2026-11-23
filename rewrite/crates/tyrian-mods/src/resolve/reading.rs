@@ -78,8 +78,17 @@ pub(super) const FIRING_KEYS: &[&str] = &[
 ];
 pub(super) const PROJECTILE_KEYS: &[&str] =
     &["damage", "sub_delay", "speed_x", "speed_y", "spawn_x", "spawn_y", "sprite"];
-pub(super) const SHIP_KEYS: &[&str] =
-    &["name", "base", "cost", "damage_resistance", "ship_sprite", "ship_poses", "icon_sprite", "always_available"];
+pub(super) const SHIP_KEYS: &[&str] = &[
+    "name",
+    "base",
+    "cost",
+    "damage_resistance",
+    "ship_sprite",
+    "ship_poses",
+    "icon_sprite",
+    "always_available",
+    "shop_unlock",
+];
 pub(super) const SHIP_POSE_KEYS: &[&str] = &["neutral", "left_full", "left", "right", "right_full"];
 pub(super) const SIDEKICK_KEYS: &[&str] = &["name", "base", "cost", "trail", "ammo", "icon_sprite", "always_available"];
 pub(super) const SHIELD_KEYS: &[&str] =
@@ -130,7 +139,7 @@ impl Ctx<'_> {
 
     fn shop_unlock(&mut self, item: &Value, folder: &str, name: &str) -> Result<Option<ShopUnlock>, ()> {
         let Some(value) = item.get("shop_unlock") else { return Ok(None) };
-        let label = format!("weapon '{name}' shop_unlock");
+        let label = format!("item '{name}' shop_unlock");
         let integer = |v: &Value, max: u32| {
             v.as_f64().filter(|n| n.is_finite() && *n >= 1.0 && *n <= max as f64 && n.fract() == 0.0)
         };
@@ -432,6 +441,7 @@ impl Ctx<'_> {
             if !self.check_keys(item, SHIP_KEYS, folder, &format!("ship '{name}'")) {
                 continue;
             }
+            let Ok(unlock) = self.shop_unlock(item, folder, name) else { continue };
             let Some(id) = (SHIP_RANGE.0..=SHIP_RANGE.1).find(|&i| !self.ship_used[i]) else {
                 self.diag.error(
                     folder,
@@ -480,8 +490,11 @@ impl Ctx<'_> {
             }
             self.pending_ship_sprite.insert(id, sprite);
             self.pending_ship_icon.insert(id, icon);
-            if get_bool(item, "always_available", false) {
+            if get_bool(item, "always_available", false) || unlock.is_some() {
                 self.avail("ships", id, folder, name);
+            }
+            if let Some(unlock) = unlock {
+                self.ship_unlocks.insert(id as u8, unlock);
             }
             count += 1;
         }

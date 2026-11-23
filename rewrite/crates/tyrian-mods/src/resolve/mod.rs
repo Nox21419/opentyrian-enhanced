@@ -164,7 +164,7 @@ pub struct ModReport {
 }
 
 /// First episode and optional shop sections in that episode; later episodes
-/// offer the weapon in every shop. Section numbers are script locations, not
+/// offer the item in every shop. Section numbers are script locations, not
 /// level numbers and must not be compared as a chronological counter.
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct ShopUnlock {
@@ -189,6 +189,7 @@ pub struct ResolvedMods {
     /// Potential mod inventory; use shop_at for campaign stock.
     pub shop: BTreeMap<&'static str, Vec<u8>>,
     pub weapon_unlocks: BTreeMap<u8, ShopUnlock>,
+    pub ship_unlocks: BTreeMap<u8, ShopUnlock>,
     /// Identity "length:folder/name" per (category, identifier) — `mod_identity.c`.
     pub identities: BTreeMap<(ItemKind, u16), String>,
     /// New enemies: name → index in `enemyDat`.
@@ -205,13 +206,16 @@ pub struct ResolvedMods {
 
 impl ResolvedMods {
     /// Filter the potential mod inventory for the actual campaign shop.
-    /// Tables and item identities are never filtered: equipped/saved guns survive.
+    /// Tables and item identities are never filtered: equipped/saved items survive.
     pub fn shop_at(&self, section: u16) -> BTreeMap<&'static str, Vec<u8>> {
         let mut shop = self.shop.clone();
         for key in ["weapons", "weapons_front", "weapons_rear"] {
             if let Some(list) = shop.get_mut(key) {
                 list.retain(|id| self.weapon_unlocks.get(id).is_none_or(|u| u.available(self.episode, section)));
             }
+        }
+        if let Some(list) = shop.get_mut("ships") {
+            list.retain(|id| self.ship_unlocks.get(id).is_none_or(|u| u.available(self.episode, section)));
         }
         shop
     }
@@ -245,6 +249,7 @@ struct Ctx<'a> {
     touched_enemies: BTreeSet<usize>,
     shop: BTreeMap<&'static str, Vec<u8>>,
     weapon_unlocks: BTreeMap<u8, ShopUnlock>,
+    ship_unlocks: BTreeMap<u8, ShopUnlock>,
     identities: BTreeMap<(ItemKind, u16), String>,
     pending_ship_sprite: BTreeMap<usize, String>,
     pending_ship_icon: BTreeMap<usize, String>,
@@ -304,6 +309,7 @@ impl ModSet {
             touched_enemies: BTreeSet::new(),
             shop: BTreeMap::new(),
             weapon_unlocks: BTreeMap::new(),
+            ship_unlocks: BTreeMap::new(),
             identities: BTreeMap::new(),
             pending_ship_sprite: BTreeMap::new(),
             pending_ship_icon: BTreeMap::new(),
@@ -489,6 +495,7 @@ impl Ctx<'_> {
             starter: self.starter,
             shop: self.shop,
             weapon_unlocks: self.weapon_unlocks,
+            ship_unlocks: self.ship_unlocks,
             identities: self.identities,
             new_enemies: self.new_enemies,
             enemy_weapons: self.enemy_weapons,

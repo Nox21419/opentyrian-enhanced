@@ -50,7 +50,7 @@ Tyrian ist der Kult-Vertikal-Shoot-'em-up von Eclipse Software aus dem Jahr 1995
 
 ## 🧩 Mod-Pakete und Modding
 
-Fünf Pakete liegen dem Spiel bei, alle ausgeschaltet, bis du sie unter **Einstellungen → Mods** aktivierst. Sie sind im Stil des Original-Tyrian gezeichnet, gegen die Originalgegenstände gleichen Preises ausbalanciert und lassen sich alle gleichzeitig aktivieren. Die Waffen werden im Laufe der Kampagne freigeschaltet; die Schiffe bleiben in jedem Shop erhältlich.
+Fünf Pakete liegen dem Spiel bei, alle ausgeschaltet, bis du sie unter **Einstellungen → Mods** aktivierst. Sie sind im Stil des Original-Tyrian gezeichnet, gegen die Originalgegenstände gleichen Preises ausbalanciert und lassen sich alle gleichzeitig aktivieren. Waffen und Schiffe werden im Laufe der Kampagne freigeschaltet.
 
 | Paket | Was es hinzufügt |
 |---|---|

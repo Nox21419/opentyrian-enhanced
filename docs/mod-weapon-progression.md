@@ -1,7 +1,7 @@
 # Shipped mod weapon progression
 
-The three weapon packs use the same campaign-location schedule. Ships keep
-their existing every-shop availability. All packs still ship disabled and may
+The three weapon packs use the same campaign-location schedule. Ships use
+the separate armor-based schedule below. All packs still ship disabled and may
 be enabled independently or together.
 
 | First availability | Newly offered weapons |
@@ -50,7 +50,7 @@ No save format or item identity changes are needed.
 
 ## Authoring and implementation
 
-The optional weapon `shop_unlock` field is described in [MODDING §5.9](../MODDING.md#59-shop-slots).
+The optional weapon/ship `shop_unlock` field is described in [MODDING §5.9](../MODDING.md#59-shop-slots).
 It replaces `always_available: true` in the three shipped weapon packs:
 
 ```json
@@ -68,7 +68,7 @@ Episode-1 Bubbles route uses sections 15 and 17; testing `section >= 9` would
 incorrectly give it the later tier. Always list actual shops explicitly.
 
 The mod resolver retains complete tables and a potential inventory, then
-`ResolvedMods::shop_at` filters only the weapon inventory for the actual
+`ResolvedMods::shop_at` filters the weapon and ship inventories for the actual
 shop location. `shop.gd` supplies `Game.shop_section` to `TyrianShop`; the
 bridge applies that stock before the existing native shop session opens.
 Vanilla lists remain supplied by the original episode scripts. Unknown or
@@ -76,6 +76,28 @@ malformed unlock rules produce mod errors rather than early availability.
 
 Validation covers milestone stock counts and names, every listed section
 against the original encrypted episode scripts, invalid rules, independent
-pack loading, unchanged ships and equipped late guns in a full early shop.
+pack loading, ship progression and equipped late items in a full early shop.
 Existing `always_available` mods retain their behavior. Rendering, menu layout
 and desktop/touch navigation are unchanged.
+
+## Shipped ship progression
+
+| First availability | Newly offered ships |
+|---|---|
+| Episode 1 opening shops | Zica Ember, Spore Wisp, Hazudra Stinger |
+| Episode 1, Savara and subsequent late/alternate-route shops | Hazudra Mandible, Thornwing |
+| Episode 2 opening shop | Membrane Ray, Zica Halo, Hazudra Crescent |
+| Episode 3 opening shop | Leech Lancer, Zica Twin Furnace |
+| Episode 4 opening shop | Hazudra Reaver, Carapace Beetle |
+| Episode 5 opening shop | Hazudra Swarmlord, Hive Mother |
+
+With both ship packs enabled, stock grows from 3 to 5 ships in Episode 1,
+then 8, 10, 12 and 14 in Episodes 2 through 5. Each pack works independently.
+The Episode 1 late tier uses the same explicit shop sections as late weapons.
+The same campaign-location and owned-item rules described above apply to ships.
+
+Armor rises from 12–16 in Episode 1 to 29 in Episode 5. Prices change only for
+Spore Wisp (8,500 to 7,500), Carapace Beetle (26,000 to 35,000) and Hive Mother
+(55,000 to 52,000). Wisp now costs less than the 14-armor vanilla USP Fang;
+Beetle's 28 armor costs more than Reaver's 27; both 29-armor flagships cost
+the same. Armor, speed and other combat behavior are unchanged.

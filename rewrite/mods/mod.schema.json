@@ -119,6 +119,7 @@
       "type": "object",
       "additionalProperties": false,
       "required": ["name"],
+      "not": { "required": ["shop_unlock", "always_available"], "properties": { "always_available": { "const": true } } },
       "properties": {
         "name": { "$ref": "#/definitions/name" },
         "base": { "$ref": "#/definitions/name" },
@@ -137,7 +138,8 @@
           }
         },
         "icon_sprite": { "$ref": "#/definitions/name" },
-        "always_available": { "type": "boolean" }
+        "always_available": { "type": "boolean" },
+        "shop_unlock": { "$ref": "#/definitions/shop_unlock" }
       }
     },
     "sidekick": {

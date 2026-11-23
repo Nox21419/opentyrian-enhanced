@@ -2,10 +2,11 @@
 
 Status: accepted (2026-10-18). Extends ADR 0080 (mod format) and ADR 0083 (single format).
 
-Current availability (2026-11-23): the weapon packs now use
+Current availability (2026-11-23): the weapon and ship packs now use
 [staged campaign stock](../mod-weapon-progression.md). The capacities and
 complete tables below still apply; the 9 front/9 rear guns describe potential
-stock, not what every early shop offers. Ship availability is unchanged.
+stock, not what every early shop offers. Ship stock likewise grows from light
+scouts in Episode 1 to flagships in Episode 5.
 
 ## Context
 Five content packs ship in `rewrite/mods/` (two ship packs, three weapon packs); the C-version

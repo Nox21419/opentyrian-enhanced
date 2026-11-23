@@ -10,7 +10,7 @@ one body ramp plus one accent ramp, no dithering. Each ship has five poses like
 the originals: neutral, half bank and full bank to each side (the cockpit slides
 toward the turn, the lowered wing shortens and darkens).
 
-Enable it in **Setup → Mods**. All eight ships are sold in every shop.
+Enable it in **Setup → Mods**. Ships unlock in armor-based campaign tiers; see the [progression schedule](../../../docs/mod-weapon-progression.md#shipped-ship-progression).
 
 | Ship | Price | Armor | Description | Original ships of the same tier (price / armor) |
 |---|---|---|---|---|
@@ -23,8 +23,8 @@ Enable it in **Setup → Mods**. All eight ships are sold in every shop.
 | Hazudra Reaver | 28000 | 27 | Steel-blue Hazudra raider with red weapon blisters. | MicroCorp Stalker-B 25000 / 27 |
 | Hazudra Swarmlord | 52000 | 29 | Flagship of a Hazudra swarm: the toughest ship of the pack. | Prototype Stalker-C 50000 / 28; SuperCarrot 65000 / 26 |
 
-Prices and armor stay inside the range of the original ships at the same price
-(armor never more than one point above the closest original).
+Armor follows the original ship tiers. Availability is staged by armor, and
+prices account for comparable original and mod ships; see the progression schedule.
 
 Limit: the engine has 14 ship slots for all mods together. This pack (8) and
 **Alien Ships** (12) cannot be enabled at the same time; Setup → Mods reports the

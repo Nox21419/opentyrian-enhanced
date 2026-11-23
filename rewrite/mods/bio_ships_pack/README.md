@@ -11,19 +11,19 @@ light from the upper left, no dithering. Each ship has five poses like the
 originals: neutral, half bank and full bank to each side (the hull slides
 toward the turn, the lowered wing shortens and darkens).
 
-Enable it in **Setup → Mods**. All six ships are sold in every shop.
+Enable it in **Setup → Mods**. Ships unlock in armor-based campaign tiers; see the [progression schedule](../../../docs/mod-weapon-progression.md#shipped-ship-progression).
 
 | Ship | Role | Price | Armor | Description | Original ships of the same tier (price / armor) |
 |---|---|---|---|---|---|
-| Spore Wisp | light interceptor | 8500 | 13 | Small winged seed around one big glowing spore sac. | USP Fang 8000 / 14; Stalker 10000 / 15 |
+| Spore Wisp | light interceptor | 7500 | 13 | Small winged seed around one big glowing spore sac. | USP Fang 8000 / 14; Stalker 10000 / 15 |
 | Thornwing | agile striker | 11000 | 16 | Moth-shaped body with swept membrane wings tipped by bone thorns, thorn legs and a glowing green heart. | Stalker 10000 / 15; Gencore Phoenix 12000 / 17 |
 | Membrane Ray | balanced fighter | 13500 | 18 | Manta-shaped membrane wing with a carapace spine and one green eye. | Gencore Phoenix 12000 / 17; Gencore Maelstrom 15000 / 20 |
 | Leech Lancer | assault | 18500 | 23 | Long leech body behind a bone lance, hooked tendril arms, flesh joints. | Gencore II 17000 / 22; MicroCorp Stalker 20000 / 25 |
-| Carapace Beetle | heavy armored | 26000 | 28 | Thick split shell with a bone horn and a glowing slit between the plates. | MicroCorp Stalker-B 25000 / 27; Prototype Stalker-C 50000 / 28 |
-| Hive Mother | flagship | 55000 | 29 | Bulbous hive body with membrane wings and four neon egg sacs. | Prototype Stalker-C 50000 / 28; SuperCarrot 65000 / 26 |
+| Carapace Beetle | heavy armored | 35000 | 28 | Thick split shell with a bone horn and a glowing slit between the plates. | MicroCorp Stalker-B 25000 / 27; Prototype Stalker-C 50000 / 28 |
+| Hive Mother | flagship | 52000 | 29 | Bulbous hive body with membrane wings and four neon egg sacs. | Prototype Stalker-C 50000 / 28; SuperCarrot 65000 / 26 |
 
-Prices and armor stay inside the range of the original ships at the same price
-(armor never more than one point above the closest original). Speed is the same
+Armor follows the original ship tiers. Availability is staged by armor, and
+prices account for comparable original and mod ships; see the progression schedule. Speed is the same
 for every ship: the engine has no per-ship speed (MODDING.md, removed fields),
 so a role is told by armor and price only.
 

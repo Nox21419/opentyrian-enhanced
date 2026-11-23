@@ -10,7 +10,7 @@
 
 Weapon packs follow a shared [campaign availability schedule](../../docs/mod-weapon-progression.md):
 basic guns arrive in Episode 1, specialists in Episodes 2–3, and the strongest
-weapons in Episodes 4–5. Ships remain available in every shop.
+weapons in Episodes 4–5. Ships also unlock in armor-based tiers across Episodes 1–5; see the same progression guide.
 
 Each pack's README gives its balance tables (price, armor, damage per second,
 energy) against the original items of the same price, and how its art was made

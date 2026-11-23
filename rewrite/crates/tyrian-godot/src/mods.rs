@@ -180,7 +180,8 @@ impl TyrianMods {
                 ItemKind::Special => (t.specials[i].name.text(), 0, t.specials[i].itemgraphic, 0, "specials"),
             };
             let always = res.shop.get(shop_key).is_some_and(|v| v.contains(&(id as u8)))
-                && !(kind == ItemKind::Weapon && res.weapon_unlocks.contains_key(&(id as u8)));
+                && !(kind == ItemKind::Weapon && res.weapon_unlocks.contains_key(&(id as u8)))
+                && !(kind == ItemKind::Ship && res.ship_unlocks.contains_key(&(id as u8)));
             out.push(&vdict! {
                 "kind" => kind_name(kind),
                 "id" => id as i64,

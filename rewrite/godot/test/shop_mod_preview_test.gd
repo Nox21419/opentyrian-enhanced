@@ -104,3 +104,39 @@ func test_equipped_late_weapon_remains_in_an_early_shop() -> void:
 			lance = int(item["id"])
 	assert_int(lance).is_greater(0)
 	assert_bool(_offered_mod_weapons(1, 2, lance).has("Zica Thermal Lance")).is_true()
+
+
+func _offered_mod_ships(episode: int, section: int, equipped := 1) -> Array[String]:
+	var names := {}
+	for item in Mods.api.items(episode):
+		if item["kind"] == "ship":
+			names[int(item["id"])] = String(item["name"])
+			assert_bool(bool(item["always_available"])).is_false()
+	var shop: RefCounted = ClassDB.instantiate("TyrianShop")
+	shop.set_mods(Mods.api)
+	shop.set_campaign_section(section)
+	var loadout := PackedInt32Array([equipped, 1, 1, 0, 1, 4, 6, 0, 0, 0, 1000000])
+	assert_bool(shop.open(Game.data_dir, episode, loadout, [], 1)).is_true()
+	shop.click_row(4)
+	shop.click_row(4)
+	shop.click_row(2)
+	shop.click_row(2)
+	var state: Dictionary = shop.state()
+	assert_int(int(state["category"])).is_equal(2)
+	var offered: Array[String] = []
+	for id in state["items"]:
+		if names.has(id):
+			offered.append(names[id])
+	return offered
+
+
+func test_campaign_ships_unlock_by_armor_tier_and_keep_owned_ships() -> void:
+	for point in [[1, 2, 3], [1, 17, 3], [1, 9, 5], [2, 1, 8], [3, 1, 10], [4, 1, 12], [5, 1, 14]]:
+		assert_int(_offered_mod_ships(point[0], point[1]).size()).is_equal(point[2])
+	var hive := -1
+	for item in Mods.api.items(1):
+		if item["name"] == "Hive Mother":
+			hive = int(item["id"])
+			assert_int(int(item["cost"])).is_equal(52000)
+	assert_int(hive).is_greater(0)
+	assert_bool(_offered_mod_ships(1, 2, hive).has("Hive Mother")).is_true()
