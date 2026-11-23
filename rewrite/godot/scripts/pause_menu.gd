@@ -41,6 +41,7 @@ var _help_open := false
 var _help_background := PackedByteArray()
 var _touch_pause := OS.get_name() == "Android"
 var _touch_release := TouchRelease.new()
+var actions: RefCounted
 
 
 ## JE_inGameSetup: darkened frozen image (four JE_barShade passes),
@@ -48,7 +49,10 @@ var _touch_release := TouchRelease.new()
 func open_menu(lvl: Node) -> bool:
 	if not freeze(lvl):
 		return false
-	var bottom := 157 if _touch_pause else 137
+	if _touch_pause:
+		actions = preload("res://scripts/pause_actions.gd").new(self)
+		actions.background = vga.indices(VGA_SCREEN)
+	var bottom := 177 if _touch_pause else 137
 	vga.bar_shade(VGA_SCREEN, 3, 13, 217, bottom)
 	vga.bar_shade(VGA_SCREEN, 5, 15, 215, bottom - 2)
 	vga.bar_shade(VGA_SCREEN, 5, 15, 215, bottom - 2)
@@ -65,6 +69,7 @@ func open_menu(lvl: Node) -> bool:
 				"step": PAUSE_STEP,
 				"row_width": PAUSE_ROW_W,
 				"no_shadow": true,
+				"hover": not _touch_pause,
 				"background": _restore_frozen_level,
 				"on_back": _close.bind(false),
 			}
@@ -149,6 +154,7 @@ func _items() -> Array:
 
 	if _touch_pause:
 		items.insert(4, MenuEngine.item("ig_help", "", Kind.ACTION, {"action": _open_help}))
+		items.append(MenuEngine.item("ig_more", "", Kind.ACTION, {"action": actions.open_more}))
 	return items
 
 
@@ -310,6 +316,8 @@ func handle_action(action: StringName) -> void:
 	_touch_release.cancel()
 	if _closing or _help_open or modal_input(action):
 		return
+	if actions != null and actions.handle_action(action):
+		return
 	menus.handle_action(action)
 
 
@@ -340,6 +348,9 @@ func mouse_event(event: InputEvent) -> void:
 	if modal_active:
 		modal_input(TyrianControls.YES if target == "yes" else TyrianControls.NO)
 		return
+	if actions != null and not actions.viewer.is_empty():
+		actions.activate_view(target)
+		return
 	var i := int(target.get_slice(":", 1))
 	var m: Dictionary = menus.current()
 	m.sel = i
@@ -358,11 +369,14 @@ func _touch_target(p: Vector2i) -> String:
 	if modal_active:
 		var answer: Variant = quit_box_answer(p)
 		return "" if answer == null else ("yes" if answer else "no")
-	if Rect2i(8, 18, 210, PAUSE_STEP * menus.current().items.size()).has_point(p):
+	if actions != null and not actions.viewer.is_empty():
+		return actions.target_at(p)
+	var utilities: bool = menus.current().options.get("utilities", false)
+	if Rect2i(8, 18, 296 if utilities else 210, PAUSE_STEP * menus.current().items.size()).has_point(p):
 		var i := (p.y - 18) / PAUSE_STEP
 		# Crossing from a volume label to its bar cancels instead of muting.
 		var part := ":label" if p.x < PAUSE_VALUE_X else ":value"
-		return "row:%d%s" % [i, part if i < 2 else ""]
+		return "row:%d%s" % [i, part if i < 2 and not utilities else ""]
 	return ""
 
 

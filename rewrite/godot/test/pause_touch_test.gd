@@ -197,7 +197,7 @@ func test_pause_icon_fits_target_and_desktop_has_no_label() -> void:
 func test_help_release_and_cancel_return_to_same_frozen_pause_menu() -> void:
 	var level := await _level()
 	var menu := _menu(level)
-	assert_int(menu.menus.current().items.size()).is_equal(7)
+	assert_int(menu.menus.current().items.size()).is_equal(8)
 	assert_str(menu.menus.current().items[4].label).is_equal("ig_help")
 	var background: PackedByteArray = menu.vga.indices(menu.VGA_SCREEN2)
 	var tick: int = level.sim.tick()
@@ -251,3 +251,157 @@ func test_desktop_pause_has_original_six_rows() -> void:
 	assert_int(items.size()).is_equal(6)
 	assert_str(items[4].label).is_equal("ig_return")
 	assert_str(items[5].label).is_equal("ig_quit")
+
+
+func test_more_views_navigate_cancel_and_keep_simulation_frozen() -> void:
+	var level := await _level()
+	var menu := _menu(level)
+	menu.vga.image(0).save_png("res://../../build/android-pause.png")
+	var tick: int = level.sim.tick()
+	var state: int = level.sim.state_hash()
+	_button(menu, Vector2(30, 161), true)
+	assert_int(menu.menus.stack.size()).is_equal(1)
+	_button(menu, Vector2(30, 161), false)
+	assert_int(menu.menus.stack.size()).is_equal(2)
+	menu.vga.image(0).save_png("res://../../build/android-pause-more.png")
+	_tap(menu, Vector2(30, 21))
+	assert_str(menu.actions.viewer).is_equal("achievements")
+	menu.vga.image(0).save_png("res://../../build/android-pause-achievements.png")
+	var image: PackedByteArray = menu.vga.indices(0)
+	_tap(menu, Vector2(275, 190))
+	assert_int(menu.actions.tables.category).is_equal(1)
+	assert_that(menu.vga.indices(0)).is_not_equal(image)
+	_tap(menu, Vector2(20, 190))
+	assert_int(menu.actions.tables.category).is_equal(0)
+	_tap(menu, Vector2(220, 190))
+	assert_int(menu.actions.tables.cursor).is_equal(1)
+	_button(menu, Vector2(220, 190), true)
+	var motion := InputEventMouseMotion.new()
+	motion.position = Vector2(150, 100)
+	menu.mouse_event(motion)
+	motion.position = Vector2(220, 190)
+	menu.mouse_event(motion)
+	_button(menu, Vector2(220, 190), false)
+	assert_int(menu.actions.tables.cursor).is_equal(1)
+	_tap(menu, Vector2(65, 190))
+	assert_int(menu.actions.tables.cursor).is_equal(0)
+	_tap(menu, Vector2(130, 190))
+	assert_str(menu.actions.viewer).is_empty()
+	_tap(menu, Vector2(30, 41))
+	assert_str(menu.actions.viewer).is_equal("stats")
+	menu.vga.image(0).save_png("res://../../build/android-pause-statistics.png")
+	for _frame in 5:
+		await get_tree().physics_frame
+	assert_int(level.sim.tick()).is_equal(tick)
+	assert_int(level.sim.state_hash()).is_equal(state)
+	_tap(menu, Vector2(130, 190))
+	_tap(menu, Vector2(30, 141))
+	assert_int(menu.menus.stack.size()).is_equal(1)
+	assert_int(menu.menus.current().sel).is_equal(7)
+
+
+func test_secondary_actions_change_real_state_and_replay_arm() -> void:
+	var level := await _level()
+	var menu := _menu(level)
+	_tap(menu, Vector2(30, 161))
+	ReplayRecording.armed = false
+	_tap(menu, Vector2(30, 101))
+	assert_bool(ReplayRecording.armed).is_true()
+	assert_str(menu.actions.status).is_equal(TyrianText.L("msg_replay_armed"))
+	_tap(menu, Vector2(30, 101))
+	assert_bool(ReplayRecording.armed).is_false()
+	_tap(menu, Vector2(30, 121))
+	var dps: bool = level.hotkeys.overlays.dps_active
+	menu.vga.image(0).save_png("res://../../build/android-pause-secondary.png")
+	_tap(menu, Vector2(30, 21))
+	assert_bool(level.hotkeys.overlays.dps_active).is_equal(not dps)
+	var damage: bool = SETUP.settings.damage_numbers_enabled
+	_tap(menu, Vector2(30, 41))
+	assert_bool(SETUP.settings.damage_numbers_enabled).is_equal(not damage)
+	var gamma: int = DisplaySettings.gamma()
+	_tap(menu, Vector2(30, 61))
+	assert_int(DisplaySettings.gamma()).is_equal((gamma + 1) % 4)
+	var screenshots: int = level.sim.ach_counter("screenshots_taken")
+	_tap(menu, Vector2(30, 81))
+	if DisplayServer.get_name() == "headless":
+		assert_str(menu.actions.status).is_equal(TyrianText.L("msg_screenshot_fail"))
+	else:
+		assert_int(level.sim.ach_counter("screenshots_taken")).is_equal(screenshots + 1)
+		var path := UserData.path("screenshot_%04d.bmp" % (LevelHotkeys._screenshot_next - 1))
+		assert_bool(FileAccess.file_exists(path)).is_true()
+	_tap(menu, Vector2(30, 101))
+	_tap(menu, Vector2(30, 141))
+	_tap(menu, Vector2(30, 121))
+	var cfg := ConfigFile.new()
+	assert_int(cfg.load(SETUP.SETTINGS_PATH)).is_equal(OK)
+	assert_bool(bool(cfg.get_value("setup", "damage_numbers_enabled"))).is_equal(not damage)
+
+
+func test_paused_quick_save_and_touch_load_no_then_yes() -> void:
+	var level := await _level()
+	Game.campaign_active = true
+	Game.last_level_section = 1
+	var menu := _menu(level)
+	var tick: int = level.sim.tick()
+	_tap(menu, Vector2(30, 161))
+	_tap(menu, Vector2(30, 61))
+	var slot = Game.campaign_slots()[LevelHotkeys.QUICK_SLOT_ONE_PLAYER - 1]
+	assert_object(slot).is_not_null()
+	assert_str(str(slot.get("name", ""))).is_equal(TyrianText.L("save_quick_save"))
+	assert_bool(FileAccess.file_exists(UserData.path("saves/slot_11.json"))).is_true()
+	_tap(menu, Vector2(30, 81))
+	for _frame in 5:
+		await get_tree().process_frame
+	assert_bool(menu.modal_active).is_true()
+	_button(menu, Vector2(190, 135), true)
+	assert_bool(menu.modal_active).is_true()
+	_button(menu, Vector2(190, 135), false)
+	for _frame in 15:
+		await get_tree().process_frame
+	assert_bool(menu.modal_active).is_false()
+	assert_object(level._pause_menu).is_same(menu)
+	assert_int(level.sim.tick()).is_equal(tick)
+	_tap(menu, Vector2(30, 81))
+	for _frame in 5:
+		await get_tree().process_frame
+	assert_bool(menu.modal_active).is_true()
+	_tap(menu, Vector2(95, 135))
+	for _frame in 30:
+		await get_tree().process_frame
+	assert_bool(is_instance_valid(level)).is_false()
+
+
+func test_quick_actions_outside_campaign_report_restriction() -> void:
+	var level := await _level()
+	var menu := _menu(level)
+	_tap(menu, Vector2(30, 161))
+	_tap(menu, Vector2(30, 61))
+	assert_str(menu.actions.status).is_equal(TyrianText.L("msg_quick_campaign_only"))
+
+	_tap(menu, Vector2(30, 81))
+	for _frame in 5:
+		await get_tree().process_frame
+	assert_bool(menu.modal_active).is_false()
+	assert_str(menu.actions.status).is_equal(TyrianText.L("msg_quick_campaign_only"))
+
+
+func test_paused_replay_stop_writes_playable_recording() -> void:
+	ReplayRecording.armed = true
+	Game.loadout = PackedInt32Array(Game.NEW_GAME_LOADOUT)
+	Game.start_cur_loc = 0
+	var level := await _level()
+	assert_bool(level.sim.is_recording()).is_true()
+	var menu := _menu(level)
+	var tick: int = level.sim.tick()
+	_tap(menu, Vector2(30, 161))
+	_tap(menu, Vector2(30, 101))
+	assert_bool(level.sim.is_recording()).is_false()
+	assert_str(level.last_recording_path).is_not_empty()
+	assert_bool(FileAccess.file_exists(level.last_recording_path)).is_true()
+	assert_str(menu.actions.status).is_equal(TyrianText.L("ig_replay_saved"))
+	var playback: Node = ClassDB.instantiate("TyrianSim")
+	add_child(playback)
+	assert_bool(playback.load_replay(Game.data_dir, level.last_recording_path)).is_true()
+	playback.queue_free()
+	assert_int(level.sim.tick()).is_equal(tick)
+	ReplayRecording.armed = false

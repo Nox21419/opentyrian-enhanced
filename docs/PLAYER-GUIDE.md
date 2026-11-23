@@ -661,8 +661,15 @@ The mouse pointer is hidden when over the game image and shown in the surroundin
 
 In the experimental Android build, hold one finger on the level's playfield to
 move the ship toward it while firing. Drag to steer and lift to stop firing.
-The ship keeps its normal movement limits. Touch still works as a pointer in
-menus; dedicated touch buttons for other combat actions are not yet available.
+The ship keeps its normal movement limits. Compact sidekick icons and Mode
+above the bottom message bar activate manual sidekicks and change rear-gun mode.
+The top-left Pause icon opens the touch pause menu, including Help and Quit.
+Pause > More provides Achievements (category/scroll/Back controls), Statistics,
+campaign Quick Save/Load (touch Yes/No) and Replay Recording. Display / Capture
+under More provides DPS, damage numbers, gamma and screenshots. These pages
+keep the level frozen until Return to Game. Replay Recording arms the next
+level's recording or stops and saves an active one. Bullet time has no touch
+control.
 
 ## 8. Known limitations
 

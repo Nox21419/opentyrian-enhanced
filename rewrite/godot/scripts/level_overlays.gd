@@ -46,6 +46,7 @@ var achievements_active := false
 var dps_active := false
 var cursor := 0
 var category := 0
+var _frozen := false
 
 var _sorted: Array = []
 var _filtered: Array = []
@@ -127,8 +128,21 @@ func _width(text: String) -> int:
 
 ## JE_textShade(..., color, brightness, FULL_SHADE) in both layers.
 func _text(vga: RefCounted, x: int, y: int, text: String, color: int, shade: int) -> void:
+	if _frozen:
+		vga.text_shade(0, x, y, text, color, shade, TyrianText.FULL_SHADE)
+		return
 	for s in [OVER_A, OVER_B]:
 		vga.text_shade(s, x + PLAY_AREA_X, y, text, color, shade, TyrianText.FULL_SHADE)
+
+
+## Pause utilities reuse the original tables on the frozen framebuffer.
+func draw_frozen(vga: RefCounted, stats: Dictionary, unlocked: PackedByteArray, achievements: bool) -> void:
+	_frozen = true
+	if achievements:
+		_draw_achievements(vga, unlocked)
+	else:
+		_draw_stats(vga, stats)
+	_frozen = false
 
 
 ## enemy_render.c: snprintf("DPS:%u"), untranslated literal (the "DPS : %u" label

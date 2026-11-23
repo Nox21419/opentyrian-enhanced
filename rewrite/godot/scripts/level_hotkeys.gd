@@ -172,7 +172,7 @@ static func save_screenshot(image: Image, dir: String) -> int:
 	return number + 1
 
 
-func take_screenshot() -> void:
+func take_screenshot() -> int:
 	var image: Image = null
 	if DisplayServer.get_name() != "headless":
 		image = level.get_viewport().get_texture().get_image()
@@ -185,6 +185,7 @@ func take_screenshot() -> void:
 			level.ach_unlocked_many(sim.ach_note_screenshot())
 	else:
 		_message("msg_screenshot_fail")
+	return number
 
 
 # --- Gamma (mainint.c:JE_gammaCheck) -------------------------------------------
@@ -224,10 +225,10 @@ func _quick_slot() -> int:
 
 ## F5: slot 11 (22 in two-player) named "QUICK SAVE", with
 ## the current equipment and money (JE_saveGame reads player[].items).
-func quick_save() -> void:
+func quick_save() -> bool:
 	if not _quick_allowed():
 		_quick_refused()
-		return
+		return false
 	var stats: Dictionary = level.sim.level_stats()
 	if Game.save_campaign(
 		_quick_slot(),
@@ -236,6 +237,8 @@ func quick_save() -> void:
 		stats.get("loadout", PackedInt32Array())
 	):
 		_message("msg_quick_saved")
+		return true
+	return false
 
 
 ## F9, first press: pinned question if a slot exists, otherwise a message.

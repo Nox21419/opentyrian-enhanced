@@ -1518,3 +1518,9 @@ ig_help=Ayuda
 
 gd_resume=Continuar
 gd_exit_to_modes=Elegir modo
+
+# Android pause utilities
+ig_more=Más...
+ig_secondary=Imagen / Captura
+ig_load_confirm=Cargar el guardado rápido?
+ig_replay_saved=Replay guardado.

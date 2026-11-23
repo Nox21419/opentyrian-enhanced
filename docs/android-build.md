@@ -1081,3 +1081,42 @@ host has no WSL/Linux installation. Strict Clippy is blocked by existing
 warnings in `tyrian-sim`; `--no-deps` also identifies the pre-existing
 `mem_replace_with_default` warning at `tyrian-godot/src/shop.rs:518` under the
 installed Rust 1.100 toolchain. Those unrelated sources were not changed.
+
+
+### Gameplay pause utilities
+
+Android Pause adds More... below Quit, retaining the existing Help, Return,
+volume, effects and speed rows. More opens Achievements, Statistics, Quick Save,
+Quick Load, Replay and Display / Capture, with Back returning to the same pause
+selection. Display / Capture contains DPS Counter, Damage Numbers, Gamma cycle
+and Screenshot. All rows use the original menu engine/font and disjoint
+20-pixel release-activated targets; dragging off cancels. Desktop retains its
+six-row pause menu and existing shortcuts. Bullet time has no touch action.
+
+Achievements and Statistics reuse the existing in-level tables over a frozen
+level. Achievements has previous/next category, up/down selection and Back
+footer targets. Statistics has Back. Neither view changes the running HUD's
+overlay selection, and the simulation remains stopped through all pages.
+Quick Save/Load retain campaign restrictions and original save semantics;
+Quick Load uses the existing Yes/No box with No selected initially. No returns
+to More while paused; Yes follows the existing campaign quick-load path.
+Replay retains F10 behavior: arm/cancel recording for the next level, or stop
+and save an active recording. Status text confirms actions or reports failure.
+DPS, damage numbers and gamma use the existing handlers; screenshot uses the
+existing numbered BMP writer. Movement, weapons, Help and mute keep their
+existing touch paths.
+
+`test/pause_touch_test.gd` covers page routing, release/cancel, category and
+scroll changes, restored parent selection, frozen tick/state hashes, actual
+quick-save files, both quick-load answers, campaign restrictions, replay arming,
+DPS/damage/gamma changes and saved settings. Native rendering is needed to
+verify successful screenshot capture; headless verifies its failure message.
+
+Validation (2026-11-23): 45 headless cases across pause-touch, level-hotkeys,
+pause-menu and level-touch-weapons passed. The final pause-touch suite passed
+13 cases with native Windows rendering, including numbered BMP creation and
+stopping a recording to a file readable by replay playback. The five captured
+pause/view pages were visually reviewed; GDScript lint/format, strict locale,
+glyph/width and diff checks passed. Android device verification is pending;
+no APK was built or installed in this pass. The exported Linux journey/smoke
+gate could not run because WSL/Linux is not installed on this host.
