@@ -56,7 +56,8 @@ pub(super) const TOP_KEYS: &[&str] = &[
     "starter",
 ];
 pub(super) const WEAPON_KEYS: &[&str] =
-    &["name", "base", "cost", "power_use", "icon_sprite", "always_available", "tint", "front", "rear"];
+    &["name", "base", "cost", "power_use", "icon_sprite", "always_available", "shop_unlock", "tint", "front", "rear"];
+pub(super) const SHOP_UNLOCK_KEYS: &[&str] = &["episode", "sections"];
 /// A weapon power level, or an enemy weapon (`name` in addition).
 pub(super) const FIRING_KEYS: &[&str] = &[
     "name",
@@ -127,6 +128,46 @@ impl Ctx<'_> {
 
     // ---------------------------------------------------------------- weapons
 
+    fn shop_unlock(&mut self, item: &Value, folder: &str, name: &str) -> Result<Option<ShopUnlock>, ()> {
+        let Some(value) = item.get("shop_unlock") else { return Ok(None) };
+        let label = format!("weapon '{name}' shop_unlock");
+        let integer = |v: &Value, max: u32| {
+            v.as_f64().filter(|n| n.is_finite() && *n >= 1.0 && *n <= max as f64 && n.fract() == 0.0)
+        };
+        if value.as_object().is_none() || !self.check_keys(value, SHOP_UNLOCK_KEYS, folder, &label) {
+            self.diag.error(folder, format!("{label}: expected an object with episode and optional sections"));
+            return Err(());
+        }
+        let Some(episode) = value.get("episode").and_then(|v| integer(v, 5)) else {
+            self.diag.error(folder, format!("{label}: episode must be an integer in 1..5"));
+            return Err(());
+        };
+        if get_bool(item, "always_available", false) {
+            self.diag.error(folder, format!("{label}: cannot combine with always_available=true"));
+            return Err(());
+        }
+        let mut sections = Vec::new();
+        if let Some(raw) = value.get("sections") {
+            let Some(list) = raw.as_array().filter(|a| !a.is_empty() && a.len() <= 128) else {
+                self.diag.error(folder, format!("{label}: sections must be a nonempty array of at most 128 integers"));
+                return Err(());
+            };
+            for v in list {
+                let Some(n) = integer(v, u16::MAX as u32) else {
+                    self.diag.error(folder, format!("{label}: sections must be integers in 1..65535"));
+                    return Err(());
+                };
+                let n = n as u16;
+                if sections.contains(&n) {
+                    self.diag.error(folder, format!("{label}: duplicate section {n}"));
+                    return Err(());
+                }
+                sections.push(n);
+            }
+        }
+        Ok(Some(ShopUnlock { episode: episode as u8, sections }))
+    }
+
     /// `mod_manager.c:load_mod_weapons_auto`.
     pub(super) fn load_weapons(&mut self, root: &Value, folder: &str) -> usize {
         let mut count = 0;
@@ -135,6 +176,7 @@ impl Ctx<'_> {
             if !self.check_keys(item, WEAPON_KEYS, folder, &format!("weapon '{name}'")) {
                 continue;
             }
+            let Ok(unlock) = self.shop_unlock(item, folder, name) else { continue };
             let Some(id) = (WEAPON_RANGE.0..=WEAPON_RANGE.1).find(|&i| !self.weapon_used[i]) else {
                 self.diag.error(
                     folder,
@@ -181,7 +223,7 @@ impl Ctx<'_> {
             if let Some(h) = parse_tint(item.get("tint")) {
                 self.weapon_tint.insert(id, h);
             }
-            if get_bool(item, "always_available", false) {
+            if get_bool(item, "always_available", false) || unlock.is_some() {
                 let mut has_front = item.get("front").is_some();
                 let mut has_rear = item.get("rear").is_some();
                 if !has_front && !has_rear {
@@ -194,9 +236,11 @@ impl Ctx<'_> {
                 if has_rear {
                     self.avail("weapons_rear", id, folder, name);
                 }
-                if self.shop["weapons"].len() < MAX_ALWAYS_AVAIL {
-                    self.shop.get_mut("weapons").unwrap().push(id as u8);
-                }
+                // Catalog union, not a shop bay: front/rear limits are checked above.
+                self.shop.get_mut("weapons").unwrap().push(id as u8);
+            }
+            if let Some(unlock) = unlock {
+                self.weapon_unlocks.insert(id as u8, unlock);
             }
             count += 1;
         }

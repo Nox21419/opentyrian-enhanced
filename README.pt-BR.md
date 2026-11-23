@@ -50,7 +50,7 @@ Tyrian é o shoot 'em up vertical cult de 1995 da Eclipse Software: você é **T
 
 ## 🧩 Pacotes de mods e modding
 
-Cinco pacotes acompanham o jogo, todos desativados até você ativá-los em **Opções → Mods**. Eles são desenhados no estilo do Tyrian original, vendidos em todas as lojas, equilibrados com os itens originais do mesmo preço, e podem ficar todos ativos ao mesmo tempo.
+Cinco pacotes acompanham o jogo, todos desativados até você ativá-los em **Opções → Mods**. Eles são desenhados no estilo do Tyrian original, equilibrados com os itens originais do mesmo preço, e podem ficar todos ativos ao mesmo tempo. As armas são desbloqueadas gradualmente durante a campanha; as naves continuam disponíveis em todas as lojas.
 
 | Pacote | O que ele adiciona |
 |---|---|

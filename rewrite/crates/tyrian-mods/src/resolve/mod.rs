@@ -163,6 +163,22 @@ pub struct ModReport {
     pub levels: usize,
 }
 
+/// First episode and optional shop sections in that episode; later episodes
+/// offer the weapon in every shop. Section numbers are script locations, not
+/// level numbers and must not be compared as a chronological counter.
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct ShopUnlock {
+    pub episode: u8,
+    pub sections: Vec<u16>,
+}
+
+impl ShopUnlock {
+    pub fn available(&self, episode: u8, section: u16) -> bool {
+        episode > self.episode
+            || (episode == self.episode && (self.sections.is_empty() || self.sections.contains(&section)))
+    }
+}
+
 /// Result of the resolution for an episode.
 #[derive(Clone, Default)]
 pub struct ResolvedMods {
@@ -170,8 +186,9 @@ pub struct ResolvedMods {
     pub patch: TablePatch,
     pub sprites: Vec<SpriteAssignment>,
     pub starter: StarterLoadout,
-    /// "Always available" identifiers in the shop (`always_avail_*`).
+    /// Potential mod inventory; use shop_at for campaign stock.
     pub shop: BTreeMap<&'static str, Vec<u8>>,
+    pub weapon_unlocks: BTreeMap<u8, ShopUnlock>,
     /// Identity "length:folder/name" per (category, identifier) — `mod_identity.c`.
     pub identities: BTreeMap<(ItemKind, u16), String>,
     /// New enemies: name → index in `enemyDat`.
@@ -187,6 +204,18 @@ pub struct ResolvedMods {
 }
 
 impl ResolvedMods {
+    /// Filter the potential mod inventory for the actual campaign shop.
+    /// Tables and item identities are never filtered: equipped/saved guns survive.
+    pub fn shop_at(&self, section: u16) -> BTreeMap<&'static str, Vec<u8>> {
+        let mut shop = self.shop.clone();
+        for key in ["weapons", "weapons_front", "weapons_rear"] {
+            if let Some(list) = shop.get_mut(key) {
+                list.retain(|id| self.weapon_unlocks.get(id).is_none_or(|u| u.available(self.episode, section)));
+            }
+        }
+        shop
+    }
+
     /// Injects the patch into a level to start. `lvl_file_num` is used to
     /// find a level replaced by a mod. Returns true if the level was replaced.
     pub fn apply_to(&self, setup: &mut LevelSetup, lvl_file_num: u16) -> bool {
@@ -215,6 +244,7 @@ struct Ctx<'a> {
     touched_weapons: BTreeSet<usize>,
     touched_enemies: BTreeSet<usize>,
     shop: BTreeMap<&'static str, Vec<u8>>,
+    weapon_unlocks: BTreeMap<u8, ShopUnlock>,
     identities: BTreeMap<(ItemKind, u16), String>,
     pending_ship_sprite: BTreeMap<usize, String>,
     pending_ship_icon: BTreeMap<usize, String>,
@@ -273,6 +303,7 @@ impl ModSet {
             touched_weapons: BTreeSet::new(),
             touched_enemies: BTreeSet::new(),
             shop: BTreeMap::new(),
+            weapon_unlocks: BTreeMap::new(),
             identities: BTreeMap::new(),
             pending_ship_sprite: BTreeMap::new(),
             pending_ship_icon: BTreeMap::new(),
@@ -457,6 +488,7 @@ impl Ctx<'_> {
             sprites: self.sprites.out,
             starter: self.starter,
             shop: self.shop,
+            weapon_unlocks: self.weapon_unlocks,
             identities: self.identities,
             new_enemies: self.new_enemies,
             enemy_weapons: self.enemy_weapons,
@@ -504,6 +536,7 @@ mod schema_tests {
         let cases: Vec<(&str, Value, Vec<String>)> = vec![
             ("root", schema.clone(), sorted(TOP_KEYS)),
             ("weapon", def("weapon"), sorted(WEAPON_KEYS)),
+            ("shop_unlock", def("shop_unlock"), sorted(SHOP_UNLOCK_KEYS)),
             ("firing", def("firing"), sorted(FIRING_KEYS)),
             ("projectile", def("projectile"), sorted(PROJECTILE_KEYS)),
             ("ship", def("ship"), sorted(SHIP_KEYS)),

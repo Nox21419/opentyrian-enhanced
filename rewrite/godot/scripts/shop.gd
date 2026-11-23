@@ -243,6 +243,7 @@ func _open_session() -> void:
 	# Tables and "always_available" items of the mods (INJECT_AVAIL of the C).
 	if Mods.api != null:
 		_shop.set_mods(Mods.api)
+	_shop.set_campaign_section(Game.shop_section)
 	if not _shop.open(Game.data_dir, Game.episode, Game.loadout, Game.shop_items_available, Game.map_sections.size()):
 		push_error("TyrianShop.open: %s" % _shop.last_error)
 		_shop = null

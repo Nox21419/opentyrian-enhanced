@@ -11,7 +11,8 @@ drop shadow. Shots are 12x14 sprites like the original ones (white-hot core,
 saturated colour, dark rim), four animation frames each. Only colours of the
 game palette are used. How they were made: `docs/mod-art-pipeline.md`.
 
-Enable it in **Setup → Mods**. All six are sold in every shop.
+Enable it in **Setup → Mods**. The guns unlock in stages throughout the campaign; once introduced, they remain
+available in subsequent shops. See the [campaign availability schedule](../../../docs/mod-weapon-progression.md).
 
 ![Preview](preview_3x.png)
 

@@ -50,7 +50,7 @@ Tyrian is the cult 1995 vertical shoot-'em-up by Eclipse Software: you are **Tre
 
 ## 🧩 Mod packs and modding
 
-Five packs ship with the game, all off until you turn them on in **Setup → Mods**. They are drawn in the original Tyrian style, sold in every shop, balanced against the original items of the same price, and can all be on together.
+Five packs ship with the game, all off until you turn them on in **Setup → Mods**. They are drawn in the original Tyrian style, balanced against the original items of the same price, and can all be on together. Weapons unlock gradually through the campaign; ships remain available in every shop.
 
 | Pack | What it adds |
 |---|---|

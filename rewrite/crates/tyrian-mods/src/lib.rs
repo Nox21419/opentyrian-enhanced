@@ -27,7 +27,7 @@ pub mod originals;
 mod resolve;
 
 pub use folder::{list_mod_dirs, read_text_bounded, scan_mods_dir, ModFolder, PngFile, SpriteTable, MAX_MODS};
-pub use resolve::{ItemKind, ModReport, ResolvedMods, SpriteAssignment, StarterLoadout};
+pub use resolve::{ItemKind, ModReport, ResolvedMods, ShopUnlock, SpriteAssignment, StarterLoadout};
 
 use manifest::SpriteNames;
 use std::path::{Path, PathBuf};

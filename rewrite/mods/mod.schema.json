@@ -85,10 +85,23 @@
       "allOf": [{ "$ref": "#/definitions/firing" }],
       "required": ["name"]
     },
+    "shop_unlock": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["episode"],
+      "properties": {
+        "episode": { "type": "integer", "minimum": 1, "maximum": 5 },
+        "sections": {
+          "type": "array", "minItems": 1, "maxItems": 128, "uniqueItems": true,
+          "items": { "type": "integer", "minimum": 1, "maximum": 65535 }
+        }
+      }
+    },
     "weapon": {
       "type": "object",
       "additionalProperties": false,
       "required": ["name"],
+      "not": { "required": ["shop_unlock", "always_available"], "properties": { "always_available": { "const": true } } },
       "properties": {
         "name": { "$ref": "#/definitions/name" },
         "base": { "$ref": "#/definitions/name" },
@@ -96,6 +109,7 @@
         "power_use": { "$ref": "#/definitions/int" },
         "icon_sprite": { "$ref": "#/definitions/name" },
         "always_available": { "type": "boolean" },
+        "shop_unlock": { "$ref": "#/definitions/shop_unlock" },
         "tint": { "$ref": "#/definitions/tint" },
         "front": { "type": "array", "maxItems": 11, "items": { "$ref": "#/definitions/firing" } },
         "rear": { "type": "array", "maxItems": 11, "items": { "$ref": "#/definitions/firing" } }

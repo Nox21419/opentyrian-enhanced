@@ -27,7 +27,7 @@
     // 1) Spore Burst (front) - SPREAD: one big spore and a ring of small ones that leave as a clump and open into a cloud as they climb.
     {
       "name": "Spore Burst", "cost": 1000, "power_use": 60, "icon_sprite": "spore_burst_icon",
-      "always_available": true,
+      "shop_unlock": {"episode": 1},
       "front": [
         {"fire_delay": 7, "projectile_count": 3, "max_on_screen": 3, "animation": 3, "sound": 15, "projectiles": [
           {"sub_delay": 255, "damage": 2, "speed_y": 11, "sprite": "spore_burst_1"},
@@ -114,7 +114,7 @@
     // 2) Acid Spitter (front) - HEAVY: slow acid globs (7 to 14 damage) that speed up as they climb (accel_y 1); the most energy-hungry gun of the pack.
     {
       "name": "Acid Spitter", "cost": 1100, "power_use": 140, "icon_sprite": "acid_spitter_icon",
-      "always_available": true,
+      "shop_unlock": {"episode": 2, "sections": [5, 7, 9, 11, 14, 16, 18, 20, 23]},
       "front": [
         {"fire_delay": 12, "projectile_count": 1, "max_on_screen": 1, "animation": 3, "sound": 28, "accel_y": 1, "projectiles": [
           {"sub_delay": 255, "damage": 7, "speed_y": 3, "sprite": "acid_glob_large_1"}]},
@@ -155,7 +155,7 @@
     // 3) Thorn Needler (front) - PIERCING: fast thorns that go through every enemy in their column ({pierce: n}).
     {
       "name": "Thorn Needler", "cost": 1050, "power_use": 70, "icon_sprite": "thorn_needler_icon",
-      "always_available": true,
+      "shop_unlock": {"episode": 4},
       "front": [
         {"fire_delay": 6, "projectile_count": 1, "max_on_screen": 1, "animation": 3, "sound": 14, "projectiles": [
           {"sub_delay": 255, "damage": {"pierce": 3}, "speed_y": 16, "sprite": "thorn_needle_1"}]},
@@ -200,7 +200,7 @@
     // 4) Larva Seekers (rear) - HOMING: larvae that crawl towards the nearest enemy (homing 9 -> 7: they turn more often at high levels).
     {
       "name": "Larva Seekers", "cost": 1050, "power_use": 80, "icon_sprite": "larva_seekers_icon",
-      "always_available": true,
+      "shop_unlock": {"episode": 3},
       "rear": [
         {"fire_delay": 12, "projectile_count": 1, "max_on_screen": 1, "animation": 3, "sound": 26, "homing": 9, "projectiles": [
           {"sub_delay": 255, "damage": 5, "speed_y": 5, "sprite": "larva_1"}]},
@@ -255,7 +255,7 @@
     // 5) Pollen Cloud (rear) - AREA (short range): drifting pollen puffs blown around the ship (circle_radius 2) that burst after 16 to 28 frames.
     {
       "name": "Pollen Cloud", "cost": 950, "power_use": 50, "icon_sprite": "pollen_cloud_icon",
-      "always_available": true,
+      "shop_unlock": {"episode": 2},
       "rear": [
         {"fire_delay": 7, "projectile_count": 2, "max_on_screen": 2, "animation": 3, "sound": 8, "circle_radius": 2, "projectiles": [
           {"sub_delay": 16, "damage": 2, "speed_x": -4, "speed_y": 0, "sprite": "pollen_puff_1"},
@@ -334,7 +334,7 @@
     // 6) Seed Mortar (rear) - AREA (lobbed): seeds thrown upward that slow down (accel_y -1), stop and fall back, sown in a wide arc.
     {
       "name": "Seed Mortar", "cost": 1000, "power_use": 90, "icon_sprite": "seed_mortar_icon",
-      "always_available": true,
+      "shop_unlock": {"episode": 1, "sections": [9, 12, 18, 20, 22, 24, 27, 30, 32, 35, 37, 40]},
       "rear": [
         {"fire_delay": 11, "projectile_count": 1, "max_on_screen": 1, "animation": 3, "sound": 5, "accel_y": -1, "projectiles": [
           {"sub_delay": 255, "damage": 5, "speed_y": 10, "sprite": "seed_pod_large_1"}]},

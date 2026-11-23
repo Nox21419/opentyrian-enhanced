@@ -8,6 +8,10 @@
 | `bio_weapons_pack/` | 6 living weapons (3 front, 3 rear: spores, acid, thorns, larvae, pollen, seeds), 11 power levels each |
 | `elements_weapon_pack/` | 6 elemental weapons (fire, ice, lightning front; earth, acid, wind rear), 11 power levels each |
 
+Weapon packs follow a shared [campaign availability schedule](../../docs/mod-weapon-progression.md):
+basic guns arrive in Episode 1, specialists in Episodes 2–3, and the strongest
+weapons in Episodes 4–5. Ships remain available in every shop.
+
 Each pack's README gives its balance tables (price, armor, damage per second,
 energy) against the original items of the same price, and how its art was made
 (`docs/mod-art-pipeline.md`).

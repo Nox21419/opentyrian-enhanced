@@ -351,7 +351,14 @@ impl ShopSession {
                 _ => item == 0 || named(t.options.get(item as usize).map(|s| s.name.text())),
             };
             let row = &mut avail[ITEM_AVAIL_MAP[i] - 1];
-            if valid && !row.contains(&item) && row.len() < 10 {
+            // A gated mod gun may be equipped in a save from a later shop.
+            // Keep it selectable even when all ten vanilla stock slots are full.
+            let owned_capacity = if matches!(i, 1 | 2) && item as usize >= tyrian_formats::hdt::HDT_PORT_COUNT {
+                SHOP_LIST_CAPACITY
+            } else {
+                10
+            };
+            if valid && !row.contains(&item) && row.len() < owned_capacity {
                 row.push(item);
             }
         }

@@ -179,7 +179,8 @@ impl TyrianMods {
                 }
                 ItemKind::Special => (t.specials[i].name.text(), 0, t.specials[i].itemgraphic, 0, "specials"),
             };
-            let always = res.shop.get(shop_key).is_some_and(|v| v.contains(&(id as u8)));
+            let always = res.shop.get(shop_key).is_some_and(|v| v.contains(&(id as u8)))
+                && !(kind == ItemKind::Weapon && res.weapon_unlocks.contains_key(&(id as u8)));
             out.push(&vdict! {
                 "kind" => kind_name(kind),
                 "id" => id as i64,
@@ -359,10 +360,11 @@ impl TyrianMods {
 impl TyrianMods {
     /// Tables of the episode, mods included, and `always_available` items, for
     /// the shop (`game_menu.c:JE_itemScreen`). None if no mod is enabled.
-    pub(crate) fn shop_data(&mut self, episode: i32) -> Option<(Tables, AlwaysAvailable)> {
+    pub(crate) fn shop_data(&mut self, episode: i32, section: u16) -> Option<(Tables, AlwaysAvailable)> {
         let res = self.resolve(episode)?;
         let tables = res.tables.clone()?;
-        let list = |k: &str| res.shop.get(k).cloned().unwrap_or_default();
+        let shop = res.shop_at(section);
+        let list = |k: &str| shop.get(k).cloned().unwrap_or_default();
         let always = AlwaysAvailable {
             ships: list("ships"),
             front_weapons: list("weapons_front"),

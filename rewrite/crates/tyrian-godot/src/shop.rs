@@ -31,6 +31,7 @@ use tyrian_sim::WeaponId;
 #[derive(GodotClass)]
 #[class(base = RefCounted, init)]
 pub struct TyrianShop {
+    campaign_section: u16,
     tables: Option<Tables>,
     session: Option<ShopSession>,
     /// Fire demonstration for the weapon categories (`shop_preview.c`).
@@ -96,6 +97,12 @@ fn key_from_name(name: &str) -> Option<ShopKey> {
 
 #[godot_api]
 impl TyrianShop {
+    /// Script section of the shop, not the next playable level file number.
+    #[func]
+    fn set_campaign_section(&mut self, section: i32) {
+        self.campaign_section = section.clamp(0, u16::MAX as i32) as u16;
+    }
+
     #[func]
     fn set_preview_mod_frames(&mut self, frames: PackedInt32Array) {
         self.preview_mod_frames = frames;
@@ -139,7 +146,9 @@ impl TyrianShop {
             }
         };
         let mut always = AlwaysAvailable::default();
-        if let Some((mod_tables, mod_always)) = self.mods.as_mut().and_then(|m| m.bind_mut().shop_data(episode)) {
+        if let Some((mod_tables, mod_always)) =
+            self.mods.as_mut().and_then(|m| m.bind_mut().shop_data(episode, self.campaign_section))
+        {
             tables = mod_tables;
             always = mod_always;
         }

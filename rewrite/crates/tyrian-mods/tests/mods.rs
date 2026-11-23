@@ -122,7 +122,7 @@ fn shipped_mods_load_without_errors() {
         let t = res.tables.as_ref().unwrap();
         assert!((19..=32).all(|i| !t.ships[i].name.text().is_empty()), "ship slots 19..32");
         assert_eq!((61..=80).filter(|&i| !t.ports[i].name.text().is_empty()).count(), 18);
-        // Every pack item is offered in the shops (always_available).
+        // Complete potential inventory fits; shop_at filters weapons by campaign location.
         assert_eq!(res.shop["ships"].len(), 14);
         assert_eq!(res.shop["weapons_front"].len(), 9);
         assert_eq!(res.shop["weapons_rear"].len(), 9);

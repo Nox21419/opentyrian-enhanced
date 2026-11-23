@@ -24,7 +24,7 @@
     // 1) Flame Lance (front) - SHORT RANGE: fire jets that burn out after 12 to 16 ticks (sub_delay), fast and hard-hitting up close.
     {
       "name": "Flame Lance", "cost": 1000, "power_use": 45, "icon_sprite": "flame_lance_icon",
-      "always_available": true,
+      "shop_unlock": {"episode": 1, "sections": [9, 12, 18, 20, 22, 24, 27, 30, 32, 35, 37, 40]},
       "front": [
         {"fire_delay": 4, "projectile_count": 1, "max_on_screen": 1, "animation": 3, "sound": 1, "projectiles": [
           {"sub_delay": 12, "damage": 3, "speed_y": 8, "sprite": "flame_jet_1"}]},
@@ -73,7 +73,7 @@
     // 2) Frost Shard (front) - CONTROL: ice shards plus frost flakes that freeze ("freeze": no damage, the enemy stops firing for 40 ticks).
     {
       "name": "Frost Shard", "cost": 1050, "power_use": 60, "icon_sprite": "frost_shard_icon",
-      "always_available": true,
+      "shop_unlock": {"episode": 4},
       "front": [
         {"fire_delay": 6, "projectile_count": 2, "max_on_screen": 2, "animation": 3, "sound": 31, "projectiles": [
           {"sub_delay": 255, "damage": 3, "speed_y": 11, "sprite": "frost_shard_1"},
@@ -139,7 +139,7 @@
     // 3) Arc Caster (front) - ZIG-ZAG: lightning bolts weaving left and right (circle_radius 23); a piercing main bolt from level 6.
     {
       "name": "Arc Caster", "cost": 1000, "power_use": 50, "icon_sprite": "arc_caster_icon",
-      "always_available": true,
+      "shop_unlock": {"episode": 3, "sections": [5, 7, 9, 11, 14, 16, 18, 20, 22, 24]},
       "front": [
         {"fire_delay": 5, "projectile_count": 1, "max_on_screen": 1, "animation": 3, "sound": 15, "circle_radius": 23, "projectiles": [
           {"sub_delay": 255, "damage": 3, "speed_y": 15, "spawn_x": -3, "sprite": "arc_bolt_1"}]},
@@ -190,7 +190,7 @@
     // 4) Boulder Mortar (rear) - HEAVY: boulders that sag back, then accelerate forward (speed_y -2, accel_y 1); highest damage per hit and energy use.
     {
       "name": "Boulder Mortar", "cost": 1100, "power_use": 110, "icon_sprite": "boulder_mortar_icon",
-      "always_available": true,
+      "shop_unlock": {"episode": 2},
       "rear": [
         {"fire_delay": 13, "projectile_count": 1, "max_on_screen": 1, "animation": 3, "sound": 28, "accel_y": 1, "projectiles": [
           {"sub_delay": 255, "damage": 8, "speed_y": -2, "sprite": "boulder_large_1"}]},
@@ -235,7 +235,7 @@
     // 5) Acid Rain (rear) - AREA: acid drops thrown up in a fan that slow down and rain back down (accel_y -1), eating through every enemy they cross (pierce).
     {
       "name": "Acid Rain", "cost": 950, "power_use": 50, "icon_sprite": "acid_rain_icon",
-      "always_available": true,
+      "shop_unlock": {"episode": 5, "sections": [9, 12, 15, 17]},
       "rear": [
         {"fire_delay": 8, "projectile_count": 3, "max_on_screen": 3, "animation": 3, "sound": 10, "accel_y": -1, "projectiles": [
           {"sub_delay": 255, "damage": {"pierce": 1}, "speed_x": -1, "speed_y": 12, "sprite": "acid_drop_1"},
@@ -323,7 +323,7 @@
     // 6) Gale Blades (rear) - FLANKS: wind blades cutting sideways through every enemy in their row (pierce), then also on the diagonals.
     {
       "name": "Gale Blades", "cost": 1000, "power_use": 55, "icon_sprite": "gale_blades_icon",
-      "always_available": true,
+      "shop_unlock": {"episode": 3, "sections": [5, 7, 9, 11, 14, 16, 18, 20, 22, 24]},
       "rear": [
         {"fire_delay": 8, "projectile_count": 2, "max_on_screen": 2, "animation": 3, "sound": 13, "projectiles": [
           {"sub_delay": 255, "damage": {"pierce": 2}, "speed_x": -7, "sprite": "gale_blade_1"},

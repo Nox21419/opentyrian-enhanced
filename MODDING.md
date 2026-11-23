@@ -175,6 +175,7 @@ typo or a leftover of an old format is reported, never silently ignored.
 | `cost` | shop price |
 | `icon_sprite` | NAME of the shop icon (a PNG of the mod or an original sprite) |
 | `always_available` | sold in every shop (§5.9) |
+| `shop_unlock` | weapons only: campaign availability from an episode and optional shop sections (§5.9) |
 
 The engine assigns a free slot to each item, in folder order: at most 20 weapons, 14 ships,
 13 sidekicks, 9 shields and 16 specials, all mods together. An item past that limit is refused
@@ -283,6 +284,35 @@ The weapon a special fires is the one of its `base`. Shops never sell specials: 
 `always_available` items are added to every shop, at most 16 per category, after the level's own
 items (at most 10). The list of a category scrolls, five rows at a time; the C version stopped at
 10 items in all, which hid the items of a second pack (ADR 0134).
+
+Weapons can instead use a staged campaign unlock:
+
+```json5
+{ "name": "Late Cannon", "base": "Pulse-Cannon",
+  "shop_unlock": { "episode": 3, "sections": [7, 9, 11] } }
+```
+
+`episode` is required (integer 1..5). Before that episode the weapon is not
+added to shop stock. In that episode, omitting `sections` offers it in every
+shop; otherwise it is offered only in the listed **episode-script shop
+sections**, not level-file numbers or level counts. Numeric section order is
+not chronological: use an explicit list that includes subsequent shops and
+alternate routes. Later episodes offer it in every shop. Starting directly in
+a later episode also grants the earlier tiers; this is campaign location,
+not a profile achievement or a saved global unlock.
+
+`sections`, when present, must contain 1..128 unique integers in 1..65535.
+Unknown keys, fractions, empty lists and `always_available: true` together
+with `shop_unlock` are errors. `always_available: false` is allowed with an
+unlock. Without either field, the weapon is not injected into shop stock.
+Existing `always_available` mods keep their behavior. The same 16-item
+per-category capacity covers all potential mod stock, including gated guns.
+
+Only stock is gated. Item definitions and saved equipment remain loaded;
+an equipped weapon is retained and can still be upgraded in an earlier shop.
+Once sold there, it cannot be repurchased until that shop offers it. Vanilla
+shop inventories, prices and combat rules are unchanged. See the shipped
+[schedule](docs/mod-weapon-progression.md) for examples.
 
 ### 5.10 Starting loadout
 
@@ -552,7 +582,7 @@ files per mod; README ≤ 1 KiB.
 | "C-version mod" error | the `mod.json` has no `"format_version": 1`: convert it (§11) |
 | "unknown key" | a typo, or a field of the C-version format (§11) |
 | A weapon makes a sound but nothing is drawn | the first projectile's `sprite` is missing or unknown (warning in `check`) |
-| An item is not in the shop | add `"always_available": true`; at most 16 such items per shop category, all mods together (§5.9) |
+| An item is not in the shop | check its `shop_unlock` location or use `"always_available": true`; at most 16 potential mod items per category, all mods together (§5.9) |
 | A new enemy never appears | cite it by its `name` in `levels/*.json`; `tyrian-mods run --level epN_NN` counts its appearances |
 | A ship is invisible | `ship_sprite` must name a PNG of `sprites/ships/` (24×28) or an original ship sprite |
 

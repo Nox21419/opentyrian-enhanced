@@ -61,3 +61,46 @@ func test_preview_mask_preserves_frame_and_power_panel() -> void:
 	assert_float(mask.get_pixel(0, 60).r).is_equal(0.0)
 	assert_float(mask.get_pixel(72, 137).r).is_equal(0.0)
 	assert_float(mask.get_pixel(160, 60).r).is_equal(0.0)
+
+
+func _offered_mod_weapons(episode: int, section: int, equipped := 1) -> Array[String]:
+	var names := {}
+	for item in Mods.api.items(episode):
+		if item["kind"] == "weapon":
+			names[int(item["id"])] = String(item["name"])
+	var offered: Array[String] = []
+	for category in [3, 4]:
+		var shop: RefCounted = ClassDB.instantiate("TyrianShop")
+		shop.set_mods(Mods.api)
+		shop.set_campaign_section(section)
+		var loadout := PackedInt32Array([1, equipped, 1, 0, 1, 4, 6, 0, 0, 0, 1000000])
+		assert_bool(shop.open(Game.data_dir, episode, loadout, [], 1)).is_true()
+		shop.click_row(4)
+		shop.click_row(4)
+		shop.click_row(category)
+		shop.click_row(category)
+		var state: Dictionary = shop.state()
+		assert_int(int(state["category"])).is_equal(category)
+		for id in state["items"]:
+			if names.has(id):
+				offered.append(names[id])
+	return offered
+
+
+func test_campaign_stock_uses_the_actual_shop_section() -> void:
+	for point in [[1, 2, 3], [1, 9, 6], [1, 17, 3], [2, 1, 9], [2, 7, 10], [3, 1, 12], [3, 7, 14]]:
+		var stock := _offered_mod_weapons(point[0], point[1])
+		assert_int(stock.size()).override_failure_message(str(point)).is_equal(point[2])
+	assert_int(_offered_mod_weapons(4, 1).size()).is_equal(16)
+	assert_int(_offered_mod_weapons(5, 1).size()).is_equal(17)
+	assert_int(_offered_mod_weapons(5, 9).size()).is_equal(18)
+	assert_bool(_offered_mod_weapons(1, 2).has("Zica Thermal Lance")).is_false()
+
+
+func test_equipped_late_weapon_remains_in_an_early_shop() -> void:
+	var lance := -1
+	for item in Mods.api.items(1):
+		if item["name"] == "Zica Thermal Lance":
+			lance = int(item["id"])
+	assert_int(lance).is_greater(0)
+	assert_bool(_offered_mod_weapons(1, 2, lance).has("Zica Thermal Lance")).is_true()
