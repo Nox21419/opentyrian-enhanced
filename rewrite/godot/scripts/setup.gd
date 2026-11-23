@@ -403,6 +403,7 @@ var _touch_release := preload("res://scripts/touch_release.gd").new()
 ## Setup: run_menu keeps its selection during the action); reset to 0 afterwards.
 static var entry_row := 0
 const KEYBINDINGS_ROW := 3
+const SECRETS_ROW := 7
 
 
 func _ready() -> void:
@@ -461,7 +462,7 @@ func _open_jukebox() -> void:
 
 ## setup_menu.c:setup_items.
 func _setup_items() -> Array:
-	return [
+	var items := [
 		_item("setup_graphics", "setup_graphics_desc", Kind.ACTION,
 			{"action": func() -> void: _open("gfx_header", _graphics_items())}),
 		_item("setup_sound", "setup_sound_desc", Kind.ACTION,
@@ -477,6 +478,60 @@ func _setup_items() -> Array:
 		_item("setup_jukebox", "setup_jukebox_desc", Kind.ACTION, {"action": _open_jukebox}),
 		_item("setup_done", "setup_done_main", Kind.BACK),
 	]
+	if _touch_setup:
+		items.insert(SECRETS_ROW, _item("setup_secrets", "setup_secrets_desc", Kind.ACTION,
+			{"action": func() -> void: _open("secrets_header", _secrets_items())}))
+	return items
+
+
+## Android exposes the title codes through the existing Setup menu engine.
+func _secrets_items() -> Array:
+	return [
+		_item("secrets_arcade", "secrets_arcade_desc", Kind.ACTION,
+			{"action": func() -> void: _open("superShip_0", _secret_ship_items())}),
+		_item("secrets_tyrian", "secrets_tyrian_desc", Kind.ACTION,
+			{"action": func() -> void: _open("secrets_tyrian", _secret_tyrian_items())}),
+		_item("sa_destruct_name", "secrets_destruct_desc", Kind.ACTION,
+			{"action": _start_secret_destruct}),
+		_item("setup_done", "setup_done_back", Kind.BACK),
+	]
+
+
+func _secret_ship_items() -> Array:
+	var items := []
+	for ship in 9:
+		items.append(_item("superShip_%d" % (ship + 1), "specialName_%d" % ship, Kind.ACTION,
+			{"action": _start_secret.bind(ship, 0)}))
+	items.append(_item("setup_done", "setup_done_back", Kind.BACK))
+	return items
+
+
+func _secret_tyrian_items() -> Array:
+	return [
+		_item("diff_lord", "secrets_tyrian_desc", Kind.ACTION, {"action": _start_secret.bind(-1, 8)}),
+		_item("diff_suicide", "secrets_tyrian_desc", Kind.ACTION, {"action": _start_secret.bind(-1, 6)}),
+		_item("setup_done", "setup_done_back", Kind.BACK),
+	]
+
+
+func _start_secret(ship: int, difficulty: int) -> void:
+	idle = false
+	_busy = true
+	var ng := load("res://scripts/new_game.gd")
+	ng.flow = ng.Flow.SUPER_TYRIAN if ship < 0 else ng.Flow.SUPER_ARCADE
+	ng.super_arcade = maxi(ship, 0)
+	ng.secret_difficulty = difficulty
+	ng.secret_return = true
+	entry_row = SECRETS_ROW
+	await fade_black(10)
+	Game.goto_scene(Game.SCENE_NEW_GAME)
+
+
+func _start_secret_destruct() -> void:
+	idle = false
+	_busy = true
+	await fade_black(10)
+	Game.goto_scene(Game.SCENE_DESTRUCT)
 
 
 ## Key Bindings: Controls screen (keys and gamepad buttons of both

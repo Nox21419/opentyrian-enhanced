@@ -487,3 +487,9 @@ pt stats_hdr_global
 * gfx_scaler_scale3x
 * gfx_sprite_original
 de gfx_sprite_remastered
+
+# Original mode names in the Android Secrets menu.
+* secrets_arcade
+* secrets_tyrian
+fr setup_secrets
+fr secrets_header

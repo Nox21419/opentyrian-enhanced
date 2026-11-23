@@ -270,19 +270,43 @@ drag cancellation, Back, boundary targets and the unchanged desktop layout.
 Android retains the original difficulty labels and positions (y = 54 + 24 ×
 row), the gold lettering and the default Normal selection. Invisible targets
 span x = 16 to 304; release in the pressed row confirms and dragging off
-cancels. A gold Back entry at y = 185 follows the existing cancel action to
-Episode Select, or Timed Battle for that mode. Desktop remains unchanged.
+cancels. A small gold Back entry at y = 190 follows the existing cancel action
+to Episode Select, or Timed Battle for that mode. Desktop remains unchanged.
 
-The original keyboard secrets still reveal the higher difficulties. When all
-six are visible, Back uses the original small font at y = 190 so the sixth
-label can stay at y = 174 without overlap. Its touch area starts at y = 188.
-Unlocking a difficulty while Back is selected keeps Back selected. This adds
-no touch shortcut for the secrets and does not change difficulty rules.
+All six difficulties (Easy, Normal, Hard, Impossible, Suicide and Lord of
+Game) are always visible on Android. Back uses the original small font at
+y = 190 so the sixth label can stay at y = 174 without overlap. Its touch
+area starts at y = 188. Normal remains selected by default. Desktop still
+starts with three choices and retains Shift+G, Shift+] and LORD unlocks.
+The difficulty values and game rules are unchanged.
 
-On the phone, check Easy/Normal/Hard, drag cancellation, and Back. Automated
-coverage in `test/difficulty_touch_test.gd` verifies the chosen difficulty,
-both Back destinations, secret unlocks and target boundaries, and desktop
-geometry. Run it with the Episode, Players and existing New Game suites.
+On the phone, check all six choices, drag cancellation, and Back. Automated
+coverage in `test/difficulty_touch_test.gd` verifies the higher difficulty
+values, both Back destinations, target boundaries and desktop geometry.
+Run it with the Episode, Players and existing New Game suites.
+
+### Secrets in Android Setup
+
+Setup > Secrets provides touch access to the original title-code games:
+
+- **Super Arcade**: all nine named ships, followed by the existing episode,
+  difficulty and ship introduction screens. The original equipment, including
+  Nort-Ship Z's Quicksilver companions, and difficulty increment are preserved.
+- **Super Tyrian**: Lord of Game or Suicide, followed by the existing
+  introduction and episode choice. Suicide replaces the need to hold Scroll
+  Lock; both choices retain Stalker 21.126 and Atomic RailGun.
+- **Destruct**: opens the existing mini-game, also available through Side Modes.
+  Its gameplay touch controls remain pending.
+
+The Secrets entry is Android-only. It uses Setup's original fonts, palette,
+menu engine, wide invisible targets and activation on release. Ship names
+show their original title codes in the help strip. Done returns through the
+menu stack; cancelling a secret game's episode choice returns to Setup with
+Secrets selected. Title keyboard codes on desktop are unchanged. Special-move
+sequences (twiddles) and developer cheats are not changed or exposed here.
+`test/secrets_touch_test.gd` checks touch navigation, drag cancellation, all
+nine starting loadouts, both Super Tyrian difficulties, Destruct entry,
+cancellation and desktop scope.
 
 ### Shop root Game Menu (fifth menu adaptation)
 

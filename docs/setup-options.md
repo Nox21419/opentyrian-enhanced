@@ -31,6 +31,13 @@ activate on release, cancelling when dragged off. Jukebox
 uses its existing text as touch controls. Desktop behavior is unchanged; see
 [Android Setup navigation](android-build.md#setup-and-child-screens).
 
+Android Setup also includes **Secrets** for all nine Super Arcade ships,
+Super Tyrian on Lord of Game or Suicide, and Destruct. These launch the original
+mode flows; they do not save a setting or alter gameplay rules. Android's
+Difficulty Select always shows all six difficulties. Desktop retains the
+original hidden difficulty unlocks and title codes. See
+[Android Secrets](android-build.md#secrets-in-android-setup).
+
 Android Gameplay locks Bullet Time Off, Auto-fire Off and Rumble Off, with
 grey, unavailable rows. Settings application enforces those values even for
 older saved profiles. Normal fire lasts only while the steering finger is held,

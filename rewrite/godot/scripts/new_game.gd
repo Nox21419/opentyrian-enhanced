@@ -49,6 +49,9 @@ enum Flow { NEW_GAME, SUPER_ARCADE, SUPER_TYRIAN }
 static var flow := Flow.NEW_GAME
 ## Super Arcade code typed at the title (index of specialName, 0-based).
 static var super_arcade := 0
+## One-shot entry from Android Setup > Secrets; title codes keep their key check.
+static var secret_difficulty := 0
+static var secret_return := false
 
 ## Idle screen (capture tool, tests).
 var idle := false
@@ -71,9 +74,15 @@ var difficulty_count := 3
 var _lord_progress := 0
 ## title_screen.c:newSuperTyrianGame: initialDifficulty.
 var _super_tyrian_difficulty := DIFFICULTY_ZINGLON
+var _secret_difficulty := 0
+var _secret_return := false
 
 
 func _ready() -> void:
+	_secret_difficulty = secret_difficulty
+	_secret_return = secret_return
+	secret_difficulty = 0
+	secret_return = false
 	_run.call_deferred()
 
 
@@ -188,7 +197,10 @@ func _leave(then: Callable) -> void:
 
 
 func _to_title() -> void:
-	Game.goto_scene(Game.SCENE_TITLE)
+	if _secret_return:
+		# A released touch from the ship list must not hover a different Setup row.
+		TyrianMouse.inactive = true
+	Game.goto_scene(Game.SCENE_SETUP if _secret_return else Game.SCENE_TITLE)
 
 
 # --- menus.c:gameplaySelect -----------------------------------------------------
@@ -316,7 +328,7 @@ func _difficulty_items() -> Array:
 
 
 func _open_difficulty() -> void:
-	difficulty_count = 3
+	difficulty_count = DIFFICULTY_KEYS.size() if _touch_difficulty else 3
 	_lord_progress = 0
 	# Esc: episodeThenDifficultySelect / timedBattleThenDifficultySelect
 	# resume the previous choice.
@@ -453,6 +465,8 @@ func _ship_graphic(ship: int) -> int:
 func _super_tyrian_intro() -> void:
 	current_screen = "super_tyrian"
 	_super_tyrian_difficulty = DIFFICULTY_SUICIDE if Input.is_physical_key_pressed(KEY_SCROLLLOCK) else DIFFICULTY_ZINGLON
+	if _secret_difficulty in [DIFFICULTY_SUICIDE, DIFFICULTY_ZINGLON]:
+		_super_tyrian_difficulty = _secret_difficulty
 	var zinglon := _super_tyrian_difficulty == DIFFICULTY_ZINGLON
 	vga.clear(VGA_SCREEN, 0)
 	TyrianText.out_text(self, 10, 10, TyrianText.L("stText_0"), 15, 4)

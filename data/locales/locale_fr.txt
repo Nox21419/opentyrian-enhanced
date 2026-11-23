@@ -1578,3 +1578,13 @@ ig_more=Plus...
 ig_secondary=Affichage / Capture
 ig_load_confirm=Charger la sauvegarde rapide ?
 ig_replay_saved=Replay sauvegardé.
+
+# Android: touch access to the original title codes.
+setup_secrets=Secrets...
+setup_secrets_desc=Jouer aux modes secrets du jeu original.
+secrets_header=Secrets
+secrets_arcade=Super Arcade...
+secrets_arcade_desc=Choisir un vaisseau secret et ses armes.
+secrets_tyrian=Super Tyrian
+secrets_tyrian_desc=Stalker et Atomic RailGun. Choisir la difficulté.
+secrets_destruct_desc=Jouer au mini-jeu Destruct.

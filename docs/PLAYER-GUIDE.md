@@ -449,6 +449,11 @@ returns to the mode selection; a second Esc returns to the title.
 
 ### 3.6 Secret codes of the title screen
 
+On Android, all six difficulties are visible without codes. **Setup > Secrets**
+lets you select any of the nine Super Arcade ships, Super Tyrian (Lord of Game
+or Suicide), or Destruct without typing. The game modes and equipment are the
+same as the codes below. Cancelling episode selection returns to Setup.
+
 Typed on the title screen (letters only, no Enter), as in the original:
 
 | Code | Effect |
