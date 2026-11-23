@@ -64,7 +64,7 @@ python utils/mod_weapon_balance.py rewrite/mods/elements_weapon_pack/mod.json --
 | Weapon | Price | Power | L1 | L2 | L3 | L4 | L5 | L6 | L7 | L8 | L9 | L10 | L11 |
 |---|---|---|---|---|---|---|---|---|---|---|---|---|---|
 | Boulder Mortar | 1100 | 110 | 20.0 | 24.2 | 32.1 | 35.0 | 46.7 | 53.8 | 70.0 | 75.4 | 81.7 | 86.2 | 93.3 |
-| Acid Rain | 950 | 50 | 11.7 | 15.6 | 21.9 | 26.2 | 35.0 | 43.8 | 52.5 | 70.0 | 81.7 | 81.7 | 93.3 |
+| Acid Rain | 950 | 50 | 11.7 | 15.6 | 21.9 | 21.9 | 30.6 | 39.4 | 48.1 | 65.0 | 75.8 | 75.8 | 87.5 |
 | Gale Blades | 1000 | 55 | 15.6 | 20.0 | 26.2 | 30.0 | 38.9 | 43.8 | 62.2 | 70.0 | 78.8 | 87.5 | 93.3 |
 | *Starburst (original)* | 900 | 20 | 23.3 | 23.3 | 35.0 | 35.0 | 46.7 | 46.7 | 70.0 | 70.0 | 93.3 | 105.0 | 186.7 |
 | *Scatter Wave (original)* | 900 | 40 | 14.0 | 21.0 | 23.3 | 23.3 | 35.0 | 40.8 | 52.5 | 64.2 | 70.0 | 70.0 | 81.7 |
@@ -105,25 +105,40 @@ python utils/mod_weapon_balance.py rewrite/mods/elements_weapon_pack/mod.json --
 
 Reading the tables:
 
-- At every level each weapon stays between the weakest and the strongest
-  original of its price band.
-- Flame Lance sits 0 to 20 % above the median: its jets vanish after half a
-  screen, so it pays for the damage with its range. Boulder Mortar (heavy)
-  stays within 15 % of the median and has the highest energy use of the pack.
-  Arc Caster stays within 12 % of the median.
-- Frost Shard stays 5 to 25 % under the median up to level 9 and at the
-  median at levels 10 and 11: part of each volley is frost flakes that do no
-  damage but stop the enemy's guns.
-- Acid Rain and Gale Blades pierce (a piercing shot hurts again on every tick
-  it overlaps an enemy, and hits every enemy on its path), so they stay 7 to
-  38 % under the median up to level 9. At levels 10 and 11 the median of the
-  rear originals drops (NortShip Spreader falls to 17.5 and 26.2); there the
-  rear weapons end 2 to 14 % above it, still under the other originals of the
-  band (Sonic Wave 90 / 100, Starburst 105 / 187).
-- Energy per second is on the scale of the originals: front guns 262 to 394
-  (originals of the table: 200 to 1225), rear guns 194 to 321 (originals: 175
-  to 467). A Standard MR-9 generator (350 per second) feeds any one of them at
-  level 1.
+These are nominal projectile-damage totals, not measured combat DPS. In
+particular, the original piercing rule applies damage again on every tick a
+shot overlaps an enemy; spread, range and projectile speed also change how
+much of a volley actually hits. A nominal median is not proof of balance.
+
+### Piercing damage adjustment (2026-11-23)
+
+Acid Rain loses one damage on one central drop at each level from 4
+through 11. Levels 1–3 already use one damage per drop and remain unchanged.
+Changed levels lose 6–17% nominal volley damage (6.25% at level 11); actual
+damage falls more where that central drop repeatedly overlaps the target.
+Firing cadence, trajectories, projectile counts, energy use and prices are
+unchanged. Vanilla weapons and the original piercing collision rules are
+unchanged. Arc Caster and Gale Blades were not reduced in this first pass.
+
+Measured level-11 damage potential using the real simulation projectile and
+collision code, unlimited energy, a stationary ship at (148,160), and targets
+whose 254 armor is replenished each tick:
+
+| Target arrangement | Before DPS | After DPS |
+|---|---:|---:|
+| Large nearby target at (148,110) | 630.0 | 525.0 |
+| Three small targets at x=148, y=110/70/30 | 116.7 | 87.5 |
+
+For comparison, unchanged vanilla Mega Cannon scores 140.0 / 101.1 DPS in
+those arrangements, Needle Laser 104.9 / 122.4, and Sonic Impulse 70.0 / 52.5.
+Each case uses 10 seconds of warmup and 60 measured seconds at 35 ticks/s.
+These are persistent-target damage measurements, not campaign kill rates;
+this modest first pass does not claim equal performance in every situation.
+
+Generator demands of both guns add together, plus shield recharge. Standard
+MR-9 supplies 350 energy/s, Advanced MR-12 490, Gencore Custom 665 and
+MicroFusion 875. At maximum power even the cheapest mod front/rear pair
+needs about 529 energy/s, so Advanced MR-12 cannot sustain a pair continuously.
 
 ## Sprites
 

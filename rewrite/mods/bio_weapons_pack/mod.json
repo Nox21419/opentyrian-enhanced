@@ -162,7 +162,7 @@
         {"fire_delay": 5, "projectile_count": 1, "max_on_screen": 1, "animation": 3, "sound": 14, "projectiles": [
           {"sub_delay": 255, "damage": {"pierce": 3}, "speed_y": 16, "sprite": "thorn_needle_1"}]},
         {"fire_delay": 4, "projectile_count": 1, "max_on_screen": 1, "animation": 3, "sound": 14, "projectiles": [
-          {"sub_delay": 255, "damage": {"pierce": 4}, "speed_y": 16, "sprite": "thorn_needle_1"}]},
+          {"sub_delay": 255, "damage": {"pierce": 3}, "speed_y": 16, "sprite": "thorn_needle_1"}]},
         {"fire_delay": 6, "projectile_count": 2, "max_on_screen": 2, "animation": 3, "sound": 14, "projectiles": [
           {"sub_delay": 255, "damage": {"pierce": 3}, "speed_y": 17, "spawn_x": -3, "sprite": "thorn_needle_1"},
           {"sub_delay": 255, "damage": {"pierce": 3}, "speed_y": 17, "spawn_x": 3, "sprite": "thorn_needle_1"}]},
@@ -170,28 +170,28 @@
           {"sub_delay": 255, "damage": {"pierce": 3}, "speed_y": 17, "spawn_x": -3, "sprite": "thorn_needle_1"},
           {"sub_delay": 255, "damage": {"pierce": 3}, "speed_y": 17, "spawn_x": 3, "sprite": "thorn_needle_1"}]},
         {"fire_delay": 5, "projectile_count": 2, "max_on_screen": 2, "animation": 3, "sound": 14, "projectiles": [
-          {"sub_delay": 255, "damage": {"pierce": 4}, "speed_y": 17, "spawn_x": -3, "sprite": "thorn_needle_1"},
-          {"sub_delay": 255, "damage": {"pierce": 4}, "speed_y": 17, "spawn_x": 3, "sprite": "thorn_needle_1"}]},
+          {"sub_delay": 255, "damage": {"pierce": 3}, "speed_y": 17, "spawn_x": -3, "sprite": "thorn_needle_1"},
+          {"sub_delay": 255, "damage": {"pierce": 3}, "speed_y": 17, "spawn_x": 3, "sprite": "thorn_needle_1"}]},
         {"fire_delay": 6, "projectile_count": 3, "max_on_screen": 3, "animation": 3, "sound": 14, "projectiles": [
-          {"sub_delay": 255, "damage": {"pierce": 4}, "speed_y": 18, "sprite": "thorn_needle_1"},
+          {"sub_delay": 255, "damage": {"pierce": 3}, "speed_y": 18, "sprite": "thorn_needle_1"},
           {"sub_delay": 255, "damage": {"pierce": 3}, "speed_x": -1, "speed_y": 18, "spawn_x": -5, "sprite": "thorn_needle_1"},
           {"sub_delay": 255, "damage": {"pierce": 3}, "speed_x": 1, "speed_y": 18, "spawn_x": 5, "sprite": "thorn_needle_1"}]},
         {"fire_delay": 5, "projectile_count": 3, "max_on_screen": 3, "animation": 3, "sound": 14, "projectiles": [
-          {"sub_delay": 255, "damage": {"pierce": 4}, "speed_y": 18, "sprite": "thorn_needle_1"},
+          {"sub_delay": 255, "damage": {"pierce": 3}, "speed_y": 18, "sprite": "thorn_needle_1"},
           {"sub_delay": 255, "damage": {"pierce": 3}, "speed_x": -1, "speed_y": 18, "spawn_x": -5, "sprite": "thorn_needle_1"},
           {"sub_delay": 255, "damage": {"pierce": 3}, "speed_x": 1, "speed_y": 18, "spawn_x": 5, "sprite": "thorn_needle_1"}]},
         {"fire_delay": 5, "projectile_count": 3, "max_on_screen": 3, "animation": 3, "sound": 14, "projectiles": [
-          {"sub_delay": 255, "damage": {"pierce": 4}, "speed_y": 18, "sprite": "thorn_needle_1"},
-          {"sub_delay": 255, "damage": {"pierce": 4}, "speed_x": -1, "speed_y": 18, "spawn_x": -5, "sprite": "thorn_needle_1"},
-          {"sub_delay": 255, "damage": {"pierce": 4}, "speed_x": 1, "speed_y": 18, "spawn_x": 5, "sprite": "thorn_needle_1"}]},
+          {"sub_delay": 255, "damage": {"pierce": 3}, "speed_y": 18, "sprite": "thorn_needle_1"},
+          {"sub_delay": 255, "damage": {"pierce": 3}, "speed_x": -1, "speed_y": 18, "spawn_x": -5, "sprite": "thorn_needle_1"},
+          {"sub_delay": 255, "damage": {"pierce": 3}, "speed_x": 1, "speed_y": 18, "spawn_x": 5, "sprite": "thorn_needle_1"}]},
         {"fire_delay": 6, "projectile_count": 4, "max_on_screen": 4, "animation": 3, "sound": 14, "projectiles": [
-          {"sub_delay": 255, "damage": {"pierce": 4}, "speed_y": 18, "spawn_x": -2, "sprite": "thorn_needle_1"},
-          {"sub_delay": 255, "damage": {"pierce": 4}, "speed_y": 18, "spawn_x": 2, "sprite": "thorn_needle_1"},
+          {"sub_delay": 255, "damage": {"pierce": 3}, "speed_y": 18, "spawn_x": -2, "sprite": "thorn_needle_1"},
+          {"sub_delay": 255, "damage": {"pierce": 3}, "speed_y": 18, "spawn_x": 2, "sprite": "thorn_needle_1"},
           {"sub_delay": 255, "damage": {"pierce": 3}, "speed_x": -1, "speed_y": 18, "spawn_x": -6, "sprite": "thorn_needle_1"},
           {"sub_delay": 255, "damage": {"pierce": 3}, "speed_x": 1, "speed_y": 18, "spawn_x": 6, "sprite": "thorn_needle_1"}]},
         {"fire_delay": 6, "projectile_count": 4, "max_on_screen": 4, "animation": 3, "sound": 14, "projectiles": [
-          {"sub_delay": 255, "damage": {"pierce": 5}, "speed_y": 18, "spawn_x": -2, "sprite": "thorn_needle_1"},
-          {"sub_delay": 255, "damage": {"pierce": 5}, "speed_y": 18, "spawn_x": 2, "sprite": "thorn_needle_1"},
+          {"sub_delay": 255, "damage": {"pierce": 4}, "speed_y": 18, "spawn_x": -2, "sprite": "thorn_needle_1"},
+          {"sub_delay": 255, "damage": {"pierce": 4}, "speed_y": 18, "spawn_x": 2, "sprite": "thorn_needle_1"},
           {"sub_delay": 255, "damage": {"pierce": 3}, "speed_x": -1, "speed_y": 18, "spawn_x": -6, "sprite": "thorn_needle_1"},
           {"sub_delay": 255, "damage": {"pierce": 3}, "speed_x": 1, "speed_y": 18, "spawn_x": 6, "sprite": "thorn_needle_1"}]},
       ],

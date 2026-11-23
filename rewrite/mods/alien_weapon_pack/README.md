@@ -17,7 +17,7 @@ Enable it in **Setup → Mods**. All six are sold in every shop.
 
 | Weapon | Bay | Role | Price | Power use | What it does |
 |---|---|---|---|---|---|
-| Zica Thermal Lance | front | piercing | 1100 | 100 | White-hot lances that go through every enemy in their column (`{"pierce": n}`, 4 or 5 damage to each). 1 lance at level 1, 4 at level 11. |
+| Zica Thermal Lance | front | piercing | 1100 | 100 | White-hot lances that go through every enemy in their column (`{"pierce": n}`, 3 or 4 damage per overlapping tick). 1 lance at level 1, 4 at level 11. |
 | Hazudra Crescent Fan | front | spread | 1000 | 70 | A fan of green crescents, 2 wide at level 1, 7 wide at level 11. |
 | Hazudra Spore Cannon | front | heavy | 1050 | 130 | Slow spore pods with the highest damage per hit of the pack (7 to 12, plus two small pods from level 8). For armoured targets; the most energy-hungry gun of the pack. |
 | Hazudra Seeker Darts | rear | homing | 1050 | 80 | Darts that steer towards the nearest enemy (`homing` 9, then 8 from level 5, 7 from level 9: they turn more often). 1 dart at level 1, 5 at level 11. |
@@ -47,7 +47,7 @@ python utils/mod_weapon_balance.py rewrite/mods/alien_weapon_pack/mod.json --med
 
 | Weapon | Price | Power | L1 | L2 | L3 | L4 | L5 | L6 | L7 | L8 | L9 | L10 | L11 |
 |---|---|---|---|---|---|---|---|---|---|---|---|---|---|
-| Zica Thermal Lance | 1100 | 100 | 14.0 | 19.4 | 28.0 | 31.1 | 38.9 | 43.8 | 50.6 | 56.9 | 65.6 | 70.0 | 78.8 |
+| Zica Thermal Lance | 1100 | 100 | 10.5 | 15.6 | 21.0 | 23.3 | 31.1 | 35.0 | 38.9 | 43.8 | 52.5 | 54.4 | 61.2 |
 | Hazudra Crescent Fan | 1000 | 70 | 17.5 | 23.3 | 30.0 | 35.0 | 40.0 | 50.0 | 55.0 | 61.2 | 70.0 | 74.4 | 85.0 |
 | Hazudra Spore Cannon | 1050 | 130 | 18.8 | 26.2 | 32.1 | 38.2 | 46.7 | 50.9 | 57.3 | 64.2 | 76.4 | 82.7 | 91.0 |
 | *Lightning Cannon (original)* | 1000 | 70 | 17.5 | 23.3 | 40.8 | 52.5 | 46.7 | 70.0 | 58.3 | 81.7 | 81.7 | 70.0 | 140.0 |
@@ -103,18 +103,38 @@ python utils/mod_weapon_balance.py rewrite/mods/alien_weapon_pack/mod.json --med
 
 Reading the tables:
 
-- At every level each weapon stays between the weakest and the strongest
-  original of its price. The lance (piercing) and the darts (homing) stay up
-  to 30 % under the median of the originals, since they hit several targets or
-  seldom miss; the fan and the mortar stay within 20 % of the median. The spore
-  cannon and the halo end 14 % and 21 % above the median at level 11, far under
-  the Zica Laser (192) and the Starburst (187); the spore cannon pays for it
-  with the highest energy use of the pack.
-- Energy per second is on the scale of the originals: front guns 272 to 455
-  (originals of the table: 200 to 1225), rear guns 200 to 315 (originals: 175
-  to 467). A Standard MR-9 generator (350 per second) feeds any one of them at
-  level 1; two guns at high power need an Advanced MR-12 (490) or better, as
-  with the original guns.
+These are nominal projectile-damage totals, not measured combat DPS. In
+particular, the original piercing rule applies damage again on every tick a
+shot overlaps an enemy; spread, range and projectile speed also change how
+much of a volley actually hits. A nominal median is not proof of balance.
+
+### Piercing damage adjustment (2026-11-23)
+
+Thermal Lance piercing damage is reduced from 4/5 to 3/4 at every power
+level (20–25% less nominal volley damage).
+Firing cadence, trajectories, projectile counts, energy use and prices are
+unchanged. Vanilla weapons and the original piercing collision rules are
+unchanged. Arc Caster and Gale Blades were not reduced in this first pass.
+
+Measured level-11 damage potential using the real simulation projectile and
+collision code, unlimited energy, a stationary ship at (148,160), and targets
+whose 254 armor is replenished each tick:
+
+| Target arrangement | Before DPS | After DPS |
+|---|---:|---:|
+| Large nearby target at (148,110) | 270.7 | 209.6 |
+| Three small targets at x=148, y=110/70/30 | 288.5 | 227.3 |
+
+For comparison, unchanged vanilla Mega Cannon scores 140.0 / 101.1 DPS in
+those arrangements, Needle Laser 104.9 / 122.4, and Sonic Impulse 70.0 / 52.5.
+Each case uses 10 seconds of warmup and 60 measured seconds at 35 ticks/s.
+These are persistent-target damage measurements, not campaign kill rates;
+this modest first pass does not claim equal performance in every situation.
+
+Generator demands of both guns add together, plus shield recharge. Standard
+MR-9 supplies 350 energy/s, Advanced MR-12 490, Gencore Custom 665 and
+MicroFusion 875. At maximum power even the cheapest mod front/rear pair
+needs about 529 energy/s, so Advanced MR-12 cannot sustain a pair continuously.
 
 ## Sprites
 

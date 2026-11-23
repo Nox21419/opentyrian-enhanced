@@ -29,43 +29,43 @@
       "always_available": true,
       "front": [
         {"fire_delay": 9, "projectile_count": 1, "max_on_screen": 1, "animation": 3, "sound": 14, "projectiles": [
-          {"sub_delay": 255, "damage": {"pierce": 4}, "speed_y": 12, "sprite": "thermal_lance_1"}]},
+          {"sub_delay": 255, "damage": {"pierce": 3}, "speed_y": 12, "sprite": "thermal_lance_1"}]},
         {"fire_delay": 8, "projectile_count": 1, "max_on_screen": 1, "animation": 3, "sound": 14, "projectiles": [
-          {"sub_delay": 255, "damage": {"pierce": 5}, "speed_y": 12, "sprite": "thermal_lance_1"}]},
+          {"sub_delay": 255, "damage": {"pierce": 4}, "speed_y": 12, "sprite": "thermal_lance_1"}]},
         {"fire_delay": 9, "projectile_count": 2, "max_on_screen": 2, "animation": 3, "sound": 14, "projectiles": [
-          {"sub_delay": 255, "damage": {"pierce": 4}, "speed_y": 13, "spawn_x": -4, "sprite": "thermal_lance_1"},
-          {"sub_delay": 255, "damage": {"pierce": 4}, "speed_y": 13, "spawn_x": 4, "sprite": "thermal_lance_1"}]},
+          {"sub_delay": 255, "damage": {"pierce": 3}, "speed_y": 13, "spawn_x": -4, "sprite": "thermal_lance_1"},
+          {"sub_delay": 255, "damage": {"pierce": 3}, "speed_y": 13, "spawn_x": 4, "sprite": "thermal_lance_1"}]},
         {"fire_delay": 8, "projectile_count": 2, "max_on_screen": 2, "animation": 3, "sound": 14, "projectiles": [
-          {"sub_delay": 255, "damage": {"pierce": 4}, "speed_y": 13, "spawn_x": -4, "sprite": "thermal_lance_1"},
-          {"sub_delay": 255, "damage": {"pierce": 4}, "speed_y": 13, "spawn_x": 4, "sprite": "thermal_lance_1"}]},
+          {"sub_delay": 255, "damage": {"pierce": 3}, "speed_y": 13, "spawn_x": -4, "sprite": "thermal_lance_1"},
+          {"sub_delay": 255, "damage": {"pierce": 3}, "speed_y": 13, "spawn_x": 4, "sprite": "thermal_lance_1"}]},
         {"fire_delay": 8, "projectile_count": 2, "max_on_screen": 2, "animation": 3, "sound": 14, "projectiles": [
-          {"sub_delay": 255, "damage": {"pierce": 5}, "speed_y": 14, "spawn_x": -4, "sprite": "thermal_lance_1"},
-          {"sub_delay": 255, "damage": {"pierce": 5}, "speed_y": 14, "spawn_x": 4, "sprite": "thermal_lance_1"}]},
+          {"sub_delay": 255, "damage": {"pierce": 4}, "speed_y": 14, "spawn_x": -4, "sprite": "thermal_lance_1"},
+          {"sub_delay": 255, "damage": {"pierce": 4}, "speed_y": 14, "spawn_x": 4, "sprite": "thermal_lance_1"}]},
         {"fire_delay": 7, "projectile_count": 2, "max_on_screen": 2, "animation": 3, "sound": 14, "projectiles": [
-          {"sub_delay": 255, "damage": {"pierce": 5}, "speed_y": 14, "spawn_x": -4, "sprite": "thermal_lance_1"},
-          {"sub_delay": 255, "damage": {"pierce": 5}, "speed_y": 14, "spawn_x": 4, "sprite": "thermal_lance_1"}]},
+          {"sub_delay": 255, "damage": {"pierce": 4}, "speed_y": 14, "spawn_x": -4, "sprite": "thermal_lance_1"},
+          {"sub_delay": 255, "damage": {"pierce": 4}, "speed_y": 14, "spawn_x": 4, "sprite": "thermal_lance_1"}]},
         {"fire_delay": 8, "projectile_count": 3, "max_on_screen": 3, "animation": 3, "sound": 14, "projectiles": [
-          {"sub_delay": 255, "damage": {"pierce": 5}, "speed_y": 15, "sprite": "thermal_lance_1"},
+          {"sub_delay": 255, "damage": {"pierce": 4}, "speed_y": 15, "sprite": "thermal_lance_1"},
+          {"sub_delay": 255, "damage": {"pierce": 3}, "speed_x": -1, "speed_y": 14, "spawn_x": -6, "sprite": "thermal_lance_1"},
+          {"sub_delay": 255, "damage": {"pierce": 3}, "speed_x": 1, "speed_y": 14, "spawn_x": 6, "sprite": "thermal_lance_1"}]},
+        {"fire_delay": 7, "projectile_count": 3, "max_on_screen": 3, "animation": 3, "sound": 14, "projectiles": [
+          {"sub_delay": 255, "damage": {"pierce": 4}, "speed_y": 15, "sprite": "thermal_lance_1"},
+          {"sub_delay": 255, "damage": {"pierce": 3}, "speed_x": -1, "speed_y": 14, "spawn_x": -6, "sprite": "thermal_lance_1"},
+          {"sub_delay": 255, "damage": {"pierce": 3}, "speed_x": 1, "speed_y": 14, "spawn_x": 6, "sprite": "thermal_lance_1"}]},
+        {"fire_delay": 7, "projectile_count": 3, "max_on_screen": 3, "animation": 3, "sound": 14, "projectiles": [
+          {"sub_delay": 255, "damage": {"pierce": 4}, "speed_y": 15, "sprite": "thermal_lance_1"},
           {"sub_delay": 255, "damage": {"pierce": 4}, "speed_x": -1, "speed_y": 14, "spawn_x": -6, "sprite": "thermal_lance_1"},
           {"sub_delay": 255, "damage": {"pierce": 4}, "speed_x": 1, "speed_y": 14, "spawn_x": 6, "sprite": "thermal_lance_1"}]},
-        {"fire_delay": 7, "projectile_count": 3, "max_on_screen": 3, "animation": 3, "sound": 14, "projectiles": [
-          {"sub_delay": 255, "damage": {"pierce": 5}, "speed_y": 15, "sprite": "thermal_lance_1"},
-          {"sub_delay": 255, "damage": {"pierce": 4}, "speed_x": -1, "speed_y": 14, "spawn_x": -6, "sprite": "thermal_lance_1"},
-          {"sub_delay": 255, "damage": {"pierce": 4}, "speed_x": 1, "speed_y": 14, "spawn_x": 6, "sprite": "thermal_lance_1"}]},
-        {"fire_delay": 7, "projectile_count": 3, "max_on_screen": 3, "animation": 3, "sound": 14, "projectiles": [
-          {"sub_delay": 255, "damage": {"pierce": 5}, "speed_y": 15, "sprite": "thermal_lance_1"},
-          {"sub_delay": 255, "damage": {"pierce": 5}, "speed_x": -1, "speed_y": 14, "spawn_x": -6, "sprite": "thermal_lance_1"},
-          {"sub_delay": 255, "damage": {"pierce": 5}, "speed_x": 1, "speed_y": 14, "spawn_x": 6, "sprite": "thermal_lance_1"}]},
         {"fire_delay": 8, "projectile_count": 4, "max_on_screen": 4, "animation": 3, "sound": 14, "projectiles": [
-          {"sub_delay": 255, "damage": {"pierce": 5}, "speed_y": 16, "spawn_x": -3, "sprite": "thermal_lance_1"},
-          {"sub_delay": 255, "damage": {"pierce": 5}, "speed_y": 16, "spawn_x": 3, "sprite": "thermal_lance_1"},
-          {"sub_delay": 255, "damage": {"pierce": 4}, "speed_x": -1, "speed_y": 15, "spawn_x": -8, "sprite": "thermal_lance_1"},
-          {"sub_delay": 255, "damage": {"pierce": 4}, "speed_x": 1, "speed_y": 15, "spawn_x": 8, "sprite": "thermal_lance_1"}]},
+          {"sub_delay": 255, "damage": {"pierce": 4}, "speed_y": 16, "spawn_x": -3, "sprite": "thermal_lance_1"},
+          {"sub_delay": 255, "damage": {"pierce": 4}, "speed_y": 16, "spawn_x": 3, "sprite": "thermal_lance_1"},
+          {"sub_delay": 255, "damage": {"pierce": 3}, "speed_x": -1, "speed_y": 15, "spawn_x": -8, "sprite": "thermal_lance_1"},
+          {"sub_delay": 255, "damage": {"pierce": 3}, "speed_x": 1, "speed_y": 15, "spawn_x": 8, "sprite": "thermal_lance_1"}]},
         {"fire_delay": 7, "projectile_count": 4, "max_on_screen": 4, "animation": 3, "sound": 14, "projectiles": [
-          {"sub_delay": 255, "damage": {"pierce": 5}, "speed_y": 16, "spawn_x": -3, "sprite": "thermal_lance_1"},
-          {"sub_delay": 255, "damage": {"pierce": 5}, "speed_y": 16, "spawn_x": 3, "sprite": "thermal_lance_1"},
-          {"sub_delay": 255, "damage": {"pierce": 4}, "speed_x": -1, "speed_y": 15, "spawn_x": -8, "sprite": "thermal_lance_1"},
-          {"sub_delay": 255, "damage": {"pierce": 4}, "speed_x": 1, "speed_y": 15, "spawn_x": 8, "sprite": "thermal_lance_1"}]},
+          {"sub_delay": 255, "damage": {"pierce": 4}, "speed_y": 16, "spawn_x": -3, "sprite": "thermal_lance_1"},
+          {"sub_delay": 255, "damage": {"pierce": 4}, "speed_y": 16, "spawn_x": 3, "sprite": "thermal_lance_1"},
+          {"sub_delay": 255, "damage": {"pierce": 3}, "speed_x": -1, "speed_y": 15, "spawn_x": -8, "sprite": "thermal_lance_1"},
+          {"sub_delay": 255, "damage": {"pierce": 3}, "speed_x": 1, "speed_y": 15, "spawn_x": 8, "sprite": "thermal_lance_1"}]},
       ],
     },
 

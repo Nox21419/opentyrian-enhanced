@@ -21,7 +21,7 @@ Enable it in **Setup → Mods**. All six are sold in every shop.
 |---|---|---|---|---|---|
 | Spore Burst | front | spread | 1000 | 60 | One big spore and a ring of small ones fired from the same point with diverging paths: the volley leaves as a clump and opens into a cloud as it climbs. 3 spores at level 1, 8 at level 11. |
 | Acid Spitter | front | heavy | 1100 | 140 | Acid globs spat slowly that speed up as they climb (`accel_y` 1), the highest damage per hit of the pack (7 to 14). One glob at level 1, two from level 5, a big one and two small ones from level 8. The most energy-hungry gun of the pack. |
-| Thorn Needler | front | piercing | 1050 | 70 | Fast thorns that go through every enemy in their column (`{"pierce": n}`, 3 to 5 damage to each). 1 thorn at level 1, 4 at level 11. |
+| Thorn Needler | front | piercing | 1050 | 70 | Fast thorns that go through every enemy in their column (`{"pierce": n}`, 3 or 4 damage per overlapping tick). 1 thorn at level 1, 4 at level 11. |
 | Larva Seekers | rear | homing | 1050 | 80 | Larvae that crawl towards the nearest enemy (`homing` 9, then 8 from level 5, 7 from level 9: they turn more often). 1 larva at level 1, 5 at level 11. |
 | Pollen Cloud | rear | area (short range) | 950 | 50 | Slow pollen puffs blown to both sides, then also behind, on the diagonals and ahead (2 puffs at level 1, 8 at level 11). They drift in small circles (`circle_radius` 2) and burst after 16 to 28 frames: a cloud around the ship, not a long-range gun. |
 | Seed Mortar | rear | area (lobbed) | 1000 | 90 | Seeds thrown upward that slow down (`accel_y` -1), stop and fall back across the screen, sown in a wide arc: they hit what is ahead, then what is behind the ship. 1 seed at level 1, 5 at level 11. |
@@ -50,7 +50,7 @@ python utils/mod_weapon_balance.py rewrite/mods/bio_weapons_pack/mod.json --medi
 |---|---|---|---|---|---|---|---|---|---|---|---|---|---|
 | Spore Burst | 1000 | 60 | 17.5 | 21.9 | 35.0 | 35.0 | 40.0 | 52.5 | 58.3 | 70.0 | 70.0 | 75.0 | 87.5 |
 | Acid Spitter | 1100 | 140 | 18.8 | 26.2 | 35.0 | 38.2 | 46.7 | 57.3 | 63.6 | 70.0 | 78.8 | 79.5 | 91.0 |
-| Thorn Needler | 1050 | 70 | 15.0 | 17.5 | 28.0 | 30.0 | 35.0 | 46.7 | 50.0 | 58.3 | 70.0 | 70.0 | 80.0 |
+| Thorn Needler | 1050 | 70 | 15.0 | 17.5 | 21.0 | 30.0 | 35.0 | 35.0 | 45.0 | 52.5 | 52.5 | 60.0 | 70.0 |
 | *Lightning Cannon (original)* | 1000 | 70 | 17.5 | 23.3 | 40.8 | 52.5 | 46.7 | 70.0 | 58.3 | 81.7 | 81.7 | 70.0 | 140.0 |
 | *Sonic Impulse (original)* | 1000 | 50 | 17.5 | 23.3 | 35.0 | 35.0 | 35.0 | 46.7 | 52.5 | 70.0 | 70.0 | 70.0 | 70.0 |
 | *Hyper Pulse (original)* | 1050 | 50 | 11.7 | 17.5 | 23.3 | 26.2 | 35.0 | 46.7 | 43.8 | 52.5 | 56.0 | 63.0 | 78.8 |
@@ -104,23 +104,39 @@ python utils/mod_weapon_balance.py rewrite/mods/bio_weapons_pack/mod.json --medi
 
 Reading the tables:
 
-- At every level each weapon stays between the weakest and the strongest
-  original of its price (the NortShip Spreader's levels 10 and 11, which fall
-  back to 17.5 and 26.2, are left out of "weakest"). The thorns (piercing) and
-  the larvae (homing) stay up to 25 % under the median of the originals and
-  never above it, since they hit several targets or seldom miss. The spore
-  cloud and the seed mortar stay within 18 % of the median.
-- The acid spitter (heavy) stays 0 to 14 % above the median, far under the Zica
-  Laser (192 at level 11), and pays for it with the highest energy use of the
-  pack and slow shots at first. The pollen cloud ends up to 17 % above the
-  median from level 9, under the strongest rear originals (Starburst 105 and
-  187, Sonic Wave 100): its puffs burst after less than a second, so only what
-  comes close to the ship takes that damage.
-- Energy per second is on the scale of the originals: front guns 262 to 490
-  (originals of the table: 200 to 1225), rear guns 200 to 315 (originals: 175
-  to 467). A Standard MR-9 generator (350 per second) feeds any one of them at
-  level 1 except the acid spitter (377); two guns at high power need an
-  Advanced MR-12 (490) or better, as with the original guns.
+These are nominal projectile-damage totals, not measured combat DPS. In
+particular, the original piercing rule applies damage again on every tick a
+shot overlaps an enemy; spread, range and projectile speed also change how
+much of a volley actually hits. A nominal median is not proof of balance.
+
+### Piercing damage adjustment (2026-11-23)
+
+Thorn Needler piercing entries of 4/5 damage are reduced to 3/4; entries
+already at 3 are retained. Levels 1, 2, 4 and 5 are unchanged. Changed levels
+lose 10–25% nominal volley damage (12.5% at level 11).
+Firing cadence, trajectories, projectile counts, energy use and prices are
+unchanged. Vanilla weapons and the original piercing collision rules are
+unchanged. Arc Caster and Gale Blades were not reduced in this first pass.
+
+Measured level-11 damage potential using the real simulation projectile and
+collision code, unlimited energy, a stationary ship at (148,160), and targets
+whose 254 armor is replenished each tick:
+
+| Target arrangement | Before DPS | After DPS |
+|---|---:|---:|
+| Large nearby target at (148,110) | 320.0 | 280.0 |
+| Three small targets at x=148, y=110/70/30 | 340.0 | 290.0 |
+
+For comparison, unchanged vanilla Mega Cannon scores 140.0 / 101.1 DPS in
+those arrangements, Needle Laser 104.9 / 122.4, and Sonic Impulse 70.0 / 52.5.
+Each case uses 10 seconds of warmup and 60 measured seconds at 35 ticks/s.
+These are persistent-target damage measurements, not campaign kill rates;
+this modest first pass does not claim equal performance in every situation.
+
+Generator demands of both guns add together, plus shield recharge. Standard
+MR-9 supplies 350 energy/s, Advanced MR-12 490, Gencore Custom 665 and
+MicroFusion 875. At maximum power even the cheapest mod front/rear pair
+needs about 529 energy/s, so Advanced MR-12 cannot sustain a pair continuously.
 
 ## Sprites
 
