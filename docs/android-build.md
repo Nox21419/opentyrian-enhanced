@@ -331,8 +331,11 @@ alongside the existing shop/configuration/mouse/save suites.
 ### Shop item lists: touch scrolling and persistent Done
 
 Android item categories show four original item rows with Done fixed below them.
-The original up/down indicators accept taps on release and move the window one
-item without changing selection, equipment or cash. They stop at either end;
+The original gold navigation arrows (`newsh1.shp` sprites 275/277, also matching
+the High Scores page arrows) replace the tiny scroll triangles on Android. Their
+visible artwork is 21×16 logical pixels, with 38×24 (up) and 38×28 (down) touch
+areas clear of the item rows and Done. They accept taps on release and move the
+window one item without changing selection, equipment or cash. They stop at either end;
 dragging off cancels. Only visible item rows accept purchases. Done accepts the
 current selection through the existing native purchase path and returns to
 Upgrade Ship. Desktop retains its five-row scrolling list and input behavior.
@@ -348,6 +351,13 @@ the bottom, choosing Done and reopening kept its owned mark and the expected
 The existing QA save was loaded without overwriting it. No script errors or
 Android crash messages were found during this check. The exported Linux
 journey/smoke gate remains unavailable on this host without WSL.
+
+The gold-arrow APK was also installed and checked on the A35 on 2026-11-23.
+Both arrows were visible without covering item text or Done. Taps near the
+expanded target edges scrolled, dragging off cancelled, boundary taps did not
+wrap, and Done returned to Upgrade Ship with the Pulse-Cannon and 10,000,000
+credits unchanged. The QA save was not overwritten; the shop was left open.
+No script errors or app crash messages appeared in the process log.
 
 ### Mobile Options: external-device settings unavailable
 

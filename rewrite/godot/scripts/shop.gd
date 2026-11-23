@@ -33,6 +33,8 @@ var _background := PackedByteArray()
 var _shop_scroll := 0
 var _touch_scroll_manual := false
 const TOUCH_UPGRADE_VISIBLE := 4
+const TOUCH_SCROLL_UP := Rect2i(270, 16, 38, 24)
+const TOUCH_SCROLL_DOWN := Rect2i(270, 170, 38, 28)
 ## game_menu.c:UPGRADE_VISIBLE.
 const UPGRADE_VISIBLE := 5
 ## game_menu.c:menuChoicesDefault (MENU_FULL_GAME 7, MENU_UPGRADES 9).
@@ -516,9 +518,9 @@ func _child_touch_target(p: Vector2i) -> String:
 		if Rect2i(170, 144, 138, 26).has_point(p):
 			return prefix + str(int(_state.menu_choices))
 		var count := int(_state.menu_choices) - 2
-		if _shop_scroll > 0 and Rect2i(278, 22, 30, 18).has_point(p):
+		if _shop_scroll > 0 and TOUCH_SCROLL_UP.has_point(p):
 			return prefix + "scroll_up"
-		if _shop_scroll + TOUCH_UPGRADE_VISIBLE < count and Rect2i(278, 174, 30, 20).has_point(p):
+		if _shop_scroll + TOUCH_UPGRADE_VISIBLE < count and TOUCH_SCROLL_DOWN.has_point(p):
 			return prefix + "scroll_down"
 		if Rect2i(170, 40, 138, 104).has_point(p):
 			var index := (p.y - 40) / 26 + _shop_scroll
@@ -1337,8 +1339,14 @@ func _draw_category_row(it: Dictionary, _x: int, y: int, _selected: bool) -> voi
 				color % 16 - 8 - shade, 2)
 
 
-## Scroll arrows of the list (game_menu.c, triangles pixel by pixel).
+## Android uses the original gold navigation sprites; desktop keeps the C triangles.
 func _draw_scroll_arrows(total: int, visible := UPGRADE_VISIBLE) -> void:
+	if _touch_children:
+		if _shop_scroll > 0:
+			vga.blit_sprite2(VGA_SCREEN, 280, 24, "newsh1.shp", 275, 0, 0, true)
+		if _shop_scroll + visible < total:
+			vga.blit_sprite2(VGA_SCREEN, 280, 174, "newsh1.shp", 277, 0, 0, true)
+		return
 	if _shop_scroll > 0:
 		for row in 5:
 			var span := 7 - row * 2
