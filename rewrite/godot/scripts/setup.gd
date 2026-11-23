@@ -282,7 +282,7 @@ static func _apply_sfx_enabled() -> void:
 static func apply_settings() -> void:
 	if _mobile_gameplay_rules:
 		settings.bullet_time_enabled = false
-		settings.auto_fire_enabled = true
+		settings.auto_fire_enabled = false
 		settings.rumble_enabled = false
 	for key in settings:
 		if _applied.get(key) == settings[key]:

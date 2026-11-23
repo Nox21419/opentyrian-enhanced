@@ -31,9 +31,10 @@ activate on release, cancelling when dragged off. Jukebox
 uses its existing text as touch controls. Desktop behavior is unchanged; see
 [Android Setup navigation](android-build.md#setup-and-child-screens).
 
-Android Gameplay locks Bullet Time Off, Auto-fire On and Rumble Off, with
+Android Gameplay locks Bullet Time Off, Auto-fire Off and Rumble Off, with
 grey, unavailable rows. Settings application enforces those values even for
-older saved profiles. Auto-fire uses the existing continuous-fire input;
+older saved profiles. Normal fire lasts only while the steering finger is held,
+including while stationary, and stops on release or cancellation;
 Rumble only supports gamepad motors at present. Freeze Frames, Damage Numbers,
 Combos, Language and Mutators stay available. Desktop retains editable values.
 

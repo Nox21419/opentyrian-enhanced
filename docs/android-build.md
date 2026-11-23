@@ -71,9 +71,10 @@ path and its limit of 8 logical game pixels per tick per axis (280 pixels per
 second at normal 35 Hz pacing). This accepted input adaptation is not blanket
 approval for other gameplay changes.
 
-The maintainer also requested the existing Auto-fire option locked on for
-Android (continuous normal fire, including with no finger held), Bullet Time
-locked off, and Rumble locked off until mobile haptics are implemented.
+On Android, permanent Auto-fire is locked off: normal fire comes from the
+held steering finger, continues while that finger is stationary, and stops on
+release or cancellation. Sidekick/Mode touches do not hold normal fire.
+Bullet Time is locked off, and Rumble locked off until mobile haptics are implemented.
 Settings application enforces these values, including when loading older
 profiles. Their Gameplay rows and values are grey and navigation skips them.
 The simulation's firing cadence, damage and movement rules are unchanged.
@@ -330,7 +331,7 @@ The preview unit test and `shop_children_touch_test.gd` cover these paths.
 
 Gameplay keeps Freeze Frames, Damage Numbers, Combos, Language and Mutators
 available: their existing settings paths have no desktop-only input dependency.
-On Android, Bullet Time is locked Off, Auto-fire On, and Rumble Off. Rumble
+On Android, Bullet Time is locked Off, Auto-fire Off, and Rumble Off. Rumble
 currently targets connected gamepad motors, not the phone's vibrator.
 `setup_touch_test.gd` checks disabled rows, navigation, old-profile overrides,
 effective runtime settings and desktop behavior. The existing Gameplay suites

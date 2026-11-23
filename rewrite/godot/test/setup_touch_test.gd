@@ -198,23 +198,24 @@ func test_mobile_gameplay_locks_apply_to_menu_runtime_and_old_settings() -> void
 	setup.menus.current().sel = 3
 	setup.handle_action(TyrianControls.DOWN)
 	assert_int(setup.menus.selection()).is_equal(6)
-	# Old settings cannot re-enable slow motion/rumble or disable continuous fire.
+	# Old settings cannot re-enable slow motion, rumble or permanent fire.
 	var config := ConfigFile.new()
 	config.set_value("setup", "bullet_time_enabled", true)
-	config.set_value("setup", "auto_fire_enabled", false)
+	config.set_value("setup", "auto_fire_enabled", true)
 	config.set_value("setup", "rumble_enabled", true)
 	assert_int(config.save(SetupScreen.SETTINGS_PATH)).is_equal(OK)
 	SetupScreen.load_settings()
 	assert_bool(SetupScreen.settings.bullet_time_enabled).is_false()
 	assert_bool(Effects.bullet_time_allowed).is_false()
 	assert_bool(Effects.bullet_time).is_false()
-	assert_bool(SetupScreen.settings.auto_fire_enabled).is_true()
-	assert_int(Game.read_input_mask() & Game.MASK_FIRE).is_equal(Game.MASK_FIRE)
+	assert_bool(SetupScreen.settings.auto_fire_enabled).is_false()
+	assert_int(Game.read_input_mask() & Game.MASK_FIRE).is_equal(0)
+	assert_int(Game.read_input_mask_p2() & Game.MASK_FIRE).is_equal(0)
 	assert_bool(SetupScreen.settings.rumble_enabled).is_false()
 	SetupScreen.save_settings()
 	assert_int(config.load(SetupScreen.SETTINGS_PATH)).is_equal(OK)
 	assert_bool(config.get_value("setup", "bullet_time_enabled")).is_false()
-	assert_bool(config.get_value("setup", "auto_fire_enabled")).is_true()
+	assert_bool(config.get_value("setup", "auto_fire_enabled")).is_false()
 	assert_bool(config.get_value("setup", "rumble_enabled")).is_false()
 
 

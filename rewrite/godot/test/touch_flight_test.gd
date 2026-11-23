@@ -9,6 +9,7 @@ func test_held_finger_tracks_absolute_target_and_fires_until_release() -> void:
 	# No new drag event is needed for the next tick to approach a held finger.
 	assert_vector(flight.movement(Vector2i(220, 100), -24)).is_equal(Vector2i(16, 0))
 	assert_vector(flight.movement(Vector2i(224, 100), -24)).is_equal(Vector2i.ZERO)
+	assert_int(flight.fire_mask()).is_equal(Game.MASK_FIRE)
 	flight.feed(_touch(2, Vector2(-100, -100), false))
 	assert_int(flight.fire_mask()).is_equal(0)
 	assert_vector(flight.movement(Vector2i(100, 100), -24)).is_equal(Vector2i.ZERO)
