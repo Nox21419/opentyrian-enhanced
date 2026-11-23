@@ -328,6 +328,27 @@ still responds while held. Automated coverage is in
 `test/shop_children_touch_test.gd` and `test/options_touch_release_test.gd`,
 alongside the existing shop/configuration/mouse/save suites.
 
+### Shop item lists: touch scrolling and persistent Done
+
+Android item categories show four original item rows with Done fixed below them.
+The original up/down indicators accept taps on release and move the window one
+item without changing selection, equipment or cash. They stop at either end;
+dragging off cancels. Only visible item rows accept purchases. Done accepts the
+current selection through the existing native purchase path and returns to
+Upgrade Ship. Desktop retains its five-row scrolling list and input behavior.
+`shop_children_touch_test.gd` covers scrolling bounds, selection preservation,
+cancellation, scrolled purchases and leaving through Done.
+
+On 2026-11-23, the updated APK was installed over the existing A35 app.
+With all five packs enabled, phone taps reached both ends of the Front Gun
+list, extra boundary taps did not wrap, and dragging off an arrow cancelled.
+Scrolling kept the selected gun and cash unchanged. Buying Arc Caster from
+the bottom, choosing Done and reopening kept its owned mark and the expected
+9,990,500 credits (10,000,000 minus 10,000 plus the 500 trade-in).
+The existing QA save was loaded without overwriting it. No script errors or
+Android crash messages were found during this check. The exported Linux
+journey/smoke gate remains unavailable on this host without WSL.
+
 ### Mobile Options: external-device settings unavailable
 
 In the shop's Options menu, Android retains the Joystick, Keyboard and Mouse

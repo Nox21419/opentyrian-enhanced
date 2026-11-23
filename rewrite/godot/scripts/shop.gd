@@ -31,6 +31,8 @@ var _touch_release := preload("res://scripts/touch_release.gd").new()
 var _background := PackedByteArray()
 ## game_menu.c:shop_scroll (window of the item list, persistent).
 var _shop_scroll := 0
+var _touch_scroll_manual := false
+const TOUCH_UPGRADE_VISIBLE := 4
 ## game_menu.c:UPGRADE_VISIBLE.
 const UPGRADE_VISIBLE := 5
 ## game_menu.c:menuChoicesDefault (MENU_FULL_GAME 7, MENU_UPGRADES 9).
@@ -320,6 +322,8 @@ func _shop_after(r: Dictionary, before: int) -> void:
 	_touch_release.cancel()
 	_touch_root_pressed = -1
 	_state = _shop.state()
+	if before != MENU_UPGRADE_SUB:
+		_touch_scroll_manual = false
 	if before != MENU_PLAY_NEXT_LEVEL and int(_state["menu"]) == MENU_PLAY_NEXT_LEVEL:
 		_nav_open()
 	match str(r.get("action", "")):
@@ -363,6 +367,7 @@ func _quit_request() -> void:
 ## Menu action (keyboard, gamepad or capture tool --keys; TyrianScreen
 ## routes the events, ADR 0120). Space and Enter = "select" like the C code.
 func handle_action(action: StringName) -> void:
+	_touch_scroll_manual = false
 	_touch_release.cancel()
 	_touch_root_pressed = -1
 	if (_shop == null and _arcade_menu == 0) or modal_input(action):
@@ -478,7 +483,20 @@ func handle_mouse(event: InputEvent) -> void:
 		if row >= 0:
 			_apply_hover(row)
 	if click != null:
-		_handle_mouse(click)
+		if menu == MENU_UPGRADE_SUB:
+			if target.ends_with(":scroll_up") or target.ends_with(":scroll_down"):
+				var step := -1 if target.ends_with(":scroll_up") else 1
+				var limit := maxi(0, int(_state.menu_choices) - 2 - TOUCH_UPGRADE_VISIBLE)
+				_shop_scroll = clampi(_shop_scroll + step, 0, limit)
+				_touch_scroll_manual = true
+				_hover_pending = -1
+				_render()
+			elif target.get_slice(":", 2).is_valid_int():
+				_activate_shop_row(int(target.get_slice(":", 2)))
+			else:
+				_handle_mouse(click)
+		else:
+			_handle_mouse(click)
 		TyrianMouse.note(event)
 
 
@@ -494,9 +512,22 @@ func _child_touch_target(p: Vector2i) -> String:
 		return prefix + "exit" if p.x > 258 and p.x < 290 and p.y > 159 and p.y < 171 else ""
 	if menu == MENU_DATA_CUBES and PackedStringArray(_state.get("cube_titles", [])).is_empty():
 		return prefix + "empty" if Rect2i(0, 0, 320, 200).has_point(p) else ""
-	var row: int = _shop.row_under_mouse(p.x, p.y, _shop_scroll)
-	if row >= 0:
-		return prefix + str(row)
+	if menu == MENU_UPGRADE_SUB:
+		if Rect2i(170, 144, 138, 26).has_point(p):
+			return prefix + str(int(_state.menu_choices))
+		var count := int(_state.menu_choices) - 2
+		if _shop_scroll > 0 and Rect2i(278, 22, 30, 18).has_point(p):
+			return prefix + "scroll_up"
+		if _shop_scroll + TOUCH_UPGRADE_VISIBLE < count and Rect2i(278, 174, 30, 20).has_point(p):
+			return prefix + "scroll_down"
+		if Rect2i(170, 40, 138, 104).has_point(p):
+			var index := (p.y - 40) / 26 + _shop_scroll
+			if index < count:
+				return prefix + str(index + 2)
+	else:
+		var row: int = _shop.row_under_mouse(p.x, p.y, _shop_scroll)
+		if row >= 0:
+			return prefix + str(row)
 	if menu == MENU_UPGRADE_SUB and int(_state.get("category", 0)) in [3, 4] and p.y >= 149 and p.y <= 168:
 		if p.x >= 119 and p.x <= 131:
 			return prefix + "power_up"
@@ -1003,34 +1034,35 @@ func _cube_count() -> int:
 func _render_category(sel: int, lo: PackedInt32Array) -> void:
 	var cat := int(_state["category"])
 	var choices := int(_state["menu_choices"])
-	var total := choices - 1
+	var total := choices - 2 if _touch_children else choices - 1
+	var visible := TOUCH_UPGRADE_VISIBLE if _touch_children else UPGRADE_VISIBLE
 	# Item list + "Done": shared engine, ROWS style (ADR 0121,
 	# 0123); selection and purchases held by TyrianShop.
 	var rows := []
-	for w in range(1, choices):
+	for w in range(1, choices - 1 if _touch_children else choices):
 		rows.append(MenuEngine.item("", "", MenuEngine.Kind.CUSTOM, {"w": w, "draw": _draw_category_row}))
 	menus.stack.clear()
 	menus.open(TyrianText.L(MENU_INT[1][cat - 1]), rows, {
 		"style": MenuEngine.Style.ROWS, "external": true, "draw": false,
 		"sel": clampi(sel - 2, 0, maxi(total - 1, 0)),
-		"row_x": 160, "row_y": 40, "row_step": 26, "visible": UPGRADE_VISIBLE,
+		"row_x": 160, "row_y": 40, "row_step": 26, "visible": visible,
 		"background": func() -> void: vga.set_indices(VGA_SCREEN, _background),
 		"header_draw": func() -> void: menus.draw_game_menu_header(menus.current().header),
-		# game_menu.c: shop_scroll follows curSel - 2, clamped to the list.
+		# Touch scrolling moves the window without changing the selection.
 		"window": func(_engine_sel: int, _n: int) -> int:
-			if total <= UPGRADE_VISIBLE:
-				_shop_scroll = 0
-			else:
-				var c0 := sel - 2
+			if not _touch_children or not _touch_scroll_manual:
+				var c0 := mini(sel - 2, total - 1)
 				if c0 < _shop_scroll:
 					_shop_scroll = c0
-				elif c0 >= _shop_scroll + UPGRADE_VISIBLE:
-					_shop_scroll = c0 - UPGRADE_VISIBLE + 1
-				_shop_scroll = clampi(_shop_scroll, 0, total - UPGRADE_VISIBLE)
+				elif c0 >= _shop_scroll + visible:
+					_shop_scroll = c0 - visible + 1
+			_shop_scroll = clampi(_shop_scroll, 0, maxi(0, total - visible))
 			return _shop_scroll,
 	})
 	menus.render()
-	_draw_scroll_arrows(total)
+	if _touch_children:
+		_draw_category_row({"w": choices - 1}, 160, 144, sel == choices)
+	_draw_scroll_arrows(total, visible)
 	var ship := _base_item("ships", lo[0])
 	var shield := _base_item("shields", lo[5])
 	var weapon_sim := cat in WEAPON_SIM_CATEGORIES
@@ -1306,7 +1338,7 @@ func _draw_category_row(it: Dictionary, _x: int, y: int, _selected: bool) -> voi
 
 
 ## Scroll arrows of the list (game_menu.c, triangles pixel by pixel).
-func _draw_scroll_arrows(total: int) -> void:
+func _draw_scroll_arrows(total: int, visible := UPGRADE_VISIBLE) -> void:
 	if _shop_scroll > 0:
 		for row in 5:
 			var span := 7 - row * 2
@@ -1316,7 +1348,7 @@ func _draw_scroll_arrows(total: int) -> void:
 				vga.set_pixel(VGA_SCREEN, 290 - span / 2 + dx, 30 + row, 250)
 		for dx in [-1, 0, 1]:
 			vga.set_pixel(VGA_SCREEN, 290 + dx, 35, 227)
-	if _shop_scroll + UPGRADE_VISIBLE < total:
+	if _shop_scroll + visible < total:
 		for row in 5:
 			var span := 7 - row * 2
 			if span < 1:

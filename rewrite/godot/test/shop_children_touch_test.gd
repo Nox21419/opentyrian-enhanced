@@ -24,7 +24,7 @@ func after_test() -> void:
 
 
 ## Shop of section 4 of episode 1 (same state as shop_sounds_test).
-func _open_shop(rear := 0) -> Node:
+func _open_shop(rear := 0, long_list := false) -> Node:
 	Game.loadout = PackedInt32Array([1, 1, 1, rear, 1, 4, 2, 0, 0, 0, 40000])
 	Game.campaign_active = true
 	Game.episode = 1
@@ -32,6 +32,8 @@ func _open_shop(rear := 0) -> Node:
 	var r: Dictionary = Game.campaign().run_script(1, 4, 2, 1, true)
 	Game.shop_section = int(r.get("section", 4))
 	Game.shop_items_available = r.get("items_available", [])
+	if long_list:
+		Game.shop_items_available[1] = PackedInt32Array([1, 2, 3, 4, 5, 6, 7, 8, 9, 10])
 	var m: PackedInt32Array = r.get("map", PackedInt32Array())
 	Game.map_sections = PackedInt32Array()
 	Game.map_planets = PackedInt32Array()
@@ -264,3 +266,58 @@ func test_automatic_and_empty_sidekick_have_no_fire_icon() -> void:
 			assert_str(shop._child_touch_target(Vector2i(35, 158))).is_empty()
 			break
 	assert_bool(found).is_true()
+
+
+func test_long_item_list_scroll_preserves_selection_and_fixed_done() -> void:
+	var shop := await _open_shop(0, true)
+	_open_upgrade(shop)
+	_tap(shop, Vector2(220, 58))
+	assert_int(int(shop._state.items.size())).is_greater(4)
+	var selection := int(shop._state.sel)
+	var equipment: PackedInt32Array = shop._shop.loadout()
+	var cash := int(shop._state.cash)
+	var start := int(shop._shop_scroll)
+	_button(shop, Vector2(290, 182), true)
+	assert_int(int(shop._shop_scroll)).is_equal(start)
+	_button(shop, Vector2(290, 182), false)
+	assert_int(int(shop._shop_scroll)).is_equal(start + 1)
+	assert_int(int(shop._state.sel)).is_equal(selection)
+	assert_int(int(shop._state.cash)).is_equal(cash)
+	assert_bool(shop._shop.loadout() == equipment).is_true()
+	for _step in 100:
+		_tap(shop, Vector2(290, 182))
+	assert_int(int(shop._shop_scroll)).is_equal(shop._state.items.size() - 4)
+	for _step in 100:
+		_tap(shop, Vector2(290, 30))
+	assert_int(int(shop._shop_scroll)).is_equal(0)
+	assert_int(int(shop._state.sel)).is_equal(selection)
+	_button(shop, Vector2(220, 150), true)
+	assert_int(int(shop._state.menu)).is_equal(4)
+	_button(shop, Vector2(220, 150), false)
+	assert_int(int(shop._state.menu)).is_equal(1)
+	assert_bool(shop._shop.loadout().slice(0, 10) == equipment.slice(0, 10)).is_true()
+	assert_int(int(shop._shop.loadout()[10])).is_equal(40000)
+
+
+func test_scrolled_purchase_then_done_keeps_purchase_and_drag_cancels() -> void:
+	var shop := await _open_shop(0, true)
+	_open_upgrade(shop)
+	_tap(shop, Vector2(220, 58))
+	var start := int(shop._shop_scroll)
+	_button(shop, Vector2(290, 182), true)
+	var motion := InputEventMouseMotion.new()
+	motion.position = Vector2(100, 182)
+	motion.relative = Vector2(-190, 0)
+	shop.handle_mouse(motion)
+	_button(shop, Vector2(290, 182), false)
+	assert_int(int(shop._shop_scroll)).is_equal(start)
+	_tap(shop, Vector2(290, 182))
+	var expected := int(shop._state.items[shop._shop_scroll])
+	_tap(shop, Vector2(220, 42))
+	assert_int(int(shop._state.owned_item)).is_equal(expected)
+	var purchased: PackedInt32Array = shop._shop.loadout()
+	var paid_cash := int(shop._state.cash_left)
+	_tap(shop, Vector2(220, 150))
+	assert_int(int(shop._state.menu)).is_equal(1)
+	assert_bool(shop._shop.loadout().slice(0, 10) == purchased.slice(0, 10)).is_true()
+	assert_int(int(shop._shop.loadout()[10])).is_equal(paid_cash)
