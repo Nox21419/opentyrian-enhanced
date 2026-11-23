@@ -14,6 +14,8 @@ const MASK_FIRE := 1 << 4
 const MASK_CHANGE_FIRE := 1 << 5
 const MASK_LEFT_SIDEKICK := 1 << 6
 const MASK_RIGHT_SIDEKICK := 1 << 7
+const MASK_DEDICATED_SPECIAL := 1 << 8
+const MASK_SPECIAL := 1 << 9
 
 ## Input actions (keyboard, gamepad, players 1 and 2) are defined by
 ## scripts/controls.gd (TyrianControls, ADR 0051) and configurable (userdata/controls.cfg).

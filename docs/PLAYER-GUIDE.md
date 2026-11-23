@@ -312,8 +312,9 @@ Press it again before the level ends to cancel ("Recording cancelled"). At the s
 level "REC" appears at the top right of the playfield and "Recording started" is shown; press F10
 again, finish or leave the level to end the recording. The file is saved as
 `replays/YYYYMMDD-HHMMSS.rep` (folder in §6) and appears in the Replays screen. A replay holds the
-level, the ship's equipment, the mutators and the position and buttons of your ship at every frame,
-so it plays back the same way in this version and in the C version (same file format). Normal game,
+level, the ship's equipment, the mutators and the position and buttons of your ship at every frame.
+Desktop recordings retain the C-compatible v4 format. Android recordings use v5
+to preserve the separate Special button and require this rewrite for playback. Normal game,
 Arcade (one player), two players and mutators can be recorded; Galaga, Super Arcade, Timed Battle,
 Super Tyrian, Endless and a game with a mod installed cannot (the replay would not play back the
 same): "Mode not recordable" is shown and no file is written. Not available during a replay or the
@@ -668,6 +669,14 @@ In the experimental Android build, hold one finger on the level's playfield to
 move the ship toward it while firing. Drag to steer and lift to stop firing.
 The ship keeps its normal movement limits. Compact sidekick icons and Mode
 above the bottom message bar activate manual sidekicks and change rear-gun mode.
+Available controls pack against the left edge in that order, keeping their
+original widths. Mode is hidden when there are no alternate rear patterns or
+distinct Super Arcade specials to switch between; hidden controls leave no gaps.
+When a special is equipped, **Special** appears above that row and dims during
+cooldown. Tap and release it to activate the special while continuing to steer.
+If Mode and both sidekick controls are hidden, Special moves down to their row.
+Only this button activates specials on Android: playfield taps, sidekick buttons
+and hidden directional combinations do not. Cooldown taps are ignored, not queued.
 The top-left Pause icon opens the touch pause menu, including Help and Quit.
 Pause > More provides Achievements (category/scroll/Back controls), Statistics,
 campaign Quick Save/Load (touch Yes/No) and Replay Recording. Display / Capture

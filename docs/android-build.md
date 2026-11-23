@@ -73,7 +73,10 @@ approval for other gameplay changes.
 
 On Android, permanent Auto-fire is locked off: normal fire comes from the
 held steering finger, continues while that finger is stationary, and stops on
-release or cancellation. Sidekick/Mode touches do not hold normal fire.
+release or cancellation. Sidekick/Mode/Special touches do not hold normal fire.
+Equipped specials activate exclusively through the separate Special control;
+playfield presses, sidekick buttons and directional combinations do not activate
+specials on Android. This input change was expressly requested by the maintainer.
 Bullet Time is locked off, and Rumble locked off until mobile haptics are implemented.
 Settings application enforces these values, including when loading older
 profiles. Their Gameplay rows and values are grey and navigation skips them.
@@ -1059,9 +1062,10 @@ disabled by default; on-device picker verification is deferred as listed above.
 
 Android interactive levels use the approved compact row just above the bottom
 message bar. Original shop sidekick artwork is scaled to 65%, with the original
-normal menu font for Mode. The left icon starts at the playfield's left edge;
-the three positions stay fixed when either sidekick icon is absent. Invisible,
-non-overlapping touch areas cover x 0–18, 18–48 and 48–70, y 162–184. The bottom
+normal menu font for Mode. Available controls retain the order left sidekick,
+Mode, right sidekick and pack against the playfield's left edge without gaps.
+Their invisible, non-overlapping touch areas retain widths of 18, 30 and 22
+logical pixels respectively, at y 162–184. Hidden controls reserve no space. The bottom
 bar remains available for level, combo and system messages. The original score
 font and colors are retained, right-aligned four pixels from the playfield's
 right edge at y 3; desktop retains its original score position.
@@ -1069,28 +1073,75 @@ right edge at y 3; desktop retains its original score position.
 A sidekick icon is shown when the equipped sidekick has a weapon port and uses
 manual ammunition or charging, matching the shop preview's visibility rule.
 Automatic sidekicks and empty slots have no icon or reserved touch interception.
+Mode appears only when the equipped rear weapon has multiple patterns, or when
+Super Arcade can switch between two different specials. It is absent for an
+empty rear slot, a single-pattern weapon and identical Super Arcade specials.
+Artwork, labels and touch targets move together. Equipment changes cancel held
+and pending button gestures so a moved control cannot inherit a press.
+When a special is equipped, the original gold-font **Special** label appears
+above this row, with a separate x 0–70, y 140–162 touch area. If all three row
+controls are hidden, Special moves down to y 162–184 instead, with its label
+and touch target moving together; its width stays 70 pixels. It dims using the
+simulation's original ready/recharging marker. Taps during cooldown are ignored
+rather than queued. This fourth control uses the same release/cancellation rules.
+
 Each control activates only on release of a finger whose initial press was on
 that same control. Dragging off cancels permanently, including if the finger
 returns. A finger already steering can drag over and release on any control
 without activating it or interrupting steering. Separate fingers can operate
 controls while the original finger continues steering.
 
-A release supplies one tick of the existing keyboard-style mode/sidekick input.
+A release supplies one tick of mode/sidekick or dedicated special input.
 Repeated taps have a released tick between pulses so each mode-switch edge is
 visible to the simulation. Firing cooldowns, ammunition, charging, weapon modes,
-movement, simulation timing and RNG remain owned by the unchanged simulation.
+movement, simulation timing and RNG remain owned by the simulation.
+The Android special input replaces normal-fire, Super Arcade sidekick and hidden
+directional-combo activation, without interrupting regular fire. The original
+special effects, costs and cooldown checks are reused. Desktop retains its
+original activation paths. Recordings using dedicated input use replay v5;
+desktop recordings remain v4 and older replay behavior is preserved.
 Pausing, Help, focus loss and leaving the level discard pending button input.
 Controls are absent from desktop, demos and replay playback.
 
-`touch_weapons_test.gd` covers all three release gestures, drag-off/return,
+Special-alone placement follow-up (2026-11-23): all 23 weapon, level weapon and
+steering tests passed without errors, failures or orphans. This includes firing
+from the lowered target, steering through the vacated upper area and cancelling
+held touches when Special moves between rows. Both placements were checked in
+host captures; GDScript lint/format and `git diff --check` passed. No APK or phone
+verification was performed for this follow-up.
+
+Compact-row follow-up (2026-11-23): all 34 cases across the weapon, level weapon,
+steering and pause touch suites passed without errors, failures or orphans.
+Coverage includes all eight row visibility combinations, unchanged target widths,
+release actions at shifted positions, empty trailing space allowing steering,
+layout-change cancellation, empty/single-pattern rear weapons and Super Arcade
+with distinct/identical specials. Six host captures were inspected (all controls,
+Mode/right, left/right, right only, Mode only and no bottom-row controls).
+The host DLL build, Rust formatting, GDScript lint/format and `git diff --check`
+passed. APK packaging and phone verification remain outstanding.
+
+Special-control validation (2026-11-23): all 29 cases across the weapon, level
+weapon, steering and pause touch suites passed on Windows Godot, with no errors,
+failures or orphans. Four dedicated-input Rust tests passed, including
+all-original-special effect comparisons and v5 recording/playback with v4 input
+compatibility. All 24 existing special golden recordings passed strict parity
+(129,730 ticks). Host DLL build/check, GDScript lint/format, Rust formatting and
+`git diff --check` passed; ready and dimmed controls were visually inspected in
+host captures. This update has not been packaged or verified on the phone.
+The full Rust run encountered existing Destruct config/Windows newline and
+two host-libm comparison failures; the other 122 unit tests passed (one ignored).
+Strict Clippy also encounters existing warnings with the installed Rust 1.100.
+
+`touch_weapons_test.gd` covers all four release gestures, drag-off/return,
 cross-control cancellation, steering across targets, simultaneous fingers,
 cancelled events, hidden controls and repeated taps. `level_touch_weapons_test.gd`
 verifies actual rear-mode changes, separate left/right ammunition consumption,
+exclusive special activation while steering and dimming during cooldown,
 automatic versus charged sidekick visibility, pause cleanup and Android versus
 desktop score placement. The existing flight and pause touch suites also run.
 
 
-All 22 cases across these four suites passed without errors, failures or
+The initial three-control validation's 22 cases across these four suites passed without errors, failures or
 orphans. Host and Android native builds, APK signing/alignment validation,
 GDScript lint/format, Rust formatting and `git diff --check` passed. The updated
 APK was installed on the A35. Phone checks confirmed the compact row and score

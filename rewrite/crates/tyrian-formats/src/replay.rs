@@ -1,4 +1,4 @@
-//! `.rep` replays of the Enhanced version (`src/replay.c`), versions 1 to 4.
+//! `.rep` replays of the Enhanced version (`src/replay.c`), versions 1 to 5.
 //!
 //! Layout (little-endian), based on `replay_stop_recording` / `replay_load`:
 //!
@@ -15,7 +15,7 @@
 //! | mutators         | 8      | v2     |
 //! | P2 equipment     | 13     | v3     |
 //! | frame count (u32) | 4 | v1   |
-//! | frames           | 5 (v1-v3) or 10 (v4) each | |
+//! | frames           | 5 (v1-v3) or 10 (v4-v5) each | |
 //!
 //! `PlayerItems` (`player.h`) is a sequence of 13 `Uint8` written by raw
 //! `fwrite` (the comment in `replay.c` says 12: the `super_arcade_mode`
@@ -23,13 +23,14 @@
 //!
 //! A frame (`replay_capture_frame`): `x`, `y` of player 1 (i16), button
 //! mask (bit 0 fire, 1 fire switch, 2 left sidekick, 3 right
-//! sidekick), then in v4 the same for player 2.
+//! sidekick), then in v4+ the same for player 2. v5 additionally uses bit 4
+//! for dedicated special controls and bit 5 for a special press (player 1).
 
 use crate::io::{FormatError, Reader, Result, Writer};
 
 pub const REPLAY_MAGIC: &[u8; 4] = b"TYRP";
-/// `replay.c:REPLAY_VERSION`.
-pub const REPLAY_VERSION: u16 = 4;
+/// Maximum supported version; v5 adds dedicated Android special input.
+pub const REPLAY_VERSION: u16 = 5;
 /// `replay.c:REPLAY_MAX_FRAMES`.
 pub const REPLAY_MAX_FRAMES: u32 = 1_500_000;
 /// `episodes.h:EPISODE_MAX`.
@@ -40,6 +41,10 @@ pub const REPLAY_FIRE: u8 = 0x01;
 pub const REPLAY_CHANGE_FIRE: u8 = 0x02;
 pub const REPLAY_LEFT_SIDEKICK: u8 = 0x04;
 pub const REPLAY_RIGHT_SIDEKICK: u8 = 0x08;
+/// v5: use the dedicated special control instead of normal fire/combos.
+pub const REPLAY_DEDICATED_SPECIAL: u8 = 0x10;
+/// v5: dedicated special button pressed this tick.
+pub const REPLAY_SPECIAL: u8 = 0x20;
 
 /// `player.h:PlayerItems`, in field order.
 #[derive(Debug, Clone, Copy, Default, PartialEq, Eq)]

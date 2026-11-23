@@ -824,6 +824,8 @@ func _physics_process(_delta: float) -> void:
 	var p2 := Game.read_input_mask_p2() if _two_players() else 0
 	_sync_touch_weapons()
 	var mask := Game.read_input_mask() | (_touch_weapons.consume_mask() if _touch_weapons != null else 0)
+	if _touch_pause and interactive and not demo and not replaying:
+		mask |= Game.MASK_DEDICATED_SPECIAL
 	# mainint.c: the achievements list consumes the arrows (INPUT_MENU_*), the
 	# ship does not move while it is browsed.
 	if hotkeys.overlays.achievements_active:

@@ -249,6 +249,9 @@ impl ReplayCursor {
             self.started = true;
         }
         let f = self.replay.frames[self.pos];
+        let special = (self.replay.version >= 5 && f.buttons & tyrian_formats::replay::REPLAY_DEDICATED_SPECIAL != 0)
+            .then_some(f.buttons & tyrian_formats::replay::REPLAY_SPECIAL != 0);
+        sim.set_special_input(special);
         let next = self.replay.frames.get(self.pos + 1).map(|n| ((n.x as i32, n.y as i32), self.p2_of(n)));
         self.pos += 1;
         sim.replay_iteration_2p(input_of(&f), next);
@@ -283,7 +286,8 @@ impl ReplayRun {
 
 /// Replay recorder (`replay.c:begin_recording`, `replay_capture_frame`,
 /// `replay_stop_recording`): writes the same format as the C code, readable by
-/// [`ReplayCursor`] and by the C binary.
+/// [`ReplayCursor`]. Desktop v4 remains readable by the C binary; dedicated
+/// Android special input upgrades the recording to v5 (rewrite-only).
 ///
 /// Like the C code, the file does not keep the direction keys: at each
 /// iteration it takes the POSITION of both ships and the four buttons,
@@ -337,7 +341,8 @@ impl ReplayRecorder {
         let section = section_for_level(data_dir, episode, section, lvl_file, difficulty)?;
         let seed = if seed == 0 { 0x5_DEEC_E66D } else { seed };
         let mut replay = Replay {
-            version: tyrian_formats::replay::REPLAY_VERSION,
+            // Desktop recordings retain v4; dedicated Android input requires v5.
+            version: 4,
             episode,
             level: section,
             difficulty,
@@ -385,7 +390,14 @@ impl ReplayRecorder {
         }
         let [(x, y), (x2, y2)] =
             if self.replay.frames.is_empty() { self.start_positions } else { sim.bottom_positions() };
-        let mask = ((buttons | mouse_mask) >> 4) & 0x0f;
+        let mut mask = ((buttons | mouse_mask) >> 4) & 0x0f;
+        if let Some(pressed) = sim.world().controls.special_input {
+            self.replay.version = 5;
+            mask |= tyrian_formats::replay::REPLAY_DEDICATED_SPECIAL;
+            if pressed {
+                mask |= tyrian_formats::replay::REPLAY_SPECIAL;
+            }
+        }
         self.replay.frames.push(ReplayFrame {
             x: x as i16,
             y: y as i16,
@@ -431,6 +443,48 @@ pub fn load_file(path: &Path) -> Result<Replay, String> {
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    #[test]
+    fn dedicated_special_recording_roundtrips_and_playback_restores_input() {
+        let data = std::path::PathBuf::from(env!("CARGO_MANIFEST_DIR")).join("../../../data");
+        let loadout = Loadout {
+            ship: ShipId(1),
+            front_weapon: WeaponId(1),
+            front_power: 1,
+            rear_weapon: WeaponId(0),
+            rear_power: 1,
+            shield: ShieldId(4),
+            generator: GeneratorId(2),
+            left_sidekick: SidekickId(0),
+            right_sidekick: SidekickId(0),
+            special: SpecialId(1),
+            cash: 0,
+        };
+        let setup = crate::setup::load_level(&data, 1, 2, 9, 2, loadout, 7).unwrap();
+        let (mut recorder, mut sim) = ReplayRecorder::begin(&data, setup, 2, 9, 7, 10).unwrap();
+        assert_eq!(recorder.replay.version, 4);
+        for pressed in [false, false, true, false] {
+            sim.set_special_input(Some(pressed));
+            recorder.capture(&sim, PlayerInput::FIRE, 0);
+            sim.step([PlayerInput(PlayerInput::FIRE), PlayerInput(0)]);
+        }
+        let replay = Replay::parse(&recorder.finish()).unwrap();
+        assert_eq!(replay.version, 5);
+        assert_eq!(replay.frames[0].buttons, 0x11);
+        assert_eq!(replay.frames[2].buttons, 0x31);
+        let mut legacy = replay.clone();
+        legacy.version = 4;
+        let (mut old_cursor, mut old_sim) = ReplayCursor::start(&data, legacy).unwrap();
+        assert!(old_cursor.step(&mut old_sim));
+        assert_eq!(old_sim.world().controls.special_input, None);
+        assert!(old_sim.world().special_weapon.fire_button_held);
+        let (mut cursor, mut sim) = ReplayCursor::start(&data, replay).unwrap();
+        for pressed in [false, false, true, false] {
+            assert!(cursor.step(&mut sim));
+            assert_eq!(sim.world().controls.special_input, Some(pressed));
+            assert_eq!(sim.world().special_weapon.fire_button_held, pressed);
+        }
+    }
 
     #[test]
     fn input_maps_buttons_to_fire_bits() {

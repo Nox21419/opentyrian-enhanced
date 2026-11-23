@@ -337,6 +337,7 @@ impl World {
                 mouse_x: 0,
                 mouse_y: 0,
                 button: [false; 4],
+                special_input: None,
                 move_ok: false,
                 sf_current_code: [[0; 21]; 2],
                 sf_executed: [0; 2],

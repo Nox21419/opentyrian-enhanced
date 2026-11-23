@@ -26,7 +26,10 @@ impl TyrianSim {
     /// of player 2, 24/25 lives (`*lives`) of players 1 and 2,
     /// 26 sidekick_level of player 2, 27 last row occupied at the top of
     /// the play area by a text or a bar (-1 if none), 28/29 shop graphics
-    /// of manually fired sidekicks (0 for absent/automatic sidekicks).
+    /// of manually fired sidekicks (0 for absent/automatic sidekicks),
+    /// 30 original special readiness marker (94 ready, 93 recharging),
+    /// 31 equipped special ID (including specials without item artwork),
+    /// 32 whether Mode can switch rear patterns or Super Arcade specials.
     #[func]
     fn hud_state(&self) -> PackedInt32Array {
         let Some(sim) = self.sim.as_ref() else {
@@ -79,6 +82,17 @@ impl TyrianSim {
             });
             v.push(graphic);
         }
+        v.push(w.render.drawn_special_icon as i32);
+        v.push(p.items.special.0 as i32);
+        let sam = w.mode.super_arcade_mode;
+        let mode_available = if (1..=tyrian_sim::modes::SA).contains(&sam) {
+            let i = (sam - 1) as usize;
+            tyrian_sim::modes::SA_SPECIAL_WEAPON[i] != tyrian_sim::modes::SA_SPECIAL_WEAPON_B[i]
+        } else {
+            let rear = sk.items.weapon[1].id;
+            rear.0 != 0 && w.tables.ports.get(rear.index()).is_some_and(|port| port.opnum > 1)
+        };
+        v.push(mode_available as i32);
         PackedInt32Array::from(v)
     }
 

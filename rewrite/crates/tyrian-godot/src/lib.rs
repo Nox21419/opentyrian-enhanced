@@ -531,7 +531,8 @@ impl TyrianSim {
 
     /// Advances one tick with the input masks of both players
     /// (bits: 0 up, 1 down, 2 left, 3 right, 4 fire, 5 fire switch,
-    /// 6 left sidekick, 7 right sidekick).
+    /// 6 left sidekick, 7 right sidekick; player 1 only: 8 dedicated Android
+    /// special controls, 9 special press).
     #[func]
     fn step(&mut self, p1_mask: i32, p2_mask: i32) {
         if let (Some(cur), Some(sim)) = (self.replay.as_mut(), self.sim.as_mut()) {
@@ -543,6 +544,7 @@ impl TyrianSim {
         if let Some(sim) = self.sim.as_mut() {
             // replay.c:replay_capture_frame, at the head of the iteration: positions
             // and buttons of player 1 (keyboard and mouse) before the simulation.
+            sim.set_special_input((p1_mask & (1 << 8) != 0).then_some(p1_mask & (1 << 9) != 0));
             if let Some(rec) = self.recorder.as_mut() {
                 if !sim.state().level_ended {
                     rec.capture(sim, (p1_mask & 0xff) as u8, sim.world().mode.mouse.mask);

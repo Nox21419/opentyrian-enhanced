@@ -451,6 +451,18 @@ size is odd, the last byte is not read (keep it). Song index
 Sizes: 2,745 / 2,193 / 1,974 / 699 / 1,122 B (`size-30 ≡ 0 mod 3` → the
 last triplet is incomplete: 1 tail byte, partially read before `feof`).
 
+### Native `.rep` special input extension
+
+The maintained replay reader accepts TYRP versions 1–5. Version 5 retains the
+version-4 header and ten-byte frame layout (two positions and a button byte per
+player). In player 1's button byte, bit 4 selects dedicated special input and
+bit 5 indicates its press; bits 0–3 retain fire, mode, left and right sidekick.
+When bit 4 is set, normal fire, sidekicks and directional combinations cannot
+activate specials. Original cooldowns and effects still apply. These extra bits
+are interpreted only in v5. Android dedicated-input recordings use v5; desktop
+recordings remain v4. Older readers reject v5 rather than silently replaying
+different attacks. See `tyrian-formats/src/replay.rs` and `tyrian-sim/src/replay.rs`.
+
 ## 10. Sounds: `tyrian.snd`, `voices.snd`, `voicesc.snd` (`nortsong.c:loadSndFile`)
 Container: `u16 count` + `u32 offset[count]`; data = **signed 8-bit PCM,
 mono, 11,025 Hz** (`SDL_BuildAudioCVT(AUDIO_S8, 1, 11025, …)`), with no header.

@@ -652,6 +652,8 @@ pub struct Controls {
     pub mouse_x: u16,
     pub mouse_y: u16,
     pub button: [bool; 4],
+    /// Android's dedicated special input; None preserves original controls.
+    pub special_input: Option<bool>,
     pub move_ok: bool,
     pub sf_current_code: [[u8; 21]; 2],
     pub sf_executed: [u8; 2],

@@ -248,3 +248,17 @@ reads as screen remnants. the maintainer's rule: eliminate inherited defects. Th
 redrawn (`save_menu.gd:_choose`) before the box, which darkens only once. The
 "Ep" column of the list is also shifted 4 px to the left (`X_EPISODE` 297 → 293) so that it no
 longer touches the panel edge.
+
+## Android dedicated Special control (maintainer's decision, 2026-11-23)
+
+Android interactive levels activate specials only through the equipped-only
+Special button above the bottom-left weapon row (in that row when no Mode or
+manual sidekick controls are visible). Normal-fire presses, Super
+Arcade sidekick presses and hidden directional combinations do not activate
+specials on Android. This is an expressly requested input adaptation; normal
+weapon firing is uninterrupted and the original special effects, costs,
+cooldown checks and RNG behavior are reused. The label dims during cooldown;
+cooldown taps are ignored. Desktop and older replay controls retain the original
+activation paths. Android recordings use TYRP v5 to preserve dedicated input;
+desktop recordings retain v4. See the Android build guide's gameplay weapon
+touch controls section and the native replay extension in the formats spec.

@@ -148,6 +148,10 @@ impl World {
     /// `mainint.c:JE_SFCodes`: recognition of the key combinations
     /// ("twiddles") that trigger a special weapon.
     fn sf_codes(&mut self, player_num: u8, px: i32, py: i32, mouse_x: i32, mouse_y: i32) {
+        // Android has an explicit special button, with no hidden gesture triggers.
+        if self.controls.special_input.is_some() {
+            return;
+        }
         let mut ship = self.players[(player_num - 1) as usize].items.ship.index();
         if player_num == 2 && ship < 15 {
             ship = 0;
@@ -445,11 +449,14 @@ impl World {
         }
         if player_num == 1 && self.players[0].items.special > SpecialId(0) {
             // varz.c:JE_doSpecialShot: in Super Arcade, the sidekick buttons also trigger the special.
-            let sa_side = self.mode.super_arcade_mode != 0 && (self.controls.button[1] || self.controls.button[2]);
+            let dedicated = self.controls.special_input;
+            let sa_side = dedicated.is_none()
+                && self.mode.super_arcade_mode != 0
+                && (self.controls.button[1] || self.controls.button[2]);
             if sa_side {
                 self.special_weapon.fire_button_held = false;
             }
-            if !self.controls.button[0] && !sa_side {
+            if !dedicated.unwrap_or(self.controls.button[0]) && !sa_side {
                 self.special_weapon.fire_button_held = false;
             } else if self.shot_repeat[SHOT_SPECIAL] == 0
                 && !self.special_weapon.fire_button_held
@@ -1564,6 +1571,93 @@ impl World {
                 }
             }
         }
+    }
+}
+
+#[cfg(test)]
+mod dedicated_special_tests {
+    use super::*;
+    use crate::{setup::load_level, Loadout, Sim};
+    use std::path::PathBuf;
+
+    fn sim() -> Sim {
+        let data = PathBuf::from(env!("CARGO_MANIFEST_DIR")).join("../../../data");
+        let loadout = Loadout {
+            ship: ShipId(1),
+            front_weapon: WeaponId(1),
+            front_power: 1,
+            rear_weapon: WeaponId(0),
+            rear_power: 1,
+            shield: ShieldId(4),
+            generator: GeneratorId(2),
+            left_sidekick: SidekickId(0),
+            right_sidekick: SidekickId(0),
+            special: SpecialId(1),
+            cash: 0,
+        };
+        Sim::new(load_level(&data, 1, 2, 9, 2, loadout, 7).unwrap())
+    }
+
+    #[test]
+    fn dedicated_special_ignores_fire_sidekicks_and_twiddles() {
+        let mut s = sim();
+        s.set_special_input(Some(false));
+        let w = &mut s.world;
+        w.mode.super_arcade_mode = 1;
+        w.controls.button = [true; 4];
+        w.do_special_shot(1);
+        assert!(!w.special_weapon.fire_button_held);
+        assert_eq!(w.shot_repeat[SHOT_SPECIAL], 0);
+        let codes = w.controls.sf_current_code;
+        w.sf_codes(1, 100, 100, 100, 90);
+        assert_eq!(w.controls.sf_current_code, codes);
+        assert_eq!(w.controls.sf_executed, [0; 2]);
+    }
+
+    #[test]
+    fn dedicated_special_keeps_original_effects_for_every_special() {
+        let base = sim();
+        for id in 1..=crate::tables::SPECIAL_NUM {
+            let mut original = base.world.clone();
+            original.players[0].items.special = SpecialId(id as u8);
+            let mut dedicated = original.clone();
+            original.controls.button[0] = true;
+            dedicated.controls.special_input = Some(true);
+            original.do_special_shot(1);
+            dedicated.do_special_shot(1);
+            assert_eq!(original.shot_repeat, dedicated.shot_repeat, "special {id}");
+            assert_eq!(original.rng.state(), dedicated.rng.state(), "special {id}");
+            assert_eq!(format!("{:?}", original.special_weapon), format!("{:?}", dedicated.special_weapon));
+            assert_eq!(format!("{:?}", original.player_shots), format!("{:?}", dedicated.player_shots));
+            assert_eq!(original.players[0].armor, dedicated.players[0].armor);
+            assert_eq!(original.players[0].shield, dedicated.players[0].shield);
+        }
+    }
+
+    #[test]
+    fn dedicated_special_obeys_cooldown_and_does_not_interrupt_normal_fire() {
+        let mut s = sim();
+        s.set_special_input(Some(true));
+        let w = &mut s.world;
+        w.controls.button[0] = true;
+        w.special_weapon.special_wait = 5;
+        w.do_special_shot(1);
+        assert!(!w.special_weapon.fire_button_held);
+        assert_eq!(w.special_weapon.special_wait, 4);
+        w.controls.special_input = Some(false);
+        w.do_special_shot(1);
+        w.special_weapon.special_wait = 0;
+        w.controls.special_input = Some(true);
+        w.do_special_shot(1);
+        assert!(w.special_weapon.fire_button_held);
+        assert!(w.controls.button[0], "normal fire remains held");
+        w.controls.special_input = Some(false);
+        w.do_special_shot(1);
+        w.shot_repeat[SHOT_SPECIAL] = 5;
+        w.controls.special_input = Some(true);
+        w.do_special_shot(1);
+        assert!(!w.special_weapon.fire_button_held);
+        assert_eq!(w.shot_repeat[SHOT_SPECIAL], 4);
     }
 }
 

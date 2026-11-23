@@ -604,6 +604,11 @@ impl Sim {
         self.world.mode.mouse = mouse;
     }
 
+    /// Dedicated Android special control. None retains desktop/C input behavior.
+    pub fn set_special_input(&mut self, pressed: Option<bool>) {
+        self.world.controls.special_input = pressed;
+    }
+
     /// Analog stick of both players, values already reduced
     /// (`joystick.c:joystick_axis_reduce`), held until the next call.
     pub fn set_analog(&mut self, analog: [(i32, i32); 2]) {
