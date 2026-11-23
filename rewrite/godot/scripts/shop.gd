@@ -77,6 +77,8 @@ var _mod_items := {}
 ## 8-bit framebuffer, like the other mod additions): position -> texture.
 var _mod_images := {}
 var _mod_image_layer: Node2D
+var _mod_preview: Node2D
+var _mod_preview_shots := PackedInt32Array()
 ## game_menu.c:yLoc: scrolling (pixels) of the open cube.
 var _cube_y := 0
 ## Palette of a cube's face set (game_menu.c paletteChanged / newPal).
@@ -176,10 +178,17 @@ func _ready() -> void:
 	var items_key := "episodes_1_3" if Game.episode <= 3 else "episode_%d" % Game.episode
 	_items_json = TyrianAssets.read_json("items.json")[items_key]
 	_load_mod_items()
+	_mod_preview = Node2D.new()
+	_mod_preview.name = "ModPreviewShots"
+	_mod_preview.texture_filter = CanvasItem.TEXTURE_FILTER_NEAREST
+	_mod_preview.draw.connect(_draw_mod_preview_shots)
+	overlay.add_child(_mod_preview)
+	_setup_mod_preview_mask()
 	_mod_image_layer = Node2D.new()
 	_mod_image_layer.name = "ModImages"
 	overlay.add_child(_mod_image_layer)
 	overlay.move_child(_mod_image_layer, 0)
+	overlay.move_child(_mod_preview, 0)
 	presented.connect(_sync_mod_images)
 	_arcade_menu = Game.shop_start_menu()
 	var resume_sel := Game.shop_resume_sel
@@ -234,6 +243,12 @@ func _open_session() -> void:
 		push_error("TyrianShop.open: %s" % _shop.last_error)
 		_shop = null
 		return
+	var mod_frames := PackedInt32Array()
+	if Mods.api != null:
+		for sprite in Mods.api.sprites(Game.episode):
+			if sprite["table"] == "shots" and Mods.texture("shots", int(sprite["index"])) != null:
+				mod_frames.append(int(sprite["index"]))
+	_shop.set_preview_mod_frames(mod_frames)
 	# level_load.c ]? : cubes of the section (cubeList); cubeMax after the
 	# script directives (Game.shop_cube_max); game_menu.c:load_cubes.
 	_shop.set_cubes(Game.data_dir, Game.episode, Game.shop_cube_list, Game.shop_cube_max, TyrianText.language)
@@ -785,6 +800,45 @@ func _draw_shop_item(item_type: int, id: int, x: int, y: int, surf := VGA_SCREEN
 		_mod_images[Vector2i(x, y)] = tex
 
 
+## Keep PNG shots inside the original aperture, behind its opaque frame and
+## above the VGA starfield. The lower power/mode interface stays unobscured.
+func _setup_mod_preview_mask() -> void:
+	var mask := Image.create(320, 200, false, Image.FORMAT_RGBA8)
+	var meta: Dictionary = TyrianAssets.read_json("sprites/main_05_options.json")
+	var atlas := TyrianAssets.texture("sprites/main_05_options.png").get_image()
+	var frame: Dictionary = {}
+	for entry in meta["frames"]:
+		if int(entry["index"]) == 12:
+			frame = entry
+			break
+	for y in range(8, 130):
+		for x in range(8, 144):
+			var local := Vector2i(x - int(frame["offset_x"]), y - int(frame["offset_y"]))
+			var covered := false
+			if Rect2i(0, 0, int(frame["w"]), int(frame["h"])).has_point(local):
+				covered = atlas.get_pixel(int(frame["x"]) + local.x, int(frame["y"]) + local.y).a > 0.0
+			if not covered:
+				mask.set_pixel(x, y, Color.WHITE)
+	var shader := Shader.new()
+	shader.code = """shader_type canvas_item;
+uniform sampler2D preview_mask : filter_nearest, repeat_disable;
+varying vec2 preview_position;
+void vertex() { preview_position = VERTEX; }
+void fragment() { COLOR *= texture(preview_mask, preview_position / vec2(320.0, 200.0)).r; }
+"""
+	var mat := ShaderMaterial.new()
+	mat.shader = shader
+	mat.set_shader_parameter("preview_mask", ImageTexture.create_from_image(mask))
+	_mod_preview.material = mat
+
+
+func _draw_mod_preview_shots() -> void:
+	for k in range(0, _mod_preview_shots.size() - 2, 3):
+		var tex := Mods.texture("shots", _mod_preview_shots[k + 2])
+		if tex != null:
+			_mod_preview.draw_texture(tex, Vector2(_mod_preview_shots[k], _mod_preview_shots[k + 1]))
+
+
 ## Rebuilds the mod image layer after each presented frame.
 func _sync_mod_images(_surf: int) -> void:
 	if _mod_image_layer == null:
@@ -825,6 +879,8 @@ func _item(cat: int, id: int) -> Dictionary:
 func _render() -> void:
 	idle = false
 	_mod_images.clear()
+	_mod_preview_shots.clear()
+	_mod_preview.queue_redraw()
 	if int(_state.get("menu", 0)) != MENU_DATA_CUBE_SUB:
 		mouse_pointer = MouseCursor.NORMAL
 	_anim_delay = 0
@@ -1020,6 +1076,8 @@ func _weapon_sim_frame(cat: int, lo: PackedInt32Array) -> void:
 	_shop.preview_sidekick_input(fire if _touch_sidekick else -2)
 	_preview_sidekick_fire = -1
 	var sim_time: int = _shop.weapon_view_frame(vga)
+	_mod_preview_shots = _shop.preview_mod_shots()
+	_mod_preview.queue_redraw()
 	var left: bool = _state.get("left_power", false)
 	var right: bool = _state.get("right_power", false)
 	if left or right:

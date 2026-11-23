@@ -730,5 +730,6 @@ fn published_original_names_match_the_data() {
     }
     let set = ModSet::load_from(&data(), &example_mods());
     let published = std::fs::read_to_string(example_mods().join("original-names.json")).unwrap();
-    assert!(published == set.originals.to_json(), "rewrite/mods/original-names.json is out of date: rerun `cargo run -p tyrian-mods -- catalog --data ../data --sheets ../docs/original-enemies`");
+    // Git may check this text file out with CRLF on Windows; generated JSON uses LF.
+    assert!(published.replace("\r\n", "\n") == set.originals.to_json(), "rewrite/mods/original-names.json is out of date: rerun `cargo run -p tyrian-mods -- catalog --data ../data --sheets ../docs/original-enemies`");
 }

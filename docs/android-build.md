@@ -170,6 +170,45 @@ proof-of-concept `--no-xmas` override was removed after adapting that prompt.
 
 ## Validation
 
+### Bundled mod packs
+
+All five packs may be enabled together in Setup → Mods. Check that each tap
+changes its saved enabled flag, Back reloads the packs, and a cold relaunch keeps
+the choices. Mod ships and weapon icons must appear in Upgrade Ship; purchases
+must change the owned mark and cash by price minus trade-in. Weapon previews
+draw the packs' animated PNG projectiles inside the original preview frame,
+leaving the power/mode interface clear. Check the same ship and gun in a level.
+`test/shop_mod_preview_test.gd` checks all 18 shipped weapons' preview animation
+frames and textures, plus the frame/power-panel mask. Run it alongside the mod
+ship-pose, shot-texture, touch-toggle and shop-child touch suites.
+
+On 2026-11-23, the A35's installed bundle matched all 220 source mod files;
+all five touch toggles wrote their enabled flags. Zica Ember and Zica Thermal
+Lance were purchased with the expected cash changes, and rendered in gameplay.
+The investigation found and fixed invisible mod shots in the shop preview's
+original-sheet rendering path. After an APK update without uninstalling, the
+five enabled choices persisted; Zica Thermal Lance, Spore Burst, Acid Spitter
+and Flame Lance preview projectiles were visually verified on the A35. The
+related five Godot suites passed 20 tests, including all 18 weapons' preview
+frames and all 70 ship poses. This does not prove every weapon/power-level
+combination in live Android gameplay. The Linux package journey/smoke gate was
+unavailable on this Windows host because WSL was not installed.
+
+A subsequent full shop audit on the same A35 checked all 18 mod weapons at
+every power from 1 through 11 (198 cases), with three phone captures per case.
+A separate slot-10 test save supplied 10,000,000 credits and the original
+Gravitron Pulse-Wave generator. Front and rear guns were tested separately,
+with the opposite bay and both sidekicks empty. The existing JourneyState
+logger verified the mounted weapon and power before/after each capture set;
+the temporary test APK changed only startup arguments and the normal APK was
+restored afterward. All 594 phone images were visually reviewed with the saved
+Sharp filter enabled; no additional preview defects were found. On the host,
+180 preview steps for every case matched a separate evaluation of the pack
+JSON's counts, cadence, spawn positions, acceleration, circular motion,
+lifetimes and animation. The original saves and mod preferences remained
+byte-identical. These are shop-preview checks: the target-free demonstration
+does not verify homing against enemies, collision, damage, piercing or freezing.
+
 ### Title touch menu (first menu adaptation)
 
 Only Android rearranges the original title lettering into two columns with

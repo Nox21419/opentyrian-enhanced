@@ -37,6 +37,9 @@ pub struct TyrianShop {
     preview: Option<WeaponPreview>,
     /// None preserves the desktop demonstration; touch supplies one-frame pulses.
     preview_sidekick_fire: Option<[bool; 2]>,
+    /// Mod PNG frames drawn by the presentation layer instead of original sheets.
+    preview_mod_frames: PackedInt32Array,
+    preview_mod_shots: PackedInt32Array,
     special: u8,
     /// `cube[]`: readable data cubes (`load_cubes`), `cubeMax` at most.
     cubes: Vec<Cube>,
@@ -93,6 +96,18 @@ fn key_from_name(name: &str) -> Option<ShopKey> {
 
 #[godot_api]
 impl TyrianShop {
+    #[func]
+    fn set_preview_mod_frames(&mut self, frames: PackedInt32Array) {
+        self.preview_mod_frames = frames;
+        self.preview_mod_shots.clear();
+    }
+
+    /// Positions and animation frames from the last demonstration step; never advances it.
+    #[func]
+    fn preview_mod_shots(&self) -> PackedInt32Array {
+        self.preview_mod_shots.clone()
+    }
+
     /// Mods applied to the next shop openings (null = none).
     #[func]
     fn set_mods(&mut self, mods: Option<Gd<crate::TyrianMods>>) {
@@ -511,6 +526,7 @@ impl TyrianShop {
     /// the alternation of the rear mode text depends.
     #[func]
     fn weapon_view_frame(&mut self, mut vga: Gd<TyrianVga>) -> i32 {
+        self.preview_mod_shots.clear();
         let (Some(s), Some(p)) = (self.session.as_ref(), self.preview.as_mut()) else {
             return 0;
         };
@@ -522,6 +538,11 @@ impl TyrianShop {
         let stars = p.stars;
         let power = p.power();
         let sim_time = p.sim_time;
+        for sp in &sprites {
+            if self.preview_mod_frames.contains(sp.frame as i32) {
+                self.preview_mod_shots.extend([sp.x, sp.y, sp.frame as i32]);
+            }
+        }
         let mut v = vga.bind_mut();
         let surf = &mut v.surfaces[0];
         surf.fill_rectangle_xy(8, 8, 143, 182, 0);
@@ -534,6 +555,9 @@ impl TyrianShop {
         with_assets(|a| {
             for sp in &sprites {
                 let frame = sp.frame as u32;
+                if self.preview_mod_frames.contains(frame as i32) {
+                    continue;
+                }
                 if frame > 60000 {
                     if let Some(sprite) = a.sprite(tyrian_render::assets::OPTION_SHAPES, (frame - 60001) as usize) {
                         surf.blit_sprite_blend(sp.x, sp.y, sprite);
