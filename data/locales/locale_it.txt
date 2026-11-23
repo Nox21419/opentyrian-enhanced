@@ -1588,3 +1588,11 @@ secrets_arcade_desc=Scegli una nave segreta e le sue armi.
 secrets_tyrian=Super Tyrian
 secrets_tyrian_desc=Stalker e Atomic RailGun. Scegli la difficoltà.
 secrets_destruct_desc=Gioca al minigioco Destruct.
+
+# Android flight controls
+mobile_controls=Comandi
+mobile_controls_desc=Scegli comandi tattili o a inclinazione.
+tilt_controls=Inclinazione
+tilt_controls_desc=Inclina per muovere; tieni premuto per sparare.
+tilt_sensitivity=Sensibilita
+tilt_sensitivity_desc=Valori alti richiedono meno inclinazione.

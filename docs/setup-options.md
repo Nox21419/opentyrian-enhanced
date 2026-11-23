@@ -114,3 +114,13 @@ Pause menu options (in-level menu, `mainint.c:JE_inGameSetup`):
 |---|---|---|---|---|
 | Pause menu | Music Vol. / Sound Vol. (`ig_music_vol`, `ig_sfx_vol`) | **wired** | same keys as Setup > Sound (`music_volume`, `fx_volume`, `music_disabled`, `samples_disabled`); Left/Right ±12, Enter mutes; saved when the menu closes (save_json_save) | `pause_menu_test.gd:test_volume_rows_apply_and_save` |
 | Pause menu | Game Speed (`ig_game_speed`) | **wired** | key `game_speed` (1..5, 4 = Normal, save_json.c "game_speed"); ticks per second of the level (`game_speed.gd`); `--speed=1..6` forces it without saving it | `pause_menu_test.gd:test_game_speed_rows_set_ticks_per_second`, `test_speed_override` |
+
+## Tilt settings implementation in progress
+
+Android Setup replaces Key Bindings with Controls, using the original menu
+engine and release targets. Tilt Controls defaults to Off; Tilt Sensitivity
+ranges from 1 to 10, default 5. Both persist in `setup.cfg`. Desktop retains
+Key Bindings. These settings do not yet change flight input: sensor movement,
+level-start calibration and pause-menu reset await the staged menu review.
+`setup_touch_test.gd` covers release activation, drag cancellation, persistence
+and desktop scope.

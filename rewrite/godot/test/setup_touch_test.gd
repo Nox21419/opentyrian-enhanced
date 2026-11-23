@@ -76,9 +76,9 @@ func test_root_wide_targets_release_and_drag_cancel() -> void:
 	assert_bool(TyrianMouse.any_button_down()).is_false()
 
 
-func test_mobile_control_rows_are_disabled_and_mods_remains_available() -> void:
+func test_mobile_joystick_is_disabled_and_controls_and_mods_remain_available() -> void:
 	var setup := await _open()
-	for row in [3, 4]:
+	for row in [4]:
 		var item: Dictionary = setup.menus.current().items[row]
 		assert_bool(MenuEngine.selectable(item)).is_false()
 		_tap(setup, _row(row, 160))
@@ -87,7 +87,7 @@ func test_mobile_control_rows_are_disabled_and_mods_remains_available() -> void:
 		assert_str(Effects.current_game_scene().scene_file_path).is_equal(Game.SCENE_SETUP)
 	setup.menus.current().sel = 2
 	setup.handle_action(TyrianControls.DOWN)
-	assert_int(setup.menus.selection()).is_equal(5)
+	assert_int(setup.menus.selection()).is_equal(3)
 	assert_bool(MenuEngine.selectable(setup.menus.current().items[5])).is_true()
 	_tap(setup, _row(5))
 	assert_str(Effects.current_game_scene().get_script().resource_path).is_equal("res://scripts/mods_menu.gd")
@@ -231,3 +231,31 @@ func test_desktop_gameplay_retains_all_options_and_saved_values() -> void:
 	assert_bool(Effects.bullet_time_allowed).is_true()
 	assert_bool(Game.auto_fire).is_false()
 	assert_bool(SetupScreen.settings.rumble_enabled).is_true()
+
+
+func test_tilt_controls_release_cancel_persistence_and_desktop_scope() -> void:
+	var setup := await _open()
+	_button(setup, _row(3), true)
+	assert_int(setup.menus.stack.size()).is_equal(1)
+	_button(setup, _row(3), false)
+	assert_str(setup.menus.current().header).is_equal("mobile_controls")
+	assert_bool(SetupScreen.settings.tilt_controls_enabled).is_false()
+	_button(setup, _row(0), true)
+	var motion := InputEventMouseMotion.new()
+	motion.position = Vector2(310, 190)
+	setup.handle_mouse(motion)
+	_button(setup, _row(0), false)
+	assert_bool(SetupScreen.settings.tilt_controls_enabled).is_false()
+	_tap(setup, _row(0))
+	assert_bool(SetupScreen.settings.tilt_controls_enabled).is_true()
+	_tap(setup, _row(1))
+	assert_int(SetupScreen.settings.tilt_sensitivity).is_equal(6)
+	SetupScreen.reset_settings()
+	SetupScreen.load_settings()
+	assert_bool(SetupScreen.settings.tilt_controls_enabled).is_true()
+	assert_int(SetupScreen.settings.tilt_sensitivity).is_equal(6)
+	_tap(setup, _row(2))
+	assert_str(setup.menus.current().header).is_equal("setup_header")
+	setup = await _open(false)
+	assert_str(setup.menus.current().items[3].label).is_equal("setup_keybindings")
+	assert_bool(MenuEngine.selectable(setup.menus.current().items[3])).is_true()

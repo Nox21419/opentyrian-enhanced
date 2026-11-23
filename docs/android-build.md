@@ -21,8 +21,8 @@ Data, Upgrade Ship, Options and Next Level and their child screens activate
 on release using their original targets.
 Setup, Graphics, Sound, Gameplay, Mutators and picker popups also activate on
 release, with wider invisible row targets. Jukebox uses its existing text for
-touch controls. Setup's Key Bindings and Joystick entries are grey and
-unavailable on Android. Mods toggles a pack when a tap is released on its row.
+touch controls. Setup's Joystick entry is grey and unavailable on Android. Controls replaces
+Key Bindings; see the tilt settings implementation status below. Mods toggles a pack when a tap is released on its row.
 High Scores keeps its original arrows with wider touch targets and adds a
 small Back label; both activate on release and cancel when dragged off.
 Replays uses its original rows and scroll indicators as release-activated
@@ -1195,3 +1195,13 @@ pause/view pages were visually reviewed; GDScript lint/format, strict locale,
 glyph/width and diff checks passed. Android device verification is pending;
 no APK was built or installed in this pass. The exported Linux journey/smoke
 gate could not run because WSL/Linux is not installed on this host.
+
+## Tilt settings implementation in progress
+
+Android Setup replaces Key Bindings with Controls, using the original menu
+engine and release targets. Tilt Controls defaults to Off; Tilt Sensitivity
+ranges from 1 to 10, default 5. Both persist in `setup.cfg`. Desktop retains
+Key Bindings. These settings do not yet change flight input: sensor movement,
+level-start calibration and pause-menu reset await the staged menu review.
+`setup_touch_test.gd` covers release activation, drag cancellation, persistence
+and desktop scope.

@@ -37,6 +37,8 @@ static var settings := {
 	"bullet_time_enabled": true,
 	"combo_enabled": true,
 	"auto_fire_enabled": false,
+	"tilt_controls_enabled": false,
+	"tilt_sensitivity": 5,
 	"current_language": 0,
 	"music_volume": 191,
 	"fx_volume": 191,
@@ -79,6 +81,7 @@ static var settings := {
 static var SETTINGS_PATH: String = UserData.path("setup.cfg")
 const DEFAULTS := {
 	"bullet_time_enabled": true, "combo_enabled": true, "auto_fire_enabled": false,
+	"tilt_controls_enabled": false, "tilt_sensitivity": 5,
 	"current_language": 0, "music_volume": 191, "fx_volume": 191, "mouse_buttons": [1, 4, 5], "music_disabled": false,
 	"samples_disabled": false, "sound_muted": false, "sfx_pitch_variation": true, "music_engine": 2, "display": 0,
 	"window_rect": [],
@@ -280,6 +283,7 @@ static func _apply_sfx_enabled() -> void:
 
 ## Sets each setting modified since the last call into the game.
 static func apply_settings() -> void:
+	settings.tilt_sensitivity = clampi(int(settings.tilt_sensitivity), 1, 10)
 	if _mobile_gameplay_rules:
 		settings.bullet_time_enabled = false
 		settings.auto_fire_enabled = false
@@ -479,9 +483,25 @@ func _setup_items() -> Array:
 		_item("setup_done", "setup_done_main", Kind.BACK),
 	]
 	if _touch_setup:
+		items[KEYBINDINGS_ROW] = _item("mobile_controls", "mobile_controls_desc", Kind.ACTION,
+			{"action": func() -> void: _open("mobile_controls", _mobile_control_items())})
 		items.insert(SECRETS_ROW, _item("setup_secrets", "setup_secrets_desc", Kind.ACTION,
 			{"action": func() -> void: _open("secrets_header", _secrets_items())}))
 	return items
+
+
+## Android flight settings use Setup's original menu engine.
+func _mobile_control_items() -> Array:
+	return [
+		_toggle("tilt_controls", "tilt_controls_desc", "tilt_controls_enabled"),
+		_item("tilt_sensitivity", "tilt_sensitivity_desc", Kind.PICKER, {
+			"get": func() -> int: return int(settings.tilt_sensitivity) - 1,
+			"set": func(i: int) -> void: settings.tilt_sensitivity = i + 1,
+			"count": 10,
+			"labels": ["1", "2", "3", "4", "5", "6", "7", "8", "9", "10"],
+		}),
+		_item("setup_done", "setup_done_back", Kind.BACK),
+	]
 
 
 ## Android exposes the title codes through the existing Setup menu engine.
