@@ -21,7 +21,9 @@ const FIELDS := [
 	"explosion_style",
 	"hitstop",
 	"combos",
-	"dedicated_special"
+	"dedicated_special",
+	"particles",
+	"screenshake"
 ]
 const RANGES := {
 	"episode": [1, 5],
@@ -52,7 +54,7 @@ static func valid(config: Variant) -> bool:
 	for field in ["seed", "cash1", "cash2"]:
 		if not hex_string(config[field], 16):
 			return false
-	for field in ["hitstop", "combos", "dedicated_special"]:
+	for field in ["hitstop", "combos", "dedicated_special", "particles", "screenshake"]:
 		if not config[field] is bool:
 			return false
 	for field in ["loadout1", "loadout2"]:
@@ -108,6 +110,19 @@ static func from_values(array: Variant) -> Dictionary:
 static func digest(config: Dictionary) -> String:
 	var ordered := values(config)
 	return sha256(JSON.stringify(ordered)) if not ordered.is_empty() else ""
+
+
+## Existing fx_api.rs activation rules. This is a plan, not a setter or a
+## loaded-state digest. Arcade does not enable the Endless-only combo timer.
+static func core_options(config: Dictionary) -> Dictionary:
+	if not valid(config):
+		return {}
+	return {
+		"hitstop": config.hitstop,
+		"modern_explosions":
+		config.particles and config.explosion_style == 2 and config.processor_type >= 2 and config.screenshake,
+		"combo_frame_ms": 0,
+	}
 
 
 static func sha256(text: String) -> String:

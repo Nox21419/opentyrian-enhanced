@@ -3,7 +3,7 @@
 extends RefCounted
 
 const Config := preload("res://scripts/network_configuration.gd")
-const VERSION := 1
+const VERSION := 2
 const MAX_BYTES := 2048
 const KINDS := ["hello", "config", "accept", "loaded", "ready", "start"]
 const IDENTITIES := ["native", "client", "content", "engine"]

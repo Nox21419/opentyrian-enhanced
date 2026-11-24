@@ -25,5 +25,7 @@ static func configuration() -> Dictionary:
 		"explosion_style": 1,
 		"hitstop": true,
 		"combos": true,
-		"dedicated_special": true
+		"dedicated_special": true,
+		"particles": true,
+		"screenshake": true
 	}

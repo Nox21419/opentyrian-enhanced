@@ -458,7 +458,8 @@ the locked dependencies' own MIT/Apache-2.0 texts are preserved in
 `network_configuration.gd` defines an immutable **Arcade-only** startup grammar:
 mode, episode, level file, initial/actual difficulty, seed, both loadouts and
 cash values, devices, input delay, mutators, processor type, game speed,
-explosion style, hitstop, combos and dedicated-special input mode. The original
+explosion style, hitstop, combos, dedicated-special input mode, particles and
+screen shake. The original
 two-player difficulty increment is explicit. Seeds and cash are 16-character
 hexadecimal u64 values, avoiding JSON double precision loss. Equipment is ten
 typed fields per player; loadout power bounds and device ranges are checked.
@@ -470,7 +471,7 @@ a boolean; unknown/missing equipment, unsupported content and level-load checks
 must be supplied by the later game integration. A truthy string/value is not
 acceptance. No currently visible Start action bypasses this unfinished work.
 
-`network_startup_protocol.gd` uses a distinct `OT2S` prefix and schema version 1,
+`network_startup_protocol.gd` uses a distinct `OT2S` prefix and schema version 2,
 not the gameplay `OT2N` packets or original LAN JSON hello. Its body is a compact
 ordered JSON array: version, kind, sender role and the kind-specific fields.
 Object-key duplication cannot change a configuration because configurations
@@ -889,3 +890,41 @@ real-policy peer agreement without early Start, immutable returned values,
 configuration-change invalidation and fresh recapture. Changed GDScript lint and
 format checks pass. Device, exported-package and playable co-op evidence remain
 pending.
+
+Next settings step (before implementation): extend startup schema to negotiate
+particles and screen-shake, both of which participate in the existing bridge's
+core Modern-explosion activation. Bump the startup protocol version rather than
+accepting old shorter configurations. Derive the existing core-effect options
+without applying them to active gameplay. Preserve the local Arcade rule that
+combos are off (the combos preference is only applied to an active Endless run).
+Keep dedicated-special ownership in the tick input, not a new core-setting API.
+
+### Explicit effects prerequisites in startup schema 2
+
+The 21-field startup grammar now includes strict boolean particles and screen
+shake values. Both affect the configuration digest and are required on each
+peer. Startup protocol version 2 rejects old hello versions and old 19-field
+configuration arrays; gameplay packet and original connection-hello versions
+are unchanged. The source client identity changes with these scripts too.
+
+`NetworkConfiguration.core_options` records the existing fx_api.rs rule:
+Modern core explosions require particles, style 2, processor type at least 2
+and screen shake together. Hitstop retains its explicit boolean. This function
+returns a plan only and applies nothing to an active or prepared simulation.
+It explicitly leaves combo_frame_ms at zero for Arcade, matching
+EndlessSession.configure when no Endless run exists; applying the enabled
+combos preference directly to Arcade would have changed existing behavior.
+
+Dedicated Android specials are injected by TyrianSim.step from player-1 mask
+bits 8/9, not a level-start setting. The later tick adapter must enforce their
+negotiated use and original ownership, rather than invent a guest special or a
+new simulation setting. This checkpoint does not change those input rules.
+
+Verification: 20 cases pass across configuration, preparation, startup and real
+ENet startup-connection suites, with no errors/failures/orphans and explicit
+process exit 0. Tests cover each Modern prerequisite disabling the core option,
+digest sensitivity, strict booleans, Arcade combo timing, old-version rejection
+and the earlier readiness/mismatch barriers. New/changed GDScript lint/format
+and whitespace checks pass. Complete-state serialization, process-history-free
+level loading and shop/session integration remain pending. No game build was
+handed over, and no device or Linux exported-package gate is claimed.
