@@ -493,3 +493,7 @@ de gfx_sprite_remastered
 * secrets_tyrian
 fr setup_secrets
 fr secrets_header
+
+# Computer is the ordinary German and Italian name for the opponent.
+de destruct_touch_cpu
+it destruct_touch_cpu

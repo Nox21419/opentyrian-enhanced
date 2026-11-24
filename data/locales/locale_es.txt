@@ -1543,3 +1543,16 @@ tilt_controls_desc=Inclina para mover; manten pulsado para disparar.
 tilt_sensitivity=Sensibilidad
 tilt_sensitivity_desc=Valores altos requieren menos inclinacion.
 tilt_reset=Centrar inclinacion
+
+# Android Destruct controls
+destruct_touch_up=Arriba
+destruct_touch_down=Abajo
+destruct_touch_vehicle=Unidad
+destruct_touch_fire=Fuego
+destruct_touch_new_map=Nuevo mapa
+destruct_touch_left=Izquierda: %s
+destruct_touch_right=Derecha: %s
+destruct_touch_human=Humano
+destruct_touch_cpu=Ordenador
+destruct_touch_left_dir=Izq.
+destruct_touch_right_dir=Der.

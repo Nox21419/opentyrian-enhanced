@@ -24,6 +24,8 @@ const COMMANDS := ["left", "right", "up", "down", "change", "fire", "previous_we
 ## Destruct action (d-pad, stick, A fire, B unit switch, X/Y and
 ## upper triggers: previous / next weapon).
 const PAD_COMMANDS := ["left", "right", "up", "down", "change_fire", "fire", "left_sidekick", "right_sidekick"]
+const TOUCH_CONTROLS := preload("res://scripts/destruct_touch.gd")
+const ROUND_ACTIONS := ["resume", "help", "exit", "new_map", "cpu_left", "cpu_right"]
 const MOVE_CHANGE := 4
 const MOVE_CYUP := 6
 const MOVE_CYDN := 7
@@ -174,6 +176,8 @@ var _round_menu_open := false
 var _round_menu_choice := ""
 var _round_menu_sel := 0
 var _pause_icon: TyrianText
+var _touch_controls: Node2D
+var _menu_finger := -1
 
 
 func _ready() -> void:
@@ -185,6 +189,8 @@ func _ready() -> void:
 		add_child(p)
 		_channels.append(p)
 	if _touch_menus:
+		_touch_controls = TOUCH_CONTROLS.new()
+		overlay.add_child(_touch_controls)
 		_pause_icon = TyrianText.new()
 		_pause_icon.font = TyrianText.FontKind.NORMAL
 		_pause_icon.outline = true
@@ -201,8 +207,10 @@ func _ready() -> void:
 	_run.call_deferred()
 
 
-## Desktop retains destruct.c input; Android adapts the intro, mode menu, pause text and help footer.
+## Android menus use release targets; live-round multi-touch is handled separately below.
 func handle_mouse(event: InputEvent) -> void:
+	if event.device == InputEvent.DEVICE_ID_EMULATION:
+		return
 	if (
 		not _touch_menus
 		or (not idle and phase != "play")
@@ -230,7 +238,7 @@ func handle_mouse(event: InputEvent) -> void:
 		_round_pause_requested = true
 	elif target.begins_with("round:"):
 		_round_menu_sel = int(target.trim_prefix("round:"))
-		_round_menu_choice = ["resume", "help", "exit"][_round_menu_sel]
+		_round_menu_choice = ROUND_ACTIONS[_round_menu_sel]
 	elif _pause_touch_active or _help_touch_active:
 		_newkey = true
 	elif phase == "intro":
@@ -250,7 +258,7 @@ func _touch_target(p: Vector2i) -> String:
 		var width := maxi(64, int(vga.text_width(TyrianText.L("miscText_22"), SMALL_FONT)) + 16)
 		return "resume" if Rect2i(160 - width / 2, 84, width, 20).has_point(p) else ""
 	if phase == "round_pause":
-		if Rect2i(56, 76, 208, 60).has_point(p):
+		if Rect2i(56, 76, 208, 120).has_point(p):
 			return "round:%d" % ((p.y - 76) / 20)
 		return ""
 	if phase == "play":
@@ -494,11 +502,11 @@ func handle_event(event: InputEvent) -> void:
 			return
 		match TyrianControls.menu_action(event):
 			TyrianControls.UP:
-				_round_menu_sel = (_round_menu_sel + 2) % 3
+				_round_menu_sel = ((_round_menu_sel + ROUND_ACTIONS.size() - 1) % ROUND_ACTIONS.size())
 			TyrianControls.DOWN:
-				_round_menu_sel = (_round_menu_sel + 1) % 3
+				_round_menu_sel = (_round_menu_sel + 1) % ROUND_ACTIONS.size()
 			TyrianControls.ACCEPT, TyrianControls.SELECT:
-				_round_menu_choice = ["resume", "help", "exit"][_round_menu_sel]
+				_round_menu_choice = ROUND_ACTIONS[_round_menu_sel]
 			TyrianControls.BACK:
 				_round_menu_choice = "resume"
 		return
@@ -598,6 +606,10 @@ func _read_moves() -> PackedInt32Array:
 					break
 			if moves[p * COMMANDS.size() + k] == 0 and _pad_held(action_name(p, k), consume):
 				moves[p * COMMANDS.size() + k] = 1
+	if _touch_controls != null:
+		var touch_moves: PackedInt32Array = _touch_controls.read_moves()
+		for i in moves.size():
+			moves[i] |= touch_moves[i]
 	return moves
 
 
@@ -762,9 +774,10 @@ func _draw_mode_menu() -> void:
 func _run_tick() -> int:
 	if _round_pause_requested:
 		_round_pause_requested = false
-		if await _round_touch_menu():
+		var choice := await _round_touch_menu()
+		if choice in ["exit", "new_map"]:
 			phase = ""
-			return STATE_INIT
+			return STATE_INIT if choice == "exit" else STATE_RELOAD
 	_tick += 1
 	_script_tick()
 	for id in _capture_release.keys():
@@ -823,6 +836,7 @@ func _tick_delay() -> void:
 
 ## destruct.c:JE_pauseScreen.
 func _pause_screen() -> void:
+	_reset_touch()
 	_menu_touch.cancel()
 	_pause_touch_active = true
 	var volume: int = Music.music_volume
@@ -842,6 +856,7 @@ func _pause_screen() -> void:
 
 ## destruct.c:JE_helpScreen.
 func _help_screen() -> void:
+	_reset_touch()
 	_menu_touch.cancel()
 	await fade_black(15)
 	vga.copy(VGA_SCREEN2, VGA_SCREEN)
@@ -894,6 +909,8 @@ func _play_sounds(queue: PackedInt32Array) -> void:
 
 
 func _process(_delta: float) -> void:
+	if _touch_controls != null and game != null:
+		_touch_controls.update_state(_touch_play_active(), game.is_cpu(0), game.is_cpu(1))
 	if _pause_icon != null:
 		_pause_icon.visible = (
 			phase == "play" and not _round_menu_open and not _round_pause_requested and _pointer_hidden == 0
@@ -901,7 +918,8 @@ func _process(_delta: float) -> void:
 
 
 ## Save the shared VGA image: menu pixels must never enter the native round.
-func _round_touch_menu() -> bool:
+func _round_touch_menu() -> String:
+	_reset_touch()
 	var background: PackedByteArray = vga.indices(VGA_SCREEN)
 	var volume: int = Music.music_volume
 	Music.set_volume(volume / 2)
@@ -915,14 +933,23 @@ func _round_touch_menu() -> bool:
 		phase = "round_pause"
 		idle = true
 		vga.set_indices(VGA_SCREEN, background)
-		vga.bar_shade(VGA_SCREEN, 56, 70, 263, 140)
-		for i in 3:
-			_out_centered(
-				TyrianText.L(["gd_resume", "ig_help", "gd_exit_to_modes"][i]),
-				80 + 20 * i,
-				12,
-				4 if i == _round_menu_sel else 0
+		vga.bar_shade(VGA_SCREEN, 56, 70, 263, 199)
+		var labels := [
+			TyrianText.L("gd_resume"),
+			TyrianText.L("ig_help"),
+			TyrianText.L("gd_exit_to_modes"),
+			TyrianText.L("destruct_touch_new_map"),
+			(
+				TyrianText.L("destruct_touch_left")
+				% TyrianText.L("destruct_touch_cpu" if game.is_cpu(0) else "destruct_touch_human")
+			),
+			(
+				TyrianText.L("destruct_touch_right")
+				% TyrianText.L("destruct_touch_cpu" if game.is_cpu(1) else "destruct_touch_human")
 			)
+		]
+		for i in ROUND_ACTIONS.size():
+			_out_centered(labels[i], 80 + 20 * i, 12, 4 if i == _round_menu_sel else 0)
 		present()
 		await get_tree().process_frame
 		if _round_menu_choice == "help":
@@ -930,6 +957,9 @@ func _round_touch_menu() -> bool:
 			idle = false
 			await _help_screen()
 			_menu_touch.cancel()
+		elif _round_menu_choice in ["cpu_left", "cpu_right"]:
+			game.toggle_cpu(0 if _round_menu_choice == "cpu_left" else 1)
+			_round_menu_choice = ""
 		elif not _round_menu_choice.is_empty():
 			break
 	idle = false
@@ -939,4 +969,55 @@ func _round_touch_menu() -> bool:
 	present()
 	Music.set_volume(volume)
 	phase = "play"
-	return _round_menu_choice == "exit"
+	return _round_menu_choice
+
+
+## Raw multi-touch is mapped by Effects into logical game coordinates.
+func _input(event: InputEvent) -> void:
+	if not _touch_menus or not (event is InputEventScreenTouch or event is InputEventScreenDrag):
+		return
+	if _touch_controls != null:
+		_touch_controls.update_state(_touch_play_active(), game.is_cpu(0), game.is_cpu(1))
+		if _touch_controls.feed(event):
+			get_viewport().set_input_as_handled()
+			return
+	if event is InputEventScreenTouch:
+		if event.is_canceled():
+			if event.index == _menu_finger:
+				_menu_finger = -1
+				_menu_touch.cancel()
+			return
+		if event.pressed and _menu_finger == -1:
+			_menu_finger = event.index
+		if event.index != _menu_finger:
+			return
+		var mouse := InputEventMouseButton.new()
+		mouse.position = event.position
+		mouse.button_index = MOUSE_BUTTON_LEFT
+		mouse.pressed = event.pressed
+		handle_mouse(mouse)
+		if not event.pressed:
+			_menu_finger = -1
+	elif event.index == _menu_finger:
+		var mouse := InputEventMouseMotion.new()
+		mouse.position = event.position
+		handle_mouse(mouse)
+	get_viewport().set_input_as_handled()
+
+
+func _touch_play_active() -> bool:
+	return phase == "play" and not _round_menu_open and not _round_pause_requested and _pointer_hidden == 0
+
+
+func _reset_touch() -> void:
+	if _touch_controls != null:
+		_touch_controls.update_state(false, false, false)
+	_menu_finger = -1
+	_menu_touch.cancel()
+
+
+func _notification(what: int) -> void:
+	if what == NOTIFICATION_APPLICATION_FOCUS_OUT or what == NOTIFICATION_EXIT_TREE:
+		_reset_touch()
+		if what == NOTIFICATION_APPLICATION_FOCUS_OUT and _touch_menus and phase == "play":
+			_round_pause_requested = true

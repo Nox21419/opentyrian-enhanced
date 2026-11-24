@@ -301,7 +301,7 @@ Setup > Secrets provides touch access to the original title-code games:
   introduction and episode choice. Suicide replaces the need to hold Scroll
   Lock; both choices retain Stalker 21.126 and Atomic RailGun.
 - **Destruct**: opens the existing mini-game, also available through Side Modes.
-  Its gameplay touch controls remain pending.
+  Its live-round touch controls are described below.
 
 The Secrets entry is Android-only. It uses Setup's original fonts, palette,
 menu engine, wide invisible targets and activation on release. Ship names
@@ -867,10 +867,9 @@ The screen-flow audit found four Destruct interfaces: intro, mode selection
 (including optional Custom), pause and Help. All now have Android touch actions.
 There are no separate result/confirmation/settings menus: rounds reload through
 the existing flow, and destruct.cfg remains file configuration. Side Modes
-already provides a touch route into Destruct. Opening pause/Help and returning
-to mode selection from a live round still use their original keys pending the
-separate Destruct gameplay-controls pass. No CPU/Human defaults, round input,
-simulation pacing or RNG behavior changes here.
+already provides a touch route into Destruct. The later live-round touch pass
+below adds access to Pause, Help and mode selection without a keyboard, while
+preserving CPU/Human defaults, simulation pacing and RNG behavior.
 
 `test/destruct_help_touch_test.gd` verifies Back release/cancel, frozen simulation
 state and tick count, help/body boundaries and desktop keyboard dismissal.
@@ -1260,3 +1259,58 @@ supplied that flag; the normal APK was rebuilt without it. All seven original
 player files (including all three campaign saves) were restored and verified by
 SHA-256 before restoring the normal build. The Linux exported-package gate
 remains unavailable because WSL/Linux is absent on this Windows host.
+
+
+### Destruct live-round touch controls
+
+Android has two compact banks of the original bitmap lettering at the bottom
+of the round, one per player. Each bank has Left, Right, Up and Down above
+W-, Vehicle, Fire and W+. Hold directions and Fire; release Vehicle or W-/W+
+to switch once. Directions retain the original vehicle-specific meaning:
+Left/Right adjusts turret angle or helicopter movement; Up/Down changes shot
+power, helicopter vertical movement or a jumper's jump. W- and W+ select the
+previous and next weapon. The selected weapon remains visible in the original
+HUD. Computer-controlled sides have dimmed lettering; the default opponent
+and configured human/computer choices are unchanged.
+
+Each control has a 40-by-22 logical-pixel hit area. Multiple fingers can hold
+directions and Fire together, including on both sides. A finger owns only its
+initial control; dragging off cancels until release, even when it returns.
+Switches activate on release and repeated taps are queued for separate native
+ticks. Android mouse emulation is ignored to prevent duplicate actions.
+Pause, Help, round transitions, focus loss and scene exit clear touch input.
+Focus loss requests Pause; returning to the app requires Resume.
+
+The existing top-left Pause entry now also exposes New Map and each side's
+Human/Computer toggle, alongside Resume, Help and Exit to Mode Selection.
+The round remains frozen while these choices are open. New Map uses the same
+round reload as Backspace, preserving scores and human/computer choices.
+Touch text lives outside the simulation framebuffer so it cannot affect
+terrain, collisions or future round generation. No Rust simulation rules or
+Destruct's original approximately 14.4 ms tick interval were changed. Desktop
+keeps its existing keyboard and gamepad paths without the touch controls.
+
+`test/destruct_gameplay_touch_test.gd` covers simultaneous fingers, held fire,
+release-only switches, cancellation, queued taps, live shots, frozen pause,
+human/computer toggles, Help, New Map, focus loss and desktop scope. Its
+five-mode test compares touch against the keyboard command stream and a
+separate native instance for 480 ticks, including exact framebuffer and
+selected-vehicle state. Run it with the existing Destruct intro, pause, Help,
+round-key and screen-flow suites. These checks do not replace phone playtesting
+or the exported Linux journey/smoke gate in [testing.md](testing.md).
+
+
+Validation on 2026-11-24: 58 distinct cases passed across the six Destruct
+suites plus shared controls, display settings and touch-flight suites, with
+no errors or orphans. The final eight-case gameplay suite was rerun after
+the phone font correction. GDScript formatting/lint, strict locale consistency,
+glyph/width checks, hard-coded text checks and `git diff --check` passed.
+The Android helper built, aligned and signed the debug APK, and an update
+installed successfully on the A35. Phone captures verified the visible
+control banks, vehicle/weapon HUD changes, Pause/Help, New Map producing new
+terrain while retaining scores, Human/Computer selection and Home/resume
+returning to Pause. Automated tests cover simultaneous fingers; actual
+simultaneous fingers and prolonged play in every mode still need hands-on
+phone testing. All seven pre-existing player files remained byte-identical;
+the test-created destruct.cfg was removed. The phone was left paused.
+The exported Linux package gate was unavailable because WSL is not installed.

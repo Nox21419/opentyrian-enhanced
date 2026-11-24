@@ -1543,3 +1543,16 @@ tilt_controls_desc=Zum Steuern neigen, zum Feuern gedrueckt halten.
 tilt_sensitivity=Empfindlichkeit
 tilt_sensitivity_desc=Hoehere Werte brauchen weniger Neigung.
 tilt_reset=Neigung zentrieren
+
+# Android Destruct controls
+destruct_touch_up=Hoch
+destruct_touch_down=Runter
+destruct_touch_vehicle=Einheit
+destruct_touch_fire=Feuer
+destruct_touch_new_map=Neue Karte
+destruct_touch_left=Links: %s
+destruct_touch_right=Rechts: %s
+destruct_touch_human=Mensch
+destruct_touch_cpu=Computer
+destruct_touch_left_dir=Links
+destruct_touch_right_dir=Rechts

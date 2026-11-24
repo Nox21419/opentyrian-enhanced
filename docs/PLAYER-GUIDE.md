@@ -446,6 +446,14 @@ Fixed keys: **F10** toggles the computer for player 1, **F11** the computer for 
 **Backspace** builds a new map, **P** pauses, **F1** shows the help, **Esc** ends the round and
 returns to the mode selection; a second Esc returns to the title.
 
+On Android, each side has touch controls at the bottom: hold Left/Right and
+Up/Down to steer, aim or adjust power according to the vehicle, and hold Fire
+to shoot. Tap Vehicle to switch units; W-/W+ selects the previous/next weapon.
+Multiple fingers can act together. Dragging off a control cancels it. A dimmed
+side is computer-controlled. The top-left Pause icon opens Resume, Help, Exit
+to Mode Selection, New Map and the left/right Human/Computer toggles. Losing
+focus pauses and clears held touch controls.
+
 ---
 
 ### 3.6 Secret codes of the title screen

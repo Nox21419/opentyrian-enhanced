@@ -1597,3 +1597,16 @@ tilt_controls_desc=Tilt to steer; hold the playfield to fire.
 tilt_sensitivity=Tilt Sensitivity
 tilt_sensitivity_desc=Higher values need less tilt to move.
 tilt_reset=Reset Tilt Neutral
+
+# Android Destruct controls
+destruct_touch_up=Up
+destruct_touch_down=Down
+destruct_touch_vehicle=Vehicle
+destruct_touch_fire=Fire
+destruct_touch_new_map=New Map
+destruct_touch_left=Left: %s
+destruct_touch_right=Right: %s
+destruct_touch_human=Human
+destruct_touch_cpu=Computer
+destruct_touch_left_dir=Left
+destruct_touch_right_dir=Right

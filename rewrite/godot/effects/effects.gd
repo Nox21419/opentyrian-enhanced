@@ -348,7 +348,11 @@ func set_crt_mode(mode: int) -> void:
 
 
 func _unhandled_input(event: InputEvent) -> void:
-	if (event is InputEventScreenTouch or event is InputEventScreenDrag) and _level_running():
+	var touch_scene := current_game_scene()
+	if (
+		(event is InputEventScreenTouch or event is InputEventScreenDrag)
+		and (_level_running() or (touch_scene != null and touch_scene.scene_file_path == Game.SCENE_DESTRUCT))
+	):
 		game_viewport.push_input(touch_event_in_game_pixels(event), true)
 		return
 	# Menu mouse state (keyboard.c): position in game pixels,
