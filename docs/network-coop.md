@@ -928,3 +928,55 @@ and the earlier readiness/mismatch barriers. New/changed GDScript lint/format
 and whitespace checks pass. Complete-state serialization, process-history-free
 level loading and shop/session integration remain pending. No game build was
 handed over, and no device or Linux exported-package gate is claimed.
+
+State-fingerprint implementation direction: retain the legacy replay snapshot
+unchanged and add a separately versioned, read-only network serialization. Use
+compiler-derived field traversal for the retained setup/current state/world,
+so new fields cannot silently evade coverage. Encode primitive integers with a
+fixed representation and hash in the bridge. Keep this private to identical
+build identities and supported little-endian 64-bit targets; it is not a save
+format or a cross-version protocol. Audit observer queues before enabling live
+comparisons. No simulation rules or ticks are changed by serialization.
+
+### Conservative diagnostic serialization with compiler field coverage
+
+A new `Sim.network_diagnostic_bytes` traverses the retained LevelSetup, current
+SimState, last input mask and entire World through derived field hashing.
+Nested state/data types implement Hash so the compiler checks recursive field
+coverage, including full RNG arrays/cursors, player and enemy internals, mode
+and pending inputs, event scripts, effective tables, effects and carried state.
+The legacy replay snapshot/hash implementation remains unchanged.
+
+The collector has a domain/version prefix and a 16 MiB output cap. It is
+restricted to little-endian 64-bit targets because Rust primitive slice hashing
+may use native representation; pointer-sized scalars are written as eight-byte
+little-endian values. Rust Hash traversal is not a stable cross-version format:
+only identical source/compiler identities may compare these bytes. No claim of
+cross-platform evidence follows from this implementation alone.
+
+The bridge hashes this stream with SHA-256 through
+`network_diagnostic_digest`; unloaded, replay/recording, unsupported-target or
+oversized states return no digest. This is diagnostic only, not a save/restore
+format or a gameplay-only live desync detector. The current world includes
+observer/render/audio state, so comparisons require the same queue-consumption
+boundary. Presented copies, keep_presented and replay-only bottom positions
+are excluded; they do not control simulation rules. Bridge-global star/effects
+history and startup loading still need their independent audited setup path.
+No Loaded/Ready action has been wired to this diagnostic getter.
+
+Three new Rust tests cover legacy omissions (devices, friction, enemy fire
+waits, core effects and per-player pending mice), read-only/repeated traversal,
+120 equivalent ticks with presented-state capture enabled on only one side,
+fixed pointer encoding and collector bounds. All 39 formats tests pass. The
+qualified full simulation run passes 158 cases with one existing ignored case,
+excluding exactly the three previously reproduced Windows baseline failures
+listed above. This is not an unfiltered green simulation suite or new C parity.
+
+The rebuilt native bridge passes 11 Godot cases across diagnostic digest,
+per-player mice, preparation and configuration suites, with no error lines,
+failures or orphan nodes and explicit process exit 0. The getter rejects an
+unloaded Sim, is repeatable/read-only, detects pending input that the legacy
+hash omits, returns to its original value after clearing that override and
+changes after a tick. Cargo formatting and changed GDScript lint/format pass.
+Clippy passes with only the two previously documented baseline categories
+allowed. No Android run, Linux package gate or gameplay/build handover occurred.

@@ -7,6 +7,7 @@
 //! - `mode_hud`: what the modes HUD must display (lives, timer, Galaga).
 
 use godot::prelude::*;
+use sha2::{Digest, Sha256};
 use tyrian_sim::modes::MouseInput;
 use tyrian_sim::Loadout;
 use tyrian_sim::{GeneratorId, ShieldId, ShipId, SidekickId, SpecialId, WeaponId};
@@ -15,6 +16,19 @@ use crate::TyrianSim;
 
 #[godot_api(secondary)]
 impl TyrianSim {
+    /// Conservative same-build diagnostic, not the legacy replay state hash.
+    /// Compare at identical observer-consumption boundaries; never use as a save.
+    #[func]
+    fn network_diagnostic_digest(&self) -> GString {
+        if self.replay.is_some() || self.recorder.is_some() {
+            return GString::new();
+        }
+        let Some(bytes) = self.sim.as_ref().and_then(|sim| sim.network_diagnostic_bytes()) else {
+            return GString::new();
+        };
+        GString::from(format!("{:x}", Sha256::digest(bytes)).as_str())
+    }
+
     /// Identity of native sources/dependencies embedded in this loaded binary.
     /// Independent of the user-editable application release label.
     #[func]

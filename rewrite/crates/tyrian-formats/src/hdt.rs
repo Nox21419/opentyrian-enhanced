@@ -54,7 +54,7 @@ pub fn enemy_id(record: usize) -> usize {
 }
 
 /// Pascal `string[30]` name: `u8 len` + 30 fixed bytes (original padding kept).
-#[derive(Debug, Clone, PartialEq, Eq)]
+#[derive(Debug, Clone, PartialEq, Eq, Hash)]
 pub struct PascalName {
     pub len: u8,
     pub bytes: [u8; 30],
@@ -93,7 +93,7 @@ impl Serialize for PascalName {
 }
 
 /// `JE_WeaponType` (80 bytes).
-#[derive(Debug, Clone, PartialEq, Eq, Serialize)]
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Hash)]
 pub struct Weapon {
     pub drain: u16,
     pub shotrepeat: u8,
@@ -173,7 +173,7 @@ impl Weapon {
 }
 
 /// `JE_WeaponPortType` (82 bytes).
-#[derive(Debug, Clone, PartialEq, Eq, Serialize)]
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Hash)]
 pub struct WeaponPort {
     pub name: PascalName,
     pub opnum: u8,
@@ -210,7 +210,7 @@ impl WeaponPort {
 }
 
 /// `JE_SpecialType` (37 bytes).
-#[derive(Debug, Clone, PartialEq, Eq, Serialize)]
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Hash)]
 pub struct Special {
     pub name: PascalName,
     pub itemgraphic: u16,
@@ -236,7 +236,7 @@ impl Special {
 }
 
 /// `JE_PowerType` — generator (37 bytes).
-#[derive(Debug, Clone, PartialEq, Eq, Serialize)]
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Hash)]
 pub struct Generator {
     pub name: PascalName,
     pub itemgraphic: u16,
@@ -262,7 +262,7 @@ impl Generator {
 }
 
 /// `JE_ShipType` (41 bytes).
-#[derive(Debug, Clone, PartialEq, Eq, Serialize)]
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Hash)]
 pub struct Ship {
     pub name: PascalName,
     pub shipgraphic: u16,
@@ -303,7 +303,7 @@ impl Ship {
 }
 
 /// `JE_OptionType` — sidekick (86 bytes).
-#[derive(Debug, Clone, PartialEq, Eq, Serialize)]
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Hash)]
 pub struct Sidekick {
     pub name: PascalName,
     pub pwr: u8,
@@ -367,7 +367,7 @@ impl Sidekick {
 }
 
 /// `JE_ShieldType` (37 bytes).
-#[derive(Debug, Clone, PartialEq, Eq, Serialize)]
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Hash)]
 pub struct Shield {
     pub name: PascalName,
     pub tpwr: u8,
@@ -393,7 +393,7 @@ impl Shield {
 }
 
 /// `JE_EnemyDatType` (77 bytes).
-#[derive(Debug, Clone, PartialEq, Eq, Serialize)]
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Hash)]
 pub struct EnemyDat {
     pub ani: u8,
     pub tur: [u8; 3],
@@ -494,7 +494,7 @@ impl EnemyDat {
 }
 
 /// Complete item block (`JE_loadItemDat`).
-#[derive(Debug, Clone, PartialEq, Eq, Serialize)]
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Hash)]
 pub struct ItemTables {
     /// `itemNum[7]`: informational, not used by the C code for reading.
     pub item_num: [u16; 7],

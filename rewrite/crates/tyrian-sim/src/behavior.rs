@@ -29,7 +29,7 @@ pub const MAX_BEHAVIOR_TURRETS: usize = 4;
 
 /// A path segment: for `ticks` enemy ticks, the C speeds
 /// `exc`/`eyc` equal `vx`/`vy` (None = left as they are).
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Default)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Default, Hash)]
 pub struct PathSegment {
     pub ticks: u16,
     pub vx: Option<i8>,
@@ -38,7 +38,7 @@ pub struct PathSegment {
 
 /// Player pursuit: every `every` ticks, the speed on the chosen axis
 /// moves one unit closer to the player, capped at `max_speed`.
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Default)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Default, Hash)]
 pub struct Track {
     pub x: bool,
     pub y: bool,
@@ -51,7 +51,7 @@ pub struct Track {
 /// `slot` (1..=3) chooses the shot orientation exactly like the C turret
 /// index (`enemy_render.c:JE_drawEnemy`: 1 = downwards, 2 and 3 =
 /// swapped speeds) and the `eshotmultipos` cycle counter used.
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Default)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Default, Hash)]
 pub struct BehaviorTurret {
     pub weapon: u16,
     pub every: u8,
@@ -59,7 +59,7 @@ pub struct BehaviorTurret {
     pub slot: u8,
 }
 
-#[derive(Debug, Clone, PartialEq, Eq, Default)]
+#[derive(Debug, Clone, PartialEq, Eq, Default, Hash)]
 pub struct EnemyBehavior {
     pub path: Vec<PathSegment>,
     /// Restart the path at the first segment after the last one.
@@ -70,7 +70,7 @@ pub struct EnemyBehavior {
 
 /// Records written by mods into the episode tables, applied
 /// by `Tables::apply` at level start. Empty for the original game.
-#[derive(Debug, Clone, Default)]
+#[derive(Debug, Clone, Default, Hash)]
 pub struct TablePatch {
     pub weapons: Vec<(u16, Weapon)>,
     pub ports: Vec<(u8, WeaponPort)>,

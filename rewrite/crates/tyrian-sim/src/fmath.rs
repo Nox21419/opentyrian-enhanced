@@ -8,7 +8,7 @@
 
 /// Non-negative single-precision float, represented exactly by
 /// `mant * 2^exp` with `mant < 2^24`.
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
 pub struct F32 {
     pub neg: bool,
     pub mant: u64,

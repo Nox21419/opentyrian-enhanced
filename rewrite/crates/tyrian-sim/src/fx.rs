@@ -19,7 +19,7 @@
 use crate::world::World;
 
 /// Player settings that act on the simulation (all false = golden master).
-#[derive(Debug, Clone, Copy, Default, PartialEq, Eq)]
+#[derive(Debug, Clone, Copy, Default, PartialEq, Eq, Hash)]
 pub struct FxConfig {
     /// `hitstop.c:hitstop_enabled` (Setup > Gameplay > Freeze Frames).
     pub hitstop: bool,
@@ -31,7 +31,7 @@ pub struct FxConfig {
 }
 
 /// `hitstop.c`: state of the freeze and of the cascade of the last defeated boss.
-#[derive(Debug, Clone, Default)]
+#[derive(Debug, Clone, Default, Hash)]
 pub struct Hitstop {
     /// `hitstop.c:freeze_frames`.
     pub freeze_frames: u32,
@@ -56,7 +56,7 @@ pub struct ShotInfo {
 /// or to its particle generators, in game_screen coordinates.
 /// `frame`: image of the player shot (`shotGr + shotAni`), from which rendering
 /// derives the hue (`enemy_render.c:sprite2_dominant_hue` of spriteSheet8).
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
 pub enum FxEvent {
     /// EVENT_SHOT_HIT (`shot_update.c`, non-lethal and lethal hits).
     ShotHit { x: i32, y: i32, damage: i32, frame: u16 },

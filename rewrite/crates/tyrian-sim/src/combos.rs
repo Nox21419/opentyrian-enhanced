@@ -26,7 +26,7 @@ pub const COMBO_TIERS: [(u32, u32, &str); 8] = [
 
 /// State of `combos.c` (`combo_count`, `combo_timer`, `combo_enabled`). The
 /// multiplier stays in `World::combo_multiplier`, read by the gains.
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Default)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Default, Hash)]
 pub struct ComboState {
     /// `combo_enabled`: false = combos off (historical golden masters).
     pub enabled: bool,

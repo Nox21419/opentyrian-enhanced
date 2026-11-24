@@ -59,7 +59,7 @@ pub const SHOT_SOUND_CHANNEL: [usize; 11] = [0, 2, 4, 4, 2, 2, 5, 5, 1, 4, 1];
 /// A sound emitted by `JE_flushSoundQueue`: channel, sample (1-based),
 /// screen x (`soundQueueX`, 160 = center) and damage magnitude
 /// (`soundQueueDmg`: 0 none, 1 small, 2 big enemy, 3 boss).
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
 pub struct SoundEvent {
     pub channel: u8,
     pub sample: u8,
@@ -68,7 +68,7 @@ pub struct SoundEvent {
 }
 
 /// Sound state of the level (rendering only, see the module header).
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, Hash)]
 pub struct SoundQueue {
     pub sample: [u8; SOUND_CHANNELS],
     pub x: [u16; SOUND_CHANNELS],

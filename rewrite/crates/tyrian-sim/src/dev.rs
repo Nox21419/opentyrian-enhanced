@@ -19,7 +19,7 @@ use crate::Sim;
 
 /// State of the development cheats (`params.c:constantPlay`,
 /// `mainint.c:constantLastX`) and pending requests.
-#[derive(Debug, Clone, Copy)]
+#[derive(Debug, Clone, Copy, Hash)]
 pub struct DevState {
     /// `params.c:constantPlay` ("god mode" of `dev_console.c`, Ctrl+Shift+G).
     pub constant_play: bool,

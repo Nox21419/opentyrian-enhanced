@@ -34,7 +34,7 @@ pub struct DemoHeader {
 
 /// A keyboard entry: bits 0 up, 1 down, 2 left, 3 right, 4 button0,
 /// 5 button3, 6 button1, 7 button2; held for `wait` frames.
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Hash)]
 pub struct DemoKey {
     pub keys: u8,
     pub wait: u16,

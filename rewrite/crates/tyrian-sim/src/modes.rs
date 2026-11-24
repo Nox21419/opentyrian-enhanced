@@ -7,7 +7,7 @@
 use crate::Loadout;
 
 /// "mode" + "items2" line of a v2 golden master (`golden_master.c:golden_master_level_start`).
-#[derive(Debug, Clone, Copy, Default, PartialEq, Eq)]
+#[derive(Debug, Clone, Copy, Default, PartialEq, Eq, Hash)]
 pub struct ModeSetup {
     pub two_player: bool,
     pub galaga: bool,
@@ -32,7 +32,7 @@ pub struct ModeSetup {
 }
 
 /// State of the side modes during the level.
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
 pub struct ModeState {
     pub galaga_mode: bool,
     pub super_arcade_mode: u8,
@@ -79,7 +79,7 @@ pub struct ModeState {
 }
 
 /// Mouse input of a tick (`keyboard.c`: `mouse_pressed[]`, `mouseWindow*Relative`).
-#[derive(Debug, Clone, Copy, Default, PartialEq, Eq)]
+#[derive(Debug, Clone, Copy, Default, PartialEq, Eq, Hash)]
 pub struct MouseInput {
     pub mask: u8,
     pub dx: i32,

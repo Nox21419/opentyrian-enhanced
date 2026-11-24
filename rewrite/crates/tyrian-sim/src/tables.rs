@@ -25,7 +25,7 @@ fn fill<T: Clone>(src: &[T], len: usize, z: T) -> Vec<T> {
     v
 }
 
-#[derive(Clone)]
+#[derive(Clone, Hash)]
 pub struct Tables {
     pub weapons: Vec<Weapon>,
     pub ports: Vec<WeaponPort>,

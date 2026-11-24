@@ -64,6 +64,7 @@ pub mod fx;
 pub mod level;
 mod link;
 pub mod modes;
+mod network_state;
 pub mod option_shapes;
 pub mod player;
 pub mod replay;
@@ -138,7 +139,7 @@ item_id!(SidekickId, "Sidekick (`options`).");
 item_id!(SpecialId, "Special weapon (`special`).");
 
 /// Player equipment at level start (`player.h:PlayerItems`).
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
 pub struct Loadout {
     pub ship: ShipId,
     pub front_weapon: WeaponId,
@@ -155,7 +156,7 @@ pub struct Loadout {
 }
 
 /// Everything needed to start a level.
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, Hash)]
 pub struct LevelSetup {
     pub episode: u8,
     /// Section of `levelsN.dat` (`mainLevel`), informational.
@@ -202,7 +203,7 @@ pub struct LevelSetup {
 }
 
 /// Player state inherited from the previous level (see [`LevelSetup::carry_over`]).
-#[derive(Debug, Clone, Copy, Default, PartialEq, Eq)]
+#[derive(Debug, Clone, Copy, Default, PartialEq, Eq, Hash)]
 pub struct PlayerCarry {
     /// `player_movement.c:JE_playerMovement`: friction counters;
     /// `JE_main` resets the speeds to zero but not these counters.
@@ -219,7 +220,7 @@ pub struct PlayerCarry {
 /// `tyrian2.c:JE_main` never resets. True at level end as long as the
 /// fire button is held, it holds back the special weapon (`JE_doSpecialShot`) on the first tick
 /// of the next level: without it, two special shots too many at each new wave.
-#[derive(Debug, Clone, Copy, Default, PartialEq, Eq)]
+#[derive(Debug, Clone, Copy, Default, PartialEq, Eq, Hash)]
 pub struct LevelCarry {
     pub players: [PlayerCarry; 2],
     pub special_fire_held: bool,
@@ -272,7 +273,7 @@ impl LevelCarry {
     }
 }
 
-#[derive(Debug, Clone, Copy, Default, PartialEq, Eq)]
+#[derive(Debug, Clone, Copy, Default, PartialEq, Eq, Hash)]
 pub struct PlayerView {
     pub x: i32,
     pub y: i32,
@@ -288,13 +289,13 @@ pub struct PlayerView {
 /// Position of the three background layers, in pixels in map space:
 /// the top-left corner of the play area displays pixel (`x_px`, `y_px`) of
 /// the layer (24×28 tiles; map row 0 at the top).
-#[derive(Debug, Clone, Copy, Default, PartialEq, Eq)]
+#[derive(Debug, Clone, Copy, Default, PartialEq, Eq, Hash)]
 pub struct LayerScroll {
     pub x_px: i32,
     pub y_px: i32,
 }
 
-#[derive(Debug, Clone, Copy, Default, PartialEq, Eq)]
+#[derive(Debug, Clone, Copy, Default, PartialEq, Eq, Hash)]
 pub struct EnemyView {
     pub slot: u16,
     /// Position of the sprite's top-left corner, `game_screen` frame (see the module header).
@@ -314,7 +315,7 @@ pub struct EnemyView {
     pub armor: i32,
 }
 
-#[derive(Debug, Clone, Copy, Default, PartialEq, Eq)]
+#[derive(Debug, Clone, Copy, Default, PartialEq, Eq, Hash)]
 pub struct ShotView {
     pub x: i32,
     pub y: i32,
@@ -322,7 +323,7 @@ pub struct ShotView {
     pub sprite: u16,
 }
 
-#[derive(Debug, Clone, Copy, Default, PartialEq, Eq)]
+#[derive(Debug, Clone, Copy, Default, PartialEq, Eq, Hash)]
 pub struct ExplosionView {
     pub x: i32,
     pub y: i32,
@@ -383,7 +384,7 @@ impl FrameRecord {
 }
 
 /// State readable by Godot at each render frame (Godot owns none of it).
-#[derive(Debug, Clone, Default)]
+#[derive(Debug, Clone, Default, Hash)]
 pub struct SimState {
     pub tick: u64,
     pub players: [PlayerView; 2],

@@ -48,7 +48,7 @@ pub const SHEET_TYRIAN_SHP_11: u8 = 11;
 pub const SHAPE_FILE: [u8; 36] = *b"2478ABCDEFGHIJKLMNOPQRSTU5#V0@3^59'%";
 
 /// `varz.h:struct JE_SingleEnemyType` (game fields; purely rendering ones omitted).
-#[derive(Debug, Clone, Copy, Default)]
+#[derive(Debug, Clone, Copy, Default, Hash)]
 pub struct Enemy {
     pub ex: i16,
     pub ey: i16,
@@ -126,7 +126,7 @@ pub struct Enemy {
 }
 
 /// `shots.h:PlayerShotDataType`.
-#[derive(Debug, Clone, Copy, Default)]
+#[derive(Debug, Clone, Copy, Default, Hash)]
 pub struct PlayerShot {
     pub shot_x: i16,
     pub shot_y: i16,
@@ -163,7 +163,7 @@ pub struct PlayerShot {
 }
 
 /// `varz.h:EnemyShotType`.
-#[derive(Debug, Clone, Copy, Default)]
+#[derive(Debug, Clone, Copy, Default, Hash)]
 pub struct EnemyShot {
     pub sx: i16,
     pub sy: i16,
@@ -181,7 +181,7 @@ pub struct EnemyShot {
 }
 
 /// `varz.h:Explosion`.
-#[derive(Debug, Clone, Copy, Default)]
+#[derive(Debug, Clone, Copy, Default, Hash)]
 pub struct Explosion {
     pub ttl: u8,
     pub x: i16,
@@ -193,7 +193,7 @@ pub struct Explosion {
 }
 
 /// `varz.h:rep_explosion_type`.
-#[derive(Debug, Clone, Copy, Default)]
+#[derive(Debug, Clone, Copy, Default, Hash)]
 pub struct RepExplosion {
     pub delay: u32,
     pub ttl: u32,
@@ -203,14 +203,14 @@ pub struct RepExplosion {
 }
 
 /// Mounted weapon (`player.h:PlayerItems.weapon[]`): identifier and power level.
-#[derive(Debug, Clone, Copy, Default, PartialEq, Eq)]
+#[derive(Debug, Clone, Copy, Default, PartialEq, Eq, Hash)]
 pub struct WeaponSlot {
     pub id: WeaponId,
     pub power: u8,
 }
 
 /// `player.h:PlayerItems`.
-#[derive(Debug, Clone, Copy, Default, PartialEq, Eq)]
+#[derive(Debug, Clone, Copy, Default, PartialEq, Eq, Hash)]
 pub struct Items {
     pub ship: ShipId,
     pub generator: GeneratorId,
@@ -225,7 +225,7 @@ pub struct Items {
 }
 
 /// `player.h:Player.sidekick[]`.
-#[derive(Debug, Clone, Copy, Default)]
+#[derive(Debug, Clone, Copy, Default, Hash)]
 pub struct SidekickState {
     pub ammo_max: i32,
     pub ammo_refill_ticks_max: u32,
@@ -241,7 +241,7 @@ pub struct SidekickState {
 }
 
 /// `player.h:Player`.
-#[derive(Debug, Clone, Copy, Default)]
+#[derive(Debug, Clone, Copy, Default, Hash)]
 pub struct Player {
     pub cash: u64,
     pub items: Items,
@@ -289,7 +289,7 @@ impl Player {
 /// in addition to the objects ("Warning" block, "secret level", "Level Timer",
 /// "GAME OVER", level_helpers.c:draw_boss_bar), with the values at the time
 /// of drawing. Outside the hash and the golden master.
-#[derive(Debug, Clone, Copy, Default)]
+#[derive(Debug, Clone, Copy, Default, Hash)]
 pub struct DrawnTexts {
     /// `warningCol` / `warningColChange` (tyrian2.c: 120 and 1 at level start).
     pub warning_col: u8,
@@ -311,7 +311,7 @@ pub struct DrawnTexts {
 }
 
 /// `level_helpers.c` / `tyrian2.c`: boss health bar (`boss_bar[2]`).
-#[derive(Debug, Clone, Copy, Default)]
+#[derive(Debug, Clone, Copy, Default, Hash)]
 pub struct BossBar {
     pub link_num: u8,
     pub armor: u32,
@@ -323,7 +323,7 @@ pub struct BossBar {
 /// `stats.c` / `achievements.c` consume (`event_bus_emit` in the C code). Purely
 /// observational: neither hashed nor read by the simulation, hence no effect on the
 /// golden masters. `AchievementTracker` reads their differences at each tick.
-#[derive(Debug, Clone, Copy, Default, PartialEq, Eq)]
+#[derive(Debug, Clone, Copy, Default, PartialEq, Eq, Hash)]
 pub struct AchEvents {
     /// EVENT_ENEMY_KILLED (`collision.c`, both death chains).
     pub kills: u32,
@@ -347,7 +347,7 @@ pub struct AchEvents {
 /// `stats.h:LevelStats`, fields read by the end-of-level tally screen
 /// (`mainint.c:JE_endLevelAni`). Reset to zero at the start of each level
 /// (`tyrian2.c:JE_main` → `stats.c:level_stats_reset`). Purely observational.
-#[derive(Debug, Clone, Copy, Default, PartialEq, Eq)]
+#[derive(Debug, Clone, Copy, Default, PartialEq, Eq, Hash)]
 pub struct LevelStats {
     /// `damage_by_bay[5]`: front, rear, left sidekick, right sidekick,
     /// special (`stats.c:level_stats_record_damage`).
@@ -383,7 +383,7 @@ pub const MAX_SUPERPIXELS: usize = 101;
 /// `drawn_z`: value of `z` at the last drawing (0 = not drawn), `moves`:
 /// number of `x += delta_x` steps performed.
 /// `backgrnd.c:StarfieldStar`: a star of the starfield (rendering only).
-#[derive(Debug, Clone, Copy, Default)]
+#[derive(Debug, Clone, Copy, Default, Hash)]
 pub struct StarfieldStar {
     pub color: u8,
     /// Index into game_screen (stride 320), uint16_t that wraps around.
@@ -448,7 +448,7 @@ pub fn initialize_starfield(processor_type: u8, mt: &mut MersenneTwister) -> [St
     stars
 }
 
-#[derive(Debug, Clone, Copy, Default)]
+#[derive(Debug, Clone, Copy, Default, Hash)]
 pub struct Superpixel {
     pub cx: u16,
     pub cy: u16,
@@ -461,7 +461,7 @@ pub struct Superpixel {
 }
 
 /// Dashboard drawing done by the C code in the middle of the simulation.
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
 pub enum HudOp {
     /// varz.c: JE_wipeShieldArmorBars (if `wipe`), JE_drawShield (if
     /// `shield`), JE_drawArmor (if `armor`), with the shield and armor of both
@@ -501,7 +501,7 @@ pub fn pt_background2(pt: u8, background2over: u8) -> bool {
 }
 
 /// Background: scrolling of the three layers, starfield and "smoothies" effects (`backgrnd.c`, `tyrian2.c`).
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, Hash)]
 pub struct Background {
     pub smoothies: [bool; 9],
     pub smoothie_data: [u8; 9],
@@ -548,7 +548,7 @@ pub struct Background {
 }
 
 /// Level event script and the settings it drives (`level_events.c`, `tyrian2.c`).
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, Hash)]
 pub struct EventScript {
     pub event_rec: Vec<Event>,
     pub max_event: u16,
@@ -577,7 +577,7 @@ pub struct EventScript {
 }
 
 /// Level end and game over (`tyrian2.c`, `player_movement.c`).
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, Hash)]
 pub struct LevelEnding {
     pub end_level: bool,
     pub really_end_level: bool,
@@ -595,7 +595,7 @@ pub struct LevelEnding {
 }
 
 /// Special weapon in progress (`varz.c`, static variables of `JE_doSpecialShot`).
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, Hash)]
 pub struct SpecialWeaponState {
     pub special_wait: u8,
     pub next_special_wait: u8,
@@ -613,7 +613,7 @@ pub struct SpecialWeaponState {
 }
 
 /// Level color filter (`config.c`, `backgrnd.c:JE_filterScreen`).
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, Hash)]
 pub struct LevelFilter {
     pub level_filter: i8,
     pub level_brightness: i8,
@@ -627,7 +627,7 @@ pub struct LevelFilter {
 }
 
 /// Generator energy and shield recharge (`tyrian2.c`).
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, Hash)]
 pub struct Energy {
     pub power: u32,
     pub power_add: u32,
@@ -636,7 +636,7 @@ pub struct Energy {
 }
 
 /// Common sidekick placement (`varz.c`: `optionAttachment*`, `optionSatelliteRotate`).
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, Hash)]
 pub struct SidekickFormation {
     pub option_attachment_move: i16,
     pub option_attachment_linked: bool,
@@ -647,7 +647,7 @@ pub struct SidekickFormation {
 }
 
 /// Commands read during `player_movement.c:JE_playerMovement` (mouse, buttons, SF codes, mode change).
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, Hash)]
 pub struct Controls {
     pub mouse_x: u16,
     pub mouse_y: u16,
@@ -662,7 +662,7 @@ pub struct Controls {
 }
 
 /// Rendering only: values taken at the moment the C code draws, outside the hash and the golden master.
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, Hash)]
 pub struct RenderOnly {
     /// `power` at the moment tyrian2.c draws the HUD energy gauge
     /// (after shield recharge and `power += powerAdd`, before the shots):
@@ -758,7 +758,7 @@ pub struct RenderOnly {
 }
 
 /// An enemy drawing from `JE_drawEnemy` (rendering only).
-#[derive(Debug, Clone, Copy)]
+#[derive(Debug, Clone, Copy, Hash)]
 pub struct DrawnEnemy {
     /// Slot in `enemy` (0..100): gives the layer.
     pub slot: u8,
@@ -777,7 +777,7 @@ pub struct DrawnEnemy {
 }
 
 /// A drawing from `shots.c:player_shot_move_and_draw` (rendering only).
-#[derive(Debug, Clone, Copy)]
+#[derive(Debug, Clone, Copy, Hash)]
 pub struct DrawnShot {
     pub x: i16,
     pub y: i16,
@@ -788,7 +788,7 @@ pub struct DrawnShot {
 }
 
 /// Music (ADR 0010): outside `Sim::snapshot`, hence outside the hash.
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, Hash)]
 pub struct MusicState {
     /// `musmast.c:musicFade`.
     pub music_fade: bool,
@@ -804,7 +804,7 @@ pub struct MusicState {
     pub music_level_song_branch: bool,
 }
 
-#[derive(Clone)]
+#[derive(Clone, Hash)]
 pub struct World {
     pub tables: Tables,
     pub rng: Xoshiro256,
@@ -919,7 +919,7 @@ pub const DEFAULT_MUSIC_VOLUME: u16 = 191;
 
 /// Audio order emitted by the level loop, in the order the C code runs it.
 /// Never acts on the simulation: the Godot client plays them.
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
 pub enum MusicCue {
     /// `play_song(n)`, n 0-based (`loudness.c:play_song`). Replaying the current song does not restart it
     /// (loudness.c:play_song only reloads if `song_num != song_playing`).

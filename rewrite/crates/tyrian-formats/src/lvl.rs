@@ -32,7 +32,7 @@ pub const LAYER_DIMS: [(usize, usize); 3] =
     [(LAYER1_WIDTH, LAYER1_HEIGHT), (LAYER2_WIDTH, LAYER2_HEIGHT), (LAYER3_WIDTH, LAYER3_HEIGHT)];
 
 /// `varz.h:JE_EventRecType`. File order: time, type, dat, dat2, dat3, dat5, dat6, dat4.
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Hash)]
 pub struct Event {
     pub eventtime: u16,
     pub eventtype: u8,
@@ -73,7 +73,7 @@ impl Event {
 }
 
 /// Level header (start of the even entry).
-#[derive(Debug, Clone, PartialEq, Eq, Serialize)]
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Hash)]
 pub struct LevelHeader {
     /// `char_mapFile` (read, unused by the C code).
     pub map_file: u8,
@@ -92,7 +92,7 @@ impl LevelHeader {
 }
 
 /// Even entry: header + random enemies + events.
-#[derive(Debug, Clone, PartialEq, Eq, Serialize)]
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Hash)]
 pub struct LevelEvents {
     pub header: LevelHeader,
     /// `levelEnemy[]`: all stored identifiers (the C code reads 40 at most).
@@ -136,7 +136,7 @@ impl LevelEvents {
 }
 
 /// Odd entry: shape table + 3 layers.
-#[derive(Debug, Clone, PartialEq, Eq, Serialize)]
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Hash)]
 pub struct LevelMap {
     /// `mapSh[layer][i]`: 1-based tile number in `shapesX.dat`, 0 = none.
     /// Only indices 0..=71 are consulted by the C code; 72..127 kept.
@@ -223,7 +223,7 @@ impl LevelMap {
 }
 
 /// A complete level (pair of entries).
-#[derive(Debug, Clone, PartialEq, Eq, Serialize)]
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Hash)]
 pub struct Level {
     pub events: LevelEvents,
     pub map: LevelMap,

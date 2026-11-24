@@ -17,7 +17,7 @@ pub const DEMO_DIFFICULTY: u8 = 2;
 /// Cursor of `replay_demo_keys`: `demo_keys` and `demo_keys_wait`, then the
 /// remaining complete triplets. A final incomplete triplet (`Demo::tail`) is
 /// never played: reading it reaches the end of the file (`feof`).
-#[derive(Debug, Clone, PartialEq, Eq)]
+#[derive(Debug, Clone, PartialEq, Eq, Hash)]
 pub struct DemoInput {
     keys: Vec<DemoKey>,
     pos: usize,

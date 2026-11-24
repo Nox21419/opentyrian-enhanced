@@ -8,7 +8,7 @@ const N: usize = 624;
 const M: usize = 397;
 
 /// `mtrand.c`: MT19937, 32-bit output.
-#[derive(Clone)]
+#[derive(Clone, Hash)]
 pub struct MersenneTwister {
     x: [u32; N],
     p0: usize,
@@ -55,7 +55,7 @@ impl MersenneTwister {
 }
 
 /// `rng.c`: xoshiro256**.
-#[derive(Clone)]
+#[derive(Clone, Hash)]
 pub struct Xoshiro256 {
     s: [u64; 4],
 }

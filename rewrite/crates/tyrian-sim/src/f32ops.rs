@@ -20,7 +20,7 @@
 //! `sincos_match_hardware` checks it against the libm of the machine.
 
 /// Single-precision IEEE-754 `float`, by its bits.
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Default)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Default, Hash)]
 pub struct F32(pub u32);
 
 /// Dyadic rational `m × 2^e` (exact value of a float or a double).
