@@ -9,11 +9,11 @@ Android activates the wider invisible row targets on release; dragging off
 cancels. Desktop mouse, keyboard and controller navigation remain available.
 All text is localized in the six game languages.
 
-The first host Episode checkpoint is now implemented for review: while hosting,
+The host Episode and Difficulty checkpoints are implemented and approved: while hosting,
 Join Game becomes **Choose Episode**. It reuses the original Episode screen and
-returns to the same live lobby with the chosen episode shown. It does not open
-Difficulty or start a game yet. Back preserves the host connection; leaving the
-lobby stops it and clears the temporary choice. No save/profile is written.
+then opens the original Difficulty screen. Choosing Difficulty returns to the
+same live lobby with both choices shown. Back preserves the host connection;
+leaving the lobby stops it and clears both choices. No save/profile is written.
 
 The maintainer approved this first screen on 2026-11-24 ("looks good, continue")
 and required the entire implementation plan to be documented before more code.
@@ -42,11 +42,11 @@ with an APK built from this checkout. An older APK does not contain this screen.
    Players. Suspending the Android application also closes the connection.
 
 For the host Episode checkpoint, Host Game first, then Choose Episode. Choose
-an available episode or Back; the lobby connection remains open. Reopening the
-Episode screen restores the selected row. The host may make this preparation
+an available episode, then Difficulty, or Back; the connection remains open.
+Reopening the screens restores selected rows. The host may make this preparation
 choice before a guest connects. The choice is local preparation, not a broadcast
-configuration or a guest Ready acknowledgement. Review this one screen before
-the selected original Difficulty screen is connected.
+configuration or a guest Ready acknowledgement. Both screens were approved;
+Ready and level integration are still pending.
 
 The LAN transport uses UDP port **26635**, one guest, and a reliable ENet hello
 containing a lobby protocol version and application version. Socket creation,
@@ -744,3 +744,34 @@ active campaign, exact peer preservation, restored rows, Back and reset on a new
 Episode. Existing local New Game and lobby suites are included in validation.
 The source capture is desktop evidence, not an Android device test or build
 handover. Linux package checks remain unavailable without WSL.
+
+### Initial rules and campaign-entry audit
+
+After Difficulty approval (2026-11-24), `network_initial_configuration.gd` adds
+an initial-session policy usable as the startup coordinator's mandatory
+validator. It reads fresh native campaign scripts into a separate RefCounted
+instance and checks the actual default first-level destination for every
+available episode/difficulty. It accepts only the existing two-player Arcade
+starting equipment, zero money and the approved two mouse-capable devices.
+This policy is separate from future progression/load/save configurations.
+
+Investigation found that all five episodes first stop at the original shop.
+The read-only level preview follows the same default map destination as
+`Game.campaign_leave_shop`, but retains the complete entry-script result.
+Validation does not apply that result, bypass the shop/story, load a level,
+autosave, draw a seed or mutate Game. Before playable integration, the host must
+go through the original shop and any resulting equipment/progression must have
+its own ordered common configuration. No gameplay is enabled by this policy.
+
+This is initial-rule validation, not complete catalog/asset validation. Remaining
+work includes resolving/freezing effective mod tables, validating actual level
+assets and equipped definitions, integrating initial shop/progression, preparing
+both simulations and auditing full future-affecting state hashes. The source
+fingerprint alone does not make cached resolved definitions current.
+
+Verification: 15 cases pass across initial-policy, configuration and startup
+suites, with no errors/failures/orphans. Tests cover all 30 episode/difficulty
+pairs, the retained shop boundary, rule-invalid but grammar-valid proposals,
+missing content, invalid choices, copied results and real-policy startup
+acceptance without early Start. New GDScript formatting/lint and diff whitespace
+pass. No phone test, Linux exported package gate or build handover is claimed.

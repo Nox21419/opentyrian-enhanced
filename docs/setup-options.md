@@ -24,7 +24,7 @@ See [Android title-menu validation](android-build.md#title-touch-menu-first-menu
 The accepted two-phone networking direction reuses Players > Modem/Network Game
 with Host Game, Join Game and Back in the original style. The first screen is a
 connection-only LAN test, visually approved. The original host Episode screen
-now leads to the original Difficulty screen, the next review checkpoint. Both
+now leads to the original Difficulty screen. Both screens are approved and their
 temporary choices return to the live lobby; playable co-op remains pending.
 See [network co-op](network-coop.md).
 
