@@ -33,7 +33,9 @@ func first_level(episode: int, initial_difficulty: int) -> Dictionary:
 		var map: PackedInt32Array = result.get("map", PackedInt32Array())
 		if not map.is_empty() and (map.size() < 2 or map.size() % 2 != 0):
 			return {}
-		var section := int(result.get("section", 0)) + 1 if map.is_empty() else int(map[1])
+		# shop.gd's Arcade Start Level passes the last map choice, unlike the
+		# Full Game shop's default choice. Preserve that existing path.
+		var section := int(result.get("section", 0)) + 1 if map.is_empty() else int(map[map.size() - 1])
 		result = _campaign.run_script(episode, section, initial_difficulty, PLAYER1[0], true, 0, true, 0)
 	if result.get("stop") != "level" or result.has("mini_game"):
 		return {}

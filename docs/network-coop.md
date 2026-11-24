@@ -258,9 +258,11 @@ leave no stuck input, leaked sockets, divergent ticks or unwanted profile writes
 
 1. Synchronize progression as ordered host-owned decisions with guest intent
    messages where the original mode permits guest choices. Host validates
-   purchases/equipment changes against the existing Rust shop rules; both
-   verify resulting equipment/money and the same progression sequence.
-2. Cover level results/debrief, Arcade shop/options, loadout, next level,
+   equipment/progression changes against the existing mode rules; both verify
+   resulting equipment/money and the same progression sequence. Two-player
+   Arcade uses its original Arcade Game Menu, not Full Game purchases; do not
+   introduce a purchase system into this mode.
+2. Cover level results/debrief, Arcade Game Menu/options, loadout, next level,
    episode transitions, bonus/secret routes, game over and ending. Both peers
    pass a new load/start barrier for every gameplay scene.
 3. Preserve the original screen artwork/layout and controls. Adapt one menu
@@ -1037,3 +1039,52 @@ or replace device/package validation. Cargo formatting, changed GDScript lint/
 format and diff checks pass. Clippy passes with the same two documented
 baseline categories allowed. No Android run, Linux exported-package gate or
 build handover is claimed.
+
+Next lifecycle step: bind the real startup connection to a session-owned
+preparation context in a backend-only node. Both callers explicitly supply the
+same selected episode before connecting. Propose through the real validator,
+prepare a detached preview only after configuration agreement, and exchange its
+actual diagnostic at the untouched pre-step boundary. Expose preview agreement
+but no Ready/Start/game-scene action. Stop, failure and node exit must free the
+preview and close the transport. The current player lobby remains unchanged;
+episode discovery and the original shop's synchronized result still need their
+own integration before this can become the player startup path.
+
+The maintainer chose host operation of the original shop/menu while the guest
+waits (2026-11-24). Source audit then clarified that two-player Arcade actually
+uses MENU_2_PLAYER_ARCADE, the original Arcade Game Menu, not Full Game purchases.
+Do not add a purchase flow to Arcade. Preserve Start Level, player-input rows,
+Options and Quit with the necessary network ownership/safety adaptation.
+The local Arcade Start action passes the last map destination to
+campaign_leave_shop; the read-only initial-level resolver now follows that same
+choice rather than the Full Game shop's default first destination. This is an
+unused-preview correction, not a change to active gameplay or new C evidence.
+
+### Real connection ownership and actual preview comparison
+
+`network_preview_connection.gd` now owns the real startup connection and its
+preparation context. Both callers explicitly supply the selected episode. It
+proposes through the actual rule/asset validator and compares the actual
+untouched preview diagnostics over reliable ENet after configuration agreement.
+It exposes preview agreement, not Ready, Start or a gameplay scene action.
+The coordinator's LOADED value is internal to this backend diagnostic barrier;
+the player lobby is still the connection-only flow. No first-level/menu stage
+is silently treated as completed by that name.
+
+Invalid local preparation/proposals, mismatched or altered previews, transport
+failure, cancellation and node exit clear the native preview and connection.
+The wrapper checks health after synchronous state callbacks, so cancellation
+cannot be returned as a successful proposal. Existing startup, menu and local
+load code remains unchanged. Episode discovery/selection, the approved
+host-operated original Arcade Game Menu and actual live handoff are next.
+The guest will wait; no Full Game purchase screen is being added to Arcade.
+
+Verification: 12 cases pass across real preview connections, existing real
+startup connections and initial rules, with no errors/failures/orphans and
+explicit process exit 0. Tests include real matching content/configuration/
+preview agreement, retained original menu entry and unchanged Game state,
+invalid-proposal cleanup, altered-preview cleanup, disconnect/exit and callback
+cancellation. New/changed GDScript lint/format and whitespace checks pass.
+No Android/device or Linux package gate was run and no game build was handed
+over. These are two peers in one Godot process over real localhost ENet, not a
+two-process, two-phone or internet gameplay test.
