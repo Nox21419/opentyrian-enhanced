@@ -36,8 +36,9 @@ func movement(gravity: Vector3, sensitivity: int) -> Vector2i:
 	var angles := Vector2(
 		rad_to_deg(atan2(_filtered.dot(_right), forward)), rad_to_deg(atan2(_filtered.dot(_down), forward))
 	)
-	# Full speed at 34 degrees on 1, about 22 degrees on 5, and 8 degrees on 10.
-	var full_tilt := lerpf(34.0, 8.0, float(clampi(sensitivity, 1, 10) - 1) / 9.0)
+	# Double level 1's original 32-degree response range; retain level 10.
+	# Space the full-input tilt angles evenly, keeping intermediate levels lower.
+	var full_tilt := lerpf(66.0, 8.0, float(clampi(sensitivity, 1, 10) - 1) / 9.0)
 	return Vector2i(_axis(angles.x, full_tilt), _axis(angles.y, full_tilt))
 
 

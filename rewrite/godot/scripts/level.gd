@@ -1123,7 +1123,9 @@ func tilt_enabled() -> bool:
 	)
 
 
-func reset_tilt_neutral() -> bool:
+func reset_tilt_neutral(forget_previous := false) -> bool:
+	if forget_previous:
+		_tilt_flight.calibrated = false
 	return _tilt_flight.calibrate(Input.get_gravity()) if tilt_enabled() else false
 
 

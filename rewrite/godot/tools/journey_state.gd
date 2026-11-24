@@ -310,7 +310,17 @@ func _level(scene: Node) -> Dictionary:
 			"dps": hk.overlays.dps_active
 		}
 		d["quick_load_pending"] = hk.quick_load_pending
+	var tilt: Variant = scene.get("_tilt_flight")
+	if tilt != null:
+		d["tilt"] = {
+			"enabled": scene.tilt_enabled(),
+			"calibrated": tilt.calibrated,
+			"neutral": [tilt.neutral.x, tilt.neutral.y, tilt.neutral.z],
+			"gravity": [Input.get_gravity().x, Input.get_gravity().y, Input.get_gravity().z],
+		}
 	if sim != null:
+		d["tick"] = sim.tick()
+		d["state_hash"] = sim.state_hash()
 		var p: Dictionary = sim.player_dict(0)
 		d["armor"] = p.get("armor", 0)
 		d["x"] = p.get("x", 0)

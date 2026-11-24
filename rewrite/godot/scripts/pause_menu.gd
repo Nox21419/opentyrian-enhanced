@@ -52,9 +52,9 @@ func open_menu(lvl: Node) -> bool:
 	if _touch_pause:
 		actions = preload("res://scripts/pause_actions.gd").new(self)
 		actions.background = vga.indices(VGA_SCREEN)
-	var tilt: bool = _touch_pause and level.tilt_enabled()
-	var bottom := (189 if tilt else 177) if _touch_pause else 137
-	var top := 5 if tilt else 13
+	var mobile := _touch_pause
+	var bottom := 189 if mobile else 137
+	var top := 5 if mobile else 13
 	vga.bar_shade(VGA_SCREEN, 3, top, 217, bottom)
 	vga.bar_shade(VGA_SCREEN, 5, top + 2, 215, bottom - 2)
 	vga.bar_shade(VGA_SCREEN, 5, top + 2, 215, bottom - 2)
@@ -67,7 +67,7 @@ func open_menu(lvl: Node) -> bool:
 			_items(),
 			{
 				"x": PAUSE_X,
-				"y_start": 12 if tilt else PAUSE_Y_START,
+				"y_start": 12 if mobile else PAUSE_Y_START,
 				"step": PAUSE_STEP,
 				"row_width": PAUSE_ROW_W,
 				"no_shadow": true,
@@ -157,9 +157,75 @@ func _items() -> Array:
 	if _touch_pause:
 		items.insert(4, MenuEngine.item("ig_help", "", Kind.ACTION, {"action": _open_help}))
 		items.append(MenuEngine.item("ig_more", "", Kind.ACTION, {"action": actions.open_more}))
-		if level.tilt_enabled():
-			items.append(MenuEngine.item("tilt_reset", "", Kind.ACTION, {"action": _reset_tilt}))
+		items.append(MenuEngine.item("mobile_controls", "", Kind.ACTION, {"action": _open_controls}))
 	return items
+
+
+func _open_controls() -> void:
+	_touch_release.cancel()
+	var items := SETUP.mobile_control_items()
+	for item in items:
+		item["help"] = ""
+	items[-1]["label"] = "gd_back"
+	items[0]["set"] = _set_tilt_enabled
+	items[1]["set"] = _set_tilt_sensitivity
+	(
+		items
+		. insert(
+			2,
+			(
+				MenuEngine
+				. item(
+					"tilt_reset",
+					"",
+					Kind.ACTION,
+					{
+						"action": _reset_tilt,
+						"unavailable": not level.tilt_enabled(),
+					}
+				)
+			)
+		)
+	)
+	(
+		menus
+		. open(
+			"",
+			items,
+			{
+				"x": PAUSE_X,
+				"y_start": PAUSE_Y_START,
+				"step": PAUSE_STEP,
+				"row_width": 290,
+				"no_shadow": true,
+				"hover": false,
+				"background": _controls_background,
+				"utilities": true,
+			}
+		)
+	)
+
+
+func _controls_background() -> void:
+	vga.set_indices(VGA_SCREEN, actions.background)
+	for pass_number in 4:
+		vga.bar_shade(VGA_SCREEN, 3, 13, 303, 107)
+
+
+func _set_tilt_enabled(enabled: bool) -> void:
+	_touch_release.cancel()
+	SETUP.settings.tilt_controls_enabled = enabled
+	if enabled:
+		level.reset_tilt_neutral(true)
+	menus.current().items[2]["unavailable"] = not enabled
+	SETUP.apply_settings()
+	SETUP.save_settings()
+
+
+func _set_tilt_sensitivity(index: int) -> void:
+	SETUP.settings.tilt_sensitivity = index + 1
+	SETUP.apply_settings()
+	SETUP.save_settings()
 
 
 func _reset_tilt() -> void:

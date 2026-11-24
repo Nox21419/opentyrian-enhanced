@@ -1209,16 +1209,22 @@ functions. Desktop input, demos, tools and replay playback do not read sensors.
 
 Each playable level captures its own neutral orientation. If the gravity sensor
 is not ready, movement waits and the first valid reading establishes neutral.
-Pause > Reset Tilt Neutral captures the current orientation and keeps the game
-paused; it appears only with tilt enabled. A failed capture plays the existing
+Pause > Controls provides the same tilt toggle and sensitivity settings while
+keeping gameplay paused. Changes save immediately to the same `setup.cfg` used
+by pre-game Setup. Enabling tilt mid-level captures the current holding angle
+as neutral (or waits for the first valid reading). The submenu also provides
+Reset Tilt Neutral and Back. Reset captures the current orientation and keeps
+the game paused; its row is disabled while tilt is off. A failed capture plays the existing
 rejection sound and retains any previous neutral. Neutral is not saved between
 levels. Pause/focus loss still cancels held fire.
 
 Tilt Sensitivity is saved in `setup.cfg`, from 1 to 10 (default 5). A 2-degree
 dead zone suppresses drift, and readings are smoothed before conversion to
-integer mouse input. Full input is reached at 34 degrees on 1, approximately
-22 degrees on 5, and 8 degrees on 10. The existing simulation mouse clamp,
-inertia, bounds, timing, collisions, weapon cadence and RNG rules remain intact.
+integer mouse input. Sensitivity 1 has half its initial response, reaching full
+input at 66 degrees; sensitivity 10 retains its original response and reaches
+full input at 8 degrees. Full-input tilt angles are spaced evenly
+between those endpoints, reducing every intermediate setting too. The existing
+simulation mouse clamp, inertia, bounds, timing, collisions, weapon cadence and RNG rules remain intact.
 Godot's gravity sensor is enabled in `project.godot`; Godot already rotates
 Android readings to match the display, so no second landscape rotation is added.
 See [Godot Input](https://docs.godotengine.org/en/stable/classes/class_input.html#class-input-method-get-gravity)
@@ -1230,3 +1236,27 @@ independent fire, level-start capture, touch-only firing while tilting, paused
 recalibration, drag cancellation and desktop/demo/replay scope. Physical phone
 axis direction, comfort, sensor noise and focus/resume testing remain pending;
 no Android device was connected during this implementation.
+
+Pause Controls follow-up: `pause_touch_test.gd` checks release/cancel gestures,
+immediate config-file persistence, sensitivity changes through touch and menu
+keys, calibration when enabling tilt, disabled reset while off, Back restoring
+the parent selection, and unchanged paused tick/state hashes. The shared
+pre-game rows remain covered by `setup_touch_test.gd`. Phone verification of
+the new Pause > Controls submenu is recorded below.
+
+A35 validation (2026-11-24): 26 device checks passed using real Android touch
+injection and the opt-in JourneyState logger. They covered submenu routing,
+held-release behavior, drag-off/return cancellation, both toggle states, all
+ten sensitivity values and wraparound, immediate `setup.cfg` writes, neutral
+capture against live gravity, disabled reset, Back selection restoration,
+resume, cold-restart persistence and shared pre-game Controls settings. Tick
+and state hash remained identical through the paused edit sequence. On/off,
+reset and pre-game screenshots were inspected. This tests the actual handset's
+sensor readings, but does not replace physical steering/comfort testing.
+
+The logger now exposes the paused tick/state hash and tilt calibration/neutral
+readout only when `--journey-state` is explicitly enabled. A temporary test APK
+supplied that flag; the normal APK was rebuilt without it. All seven original
+player files (including all three campaign saves) were restored and verified by
+SHA-256 before restoring the normal build. The Linux exported-package gate
+remains unavailable because WSL/Linux is absent on this Windows host.

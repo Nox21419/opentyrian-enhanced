@@ -670,9 +670,10 @@ move the ship toward it while firing. Drag to steer and lift to stop firing.
 The ship keeps its normal movement limits. **Setup > Controls > Tilt Controls**
 switches to tilt steering; holding the playfield then fires without steering.
 Hold the phone comfortably as each level starts to set neutral. While paused,
-**Reset Tilt Neutral** captures your current holding position and leaves the
-level paused. **Tilt Sensitivity** ranges from 1 to 10 (default 5); higher values
-need less tilt. These options are Android-only.
+**Controls** lets you change the same tilt toggle and sensitivity. Enabling
+tilt there captures a new neutral. **Controls > Reset Tilt Neutral** captures
+your current holding position and leaves the level paused. **Tilt Sensitivity**
+ranges from 1 to 10 (default 5); higher values need less tilt. These options are Android-only.
 
 Compact sidekick icons and Mode
 above the bottom message bar activate manual sidekicks and change rear-gun mode.

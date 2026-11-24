@@ -58,3 +58,27 @@ func test_native_input_preserves_mouse_limit_inertia_and_independent_fire() -> v
 		shots_seen = shots_seen or not sim.player_shots().is_empty()
 	assert_bool(shots_seen).is_true()
 	sim.free()
+
+
+func test_sensitivity_half_low_unchanged_high_and_even_tilt_steps() -> void:
+	var tilt := TiltFlight.new()
+	# The original level-1 range was 32 degrees beyond the two-degree dead zone.
+	assert_int(tilt._axis(14.8, 34.0)).is_equal(12)
+	assert_int(tilt._axis(14.8, 66.0)).is_equal(6)
+	for sensitivity in range(1, 11):
+		# Midpoint of each evenly spaced response range should give half input.
+		var full_angle := 66.0 - float(sensitivity - 1) * 58.0 / 9.0
+		var angle := deg_to_rad(2.0 + (full_angle - 2.0) / 2.0)
+		tilt.calibrate(Vector3(0, 0, -9.8))
+		var gravity := Vector3(sin(angle), 0, -cos(angle)) * 9.8
+		for frame in 50:
+			tilt.movement(gravity, sensitivity)
+		assert_int(tilt.movement(gravity, sensitivity).x).is_equal(15)
+	# Level 10 keeps the previous response through the real movement path.
+	for degrees in [0.0, 1.0, 2.0, 4.0, 6.0, 8.0, 20.0]:
+		var angle := deg_to_rad(degrees)
+		var gravity := Vector3(sin(angle), 0, -cos(angle)) * 9.8
+		tilt.calibrate(Vector3(0, 0, -9.8))
+		for frame in 50:
+			tilt.movement(gravity, 10)
+		assert_int(tilt.movement(gravity, 10).x).is_equal(tilt._axis(degrees, 8.0))

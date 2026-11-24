@@ -120,7 +120,8 @@ Pause menu options (in-level menu, `mainint.c:JE_inGameSetup`):
 Android Setup > Controls replaces Key Bindings, with Tilt Controls (Off by
 default) and saved Tilt Sensitivity (1–10, default 5). Enabled tilt steers the
 ship while held playfield touch fires. Each level captures neutral; Pause >
-Reset Tilt Neutral captures it again without resuming. The nine-row tilt pause
-menu moves up eight logical pixels to keep every row visible. Other pause
-layouts retain their positions. Sensor details, gameplay preservation and QA
-status are in [Android tilt controls](android-build.md#android-tilt-controls).
+Controls offers the same toggle and sensitivity while paused, saving changes
+immediately. Enabling tilt captures a new neutral. Reset Tilt Neutral is inside
+Controls and disabled while tilt is off. The nine-row Android pause menu moves
+up eight logical pixels to keep Controls visible. Desktop retains its layout.
+Sensor details, gameplay preservation and QA status are in [Android tilt controls](android-build.md#android-tilt-controls).

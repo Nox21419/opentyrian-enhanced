@@ -484,23 +484,26 @@ func _setup_items() -> Array:
 	]
 	if _touch_setup:
 		items[KEYBINDINGS_ROW] = _item("mobile_controls", "mobile_controls_desc", Kind.ACTION,
-			{"action": func() -> void: _open("mobile_controls", _mobile_control_items())})
+			{"action": func() -> void: _open("mobile_controls", mobile_control_items())})
 		items.insert(SECRETS_ROW, _item("setup_secrets", "setup_secrets_desc", Kind.ACTION,
 			{"action": func() -> void: _open("secrets_header", _secrets_items())}))
 	return items
 
 
 ## Android flight settings use Setup's original menu engine.
-func _mobile_control_items() -> Array:
+static func mobile_control_items() -> Array:
 	return [
-		_toggle("tilt_controls", "tilt_controls_desc", "tilt_controls_enabled"),
-		_item("tilt_sensitivity", "tilt_sensitivity_desc", Kind.PICKER, {
+		MenuEngine.item("tilt_controls", "tilt_controls_desc", Kind.TOGGLE, {
+			"get": func() -> bool: return settings.tilt_controls_enabled,
+			"set": func(v: bool) -> void: settings.tilt_controls_enabled = v,
+		}),
+		MenuEngine.item("tilt_sensitivity", "tilt_sensitivity_desc", Kind.PICKER, {
 			"get": func() -> int: return int(settings.tilt_sensitivity) - 1,
 			"set": func(i: int) -> void: settings.tilt_sensitivity = i + 1,
 			"count": 10,
 			"labels": ["1", "2", "3", "4", "5", "6", "7", "8", "9", "10"],
 		}),
-		_item("setup_done", "setup_done_back", Kind.BACK),
+		MenuEngine.item("setup_done", "setup_done_back", Kind.BACK),
 	]
 
 
