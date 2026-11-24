@@ -980,3 +980,60 @@ hash omits, returns to its original value after clearing that override and
 changes after a tick. Cargo formatting and changed GDScript lint/format pass.
 Clippy passes with only the two previously documented baseline categories
 allowed. No Android run, Linux package gate or gameplay/build handover occurred.
+
+Next detached-load step: create a separate native preparation entry point using
+the already validated configuration and session-owned mod API. Parse strict
+native types/bounds again, construct the normal initial Arcade LevelSetup, and
+use Sim::new plus the existing core-effect settings. Initialize rendering-only
+stars with a private MT19937 at the original fresh-process seed 5489; do not
+read/advance STARFIELD_MT or set PROCESSOR_TYPE/FX globals. Keep presentation
+inactive until a later explicit handoff. Compare diagnostics before stepping or
+consuming observer queues. This is a preview behind the original shop boundary,
+not authorization to skip that shop or display a Ready action.
+
+### Detached initial-level preview
+
+`TyrianSim.prepare_network_level` now strictly reparses the 21-field initial
+configuration, validates actual assets/equipment through the attached private
+mod API, constructs the normal initial Arcade LevelSetup and uses Sim::new.
+It applies the negotiated core effects and private rendering-only starfield
+initialization, retaining presented-state capture. The core's usual initial
+loop_top still runs as in ordinary loading; no subsequent step is performed.
+
+The private star generator starts at the original fresh-process MT seed 5489.
+`Sim.set_starfield` only replaces rendering stars and repeats their initial
+advance; it does not modify gameplay RNG. The detached path neither reads nor
+advances STARFIELD_MT and does not write PROCESSOR_TYPE or FX. It leaves FX
+presentation inactive, so a later gameplay handoff still needs explicit effects
+renderer initialization. Existing local load_level and setters remain intact.
+
+`NetworkPreparation.prepare_preview` owns the detached node, rechecks content
+before/after loading and captures its diagnostic before any tick/observer
+consumption. Repeated preparation verifies the retained state instead of
+reloading. Unexpected state changes fail and free the node. Clear, capture
+failure and final context release also free it. The RefCounted PREDELETE hook
+releases the node directly, since calling another script method during that
+notification caused a runtime error in testing.
+
+The original shop entry remains retained and unexecuted. This preview is not
+permission to skip purchases/progression, mark the player session loaded,
+show Ready or start gameplay. The next integration must negotiate the shop's
+result and initialize presentation at a consistent boundary. The diagnostic
+still includes observer state; no live gameplay-only desync claim is made.
+
+Tests cover matching previews despite intervening local starfield history,
+immutable repeated preparation, processor/loadout values, full-u64 seeds,
+mandatory validation, refusal to replace an already loaded node, unexpected
+stepping, explicit and automatic cleanup, and native rechecks of bad types,
+unsupported devices, invalid seeds/money/levels/equipment and unknown fields.
+
+Final verification: 16/16 Godot cases across preparation, diagnostic digest and
+startup pass with no error lines/failures/orphans. A repeat on the same final
+sources also passes 16/16 with explicit process exit 0. During development one
+post-success teardown run returned a native access violation. The suite now
+waits two process frames after releasing Music/Sfx streams; both final runs
+exit cleanly. This does not establish the cause of that earlier native crash
+or replace device/package validation. Cargo formatting, changed GDScript lint/
+format and diff checks pass. Clippy passes with the same two documented
+baseline categories allowed. No Android run, Linux exported-package gate or
+build handover is claimed.

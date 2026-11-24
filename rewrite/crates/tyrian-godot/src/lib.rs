@@ -27,6 +27,7 @@ mod midi;
 mod modern_explosions;
 mod modes_api;
 mod network_fingerprint;
+mod network_load;
 pub(crate) mod playfield;
 mod quit_box;
 mod rec_api;

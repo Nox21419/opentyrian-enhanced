@@ -59,7 +59,7 @@ impl TyrianMods {
     /// Read-only network preflight: parse the real level and check both players
     /// against resolved item definitions. Does not create/step a Sim or draw RNG.
     #[func]
-    fn network_validate_level(
+    pub(crate) fn network_validate_level(
         &mut self,
         episode: i32,
         level_file: i32,

@@ -14,10 +14,14 @@ var _identity := {}
 var _config := {}
 var _entry := {}
 var _digest := ""
+var _preview: Node
+var _preview_digest := ""
+var _data_dir := ""
 
 
 func capture(data_dir: String, dirs: PackedStringArray, enabled: Dictionary, episode: int) -> bool:
 	clear()
+	_data_dir = data_dir
 	_content = Content.new()
 	if not _content.capture(data_dir, dirs, enabled, episode):
 		return _fail(_content.error)
@@ -30,6 +34,8 @@ func capture(data_dir: String, dirs: PackedStringArray, enabled: Dictionary, epi
 
 
 func clear() -> void:
+	_release_preview()
+	_data_dir = ""
 	error = ""
 	_content = null
 	_rules = null
@@ -37,6 +43,54 @@ func clear() -> void:
 	_config.clear()
 	_entry.clear()
 	_digest = ""
+
+
+func _notification(what: int) -> void:
+	# During RefCounted PREDELETE, script method dispatch can already be gone.
+	# Release the owned native Node directly rather than calling another method.
+	if what == NOTIFICATION_PREDELETE and is_instance_valid(_preview):
+		_preview.free()
+
+
+func _release_preview() -> void:
+	if is_instance_valid(_preview):
+		_preview.free()
+	_preview = null
+	_preview_digest = ""
+
+
+## Read-only initial-level preview, still behind the retained shop entry.
+## No loaded/Ready signal or gameplay scene handoff is authorized here.
+func prepare_preview() -> bool:
+	if _config.is_empty() or not error.is_empty():
+		return false
+	if _preview != null:
+		return verify_preview()
+	if not verify_current():
+		return false
+	_preview = ClassDB.instantiate("TyrianSim")
+	if not _preview.has_method("prepare_network_level"):
+		return _fail("native_rebuild_required")
+	if not _content.attach(_preview) or not _preview.prepare_network_level(_data_dir, _config):
+		return _fail("preview_load_failed")
+	if not verify_current():
+		return false
+	_preview_digest = _preview.network_diagnostic_digest()
+	if not Config.hex_string(_preview_digest, 64):
+		return _fail("preview_digest_unavailable")
+	return true
+
+
+func preview_digest() -> String:
+	return _preview_digest if error.is_empty() else ""
+
+
+func verify_preview() -> bool:
+	if not verify_current():
+		return false
+	if _preview == null or _preview.network_diagnostic_digest() != _preview_digest:
+		return _fail("preview_state_changed")
+	return true
 
 
 func identity() -> Dictionary:
@@ -84,6 +138,7 @@ func verify_current() -> bool:
 
 
 func _fail(reason: String) -> bool:
+	_release_preview()
 	error = reason
 	_identity.clear()
 	_config.clear()
