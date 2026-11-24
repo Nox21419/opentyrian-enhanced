@@ -775,3 +775,35 @@ pairs, the retained shop boundary, rule-invalid but grammar-valid proposals,
 missing content, invalid choices, copied results and real-policy startup
 acceptance without early Start. New GDScript formatting/lint and diff whitespace
 pass. No phone test, Linux exported package gate or build handover is claimed.
+
+### Session-owned content snapshot
+
+`network_content_snapshot.gd` now captures content in a separate native mod
+loader, with copied directory order and explicit enabled-folder choices. It
+does not use or mutate the global Mods API, player preferences or Game state.
+Newly discovered default-enabled folders are forced off; an explicitly enabled
+folder disappearing is an error. Resolution errors and unreadable/changed
+content fail closed. It hashes, discards resolved caches, then resolves and
+hashes again before retaining the loader. Checks use a new loader each time,
+so stale resolution caches cannot hide an edited manifest.
+
+`attach(sim)` first verifies current content, then attaches the retained loader.
+A detected mismatch invalidates the capture permanently; restoring old files
+requires fresh capture and negotiation. The caller must verify again after
+loading and discard any prepared simulation on failure. This is an independent
+backend component, not yet bound to NetworkSession or its startup handshake.
+It does not lock filesystem writers or provide an atomic filesystem snapshot.
+
+The four new tests check global-loader isolation, copied selections, attaching
+the native API, enabled-byte edits, persistent invalidation, recapture, disabled
+edits, newly discovered folders, missing enabled mods, invalid JSON and reset.
+Together with identity and initial-rule suites, 12 cases pass with no reported
+errors, failures or orphan nodes. New GDScript lint/format and whitespace checks
+pass. Full item/level validation, session wiring and complete state hashing are
+still pending; no Android/device or exported Linux package check is claimed.
+
+The first final check exposed a process-level access violation during teardown
+after gdUnit had printed success. The new native suite now releases Music/Sfx
+streams in its `after` hook, matching existing native/menu suites. The final
+12-case run has an explicitly checked process exit code 0 as well as clean
+assertion/error/orphan results; the earlier printed success was insufficient.
