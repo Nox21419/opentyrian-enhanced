@@ -843,3 +843,49 @@ identity, initial rules and startup pass, with no errors/failures/orphans and
 explicit process exit 0. Cargo formatting, changed GDScript lint/format and
 whitespace checks pass. Clippy passes with the same two previously documented
 baseline lint categories allowed; this is not an unfiltered lint claim.
+
+### Unified preparation context and remaining load audit
+
+`network_preparation.gd` now owns one content snapshot and a fresh initial-rule
+reader for an epoch. Its identity uses that snapshot's content digest through
+`NetworkIdentity.from_content`, rather than the unrelated global Mods cache.
+Its mandatory validator composes initial rules, actual assets/equipment and
+before/after content verification. It retains copied configuration and original
+campaign entry only after validation. Later changes to the accepted configuration
+invalidate the context; returned dictionaries cannot mutate its retained state.
+Content and client/native/engine identities are rechecked while preparing.
+Failure clears the public identity/configuration/entry and requires recapture.
+
+This context is exercised with real identities as both pure startup coordinators'
+validators. They reach AGREED with the actual original shop entry retained;
+Start is still refused because no loaded/Ready barrier is fabricated. It remains
+an isolated backend component; the player-facing NetworkSession still owns the
+connection-only menu flow. No simulation, scene, RNG or save is modified.
+
+Read-only load audit found two issues that must be resolved before marking a
+prepared simulation loaded:
+
+- `Sim.snapshot`/the legacy state_hash serialize a subset of world state, not
+  complete future-affecting state. Besides inputs/devices, it omits many player,
+  script, enemy and mode fields. Do not reuse it as a complete network digest or
+  claim resynchronization support. A separately versioned exhaustive state
+  serialization must cover core RNG state, retained pending inputs, settings,
+  tables/events and progression/bridge state that can influence later ticks.
+- `set_effects` derives core modern-explosion activation from particles,
+  screen-shake and processor detail as well as explosion style. Current startup
+  configuration does not yet include all of these. Normal level loading also
+  initializes stars through the bridge's process-global STARFIELD_MT, which
+  advances with previous local play. Isolated preparation must audit and avoid
+  dependence on differing process history without altering local-play behavior.
+  Combo timing and the dedicated-special input path also require explicit
+  application/range audit before loading the synchronized simulations.
+
+These findings refine stages 4/5; they do not authorize an uncertain mechanics
+change. No such change has been implemented in this checkpoint.
+
+Verification: 23 cases pass across preparation, content, identity and startup
+suites, with no errors/failures/orphans and explicit process exit 0. This includes
+real-policy peer agreement without early Start, immutable returned values,
+configuration-change invalidation and fresh recapture. Changed GDScript lint and
+format checks pass. Device, exported-package and playable co-op evidence remain
+pending.

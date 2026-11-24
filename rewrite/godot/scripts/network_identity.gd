@@ -19,21 +19,31 @@ static func collect(episode: int) -> Dictionary:
 	var api: RefCounted = mods.get("api") if mods != null else null
 	if episode < 1 or episode > 5 or api == null or not ClassDB.class_exists("TyrianSim"):
 		return {"error": "identity_unavailable"}
+	if not api.has_method("network_content_identity"):
+		return {"error": "native_rebuild_required"}
+	var content: Dictionary = api.network_content_identity(episode)
+	if not content.has("digest"):
+		return {"error": content.get("error", "content_unavailable")}
+	return from_content(content.digest)
+
+
+## Session preparation supplies its own checked content digest, rather than
+## identifying the global Mods cache and then loading from a different API.
+static func from_content(content_digest: String) -> Dictionary:
+	if not Config.hex_string(content_digest, 64) or not ClassDB.class_exists("TyrianSim"):
+		return {"error": "identity_unavailable"}
 	var native: Node = ClassDB.instantiate("TyrianSim")
-	if not native.has_method("network_build_id") or not api.has_method("network_content_identity"):
+	if not native.has_method("network_build_id"):
 		native.free()
 		return {"error": "native_rebuild_required"}
 	var build: String = native.network_build_id()
 	native.free()
-	var content: Dictionary = api.network_content_identity(episode)
-	if not content.has("digest"):
-		return {"error": content.get("error", "content_unavailable")}
 	var client := source_digest() if OS.has_feature("editor") else exported_digest()
 	var version := Engine.get_version_info()
 	var engine := Config.sha256(
 		JSON.stringify([version.major, version.minor, version.patch, version.status, version.build, version.hash])
 	)
-	var identity := {"native": build, "client": client, "content": content.digest, "engine": engine}
+	var identity := {"native": build, "client": client, "content": content_digest, "engine": engine}
 	return {"identity": identity} if Protocol.valid_identity(identity) else {"error": "client_stamp_required"}
 
 
