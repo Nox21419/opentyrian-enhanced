@@ -63,7 +63,7 @@ func _open_episode(lobby: Node) -> Node:
 	return episode
 
 
-func test_episode_choice_returns_to_same_host_connection_without_starting_game() -> void:
+func test_episode_and_difficulty_preserve_host_connection_without_starting_game() -> void:
 	var lobby := await _host_lobby()
 	var transport_id: int = lobby.session.get_instance_id()
 	var peer: ENetMultiplayerPeer = lobby.session.peer
@@ -79,11 +79,24 @@ func test_episode_choice_returns_to_same_host_connection_without_starting_game()
 	assert_int(NetworkSession.selected_episode).is_equal(0)
 	event.pressed = false
 	episode.handle_mouse(event)
+	await _wait(func(): return episode.current_screen == "difficulty" and episode.idle and not episode.get("_busy"))
+	assert_int(NetworkSession.selected_episode).is_equal(3)
+	assert_int(NetworkSession.selected_difficulty).is_equal(0)
+	assert_bool(Game.campaign_active).is_false()
+	episode.set("_touch_difficulty", true)
+	await episode._open_difficulty()
+	event.position = Vector2(25, 128)
+	event.pressed = true
+	episode.handle_mouse(event)
+	assert_int(NetworkSession.selected_difficulty).is_equal(0)
+	event.pressed = false
+	episode.handle_mouse(event)
 	await _wait(
 		func(): return Effects.current_game_scene().scene_file_path == LOBBY and Effects.current_game_scene().idle
 	)
 	lobby = Effects.current_game_scene()
 	assert_int(NetworkSession.selected_episode).is_equal(3)
+	assert_int(NetworkSession.selected_difficulty).is_equal(4)
 	assert_int(lobby.session.get_instance_id()).is_equal(transport_id)
 	assert_object(lobby.session.peer).is_same(peer)
 	assert_bool(lobby.session.hosting).is_true()
@@ -92,6 +105,15 @@ func test_episode_choice_returns_to_same_host_connection_without_starting_game()
 	# The selected row is restored on reopening this one host screen.
 	episode = await _open_episode(lobby)
 	assert_int(episode.menus.selection()).is_equal(2)
+	await episode._episode_chosen(2)
+	assert_str(episode.current_screen).is_equal("difficulty")
+	assert_int(episode.menus.selection()).is_equal(3)
+	episode.handle_action(TyrianControls.BACK)
+	await _wait(func(): return episode.current_screen == "episode" and not episode.get("_busy"))
+	assert_int(episode.menus.selection()).is_equal(2)
+	await episode._episode_chosen(1)
+	assert_int(NetworkSession.selected_difficulty).is_equal(0)
+	assert_int(episode.menus.selection()).is_equal(1)
 
 
 func test_back_preserves_host_but_leaving_lobby_releases_it_and_clears_selection() -> void:

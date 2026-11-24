@@ -81,6 +81,11 @@ func _draw_details() -> void:
 	while TyrianText.width(text, SMALL_FONT) > 280:
 		text = text.substr(1)
 	TyrianText.draw_font_hv_shadow(self, 160, 55, text, SMALL_FONT, CENTERED, 15, 4, false, 1)
+	if not _typing and NetworkSession.selected_difficulty > 0:
+		var index := NewGame.DIFFICULTY_LEVELS.find(NetworkSession.selected_difficulty)
+		TyrianText.draw_font_hv_shadow(
+			self, 160, 67, TyrianText.L(NewGame.DIFFICULTY_KEYS[index]), SMALL_FONT, CENTERED, 15, 4, false, 1
+		)
 	if _typing:
 		TyrianText.draw_font_hv_shadow(
 			self, 160, 43, TyrianText.L("net_enter_address"), SMALL_FONT, CENTERED, 15, 4, false, 1

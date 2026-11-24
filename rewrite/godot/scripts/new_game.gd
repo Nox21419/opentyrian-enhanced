@@ -295,10 +295,8 @@ func _episode_chosen(sel: int) -> void:
 	await fade_black(10)
 	episode = sel + 1  # JE_initEpisode(selectedIndex + 1)
 	if _network_episode:
-		# First host-screen checkpoint: record the choice and return to the
-		# live lobby. Difficulty/Ready/level launch remain gated for later work.
-		NetworkSession.finish_episode_selection(episode)
-		Game.goto_scene("res://scenes/network_lobby.tscn")
+		NetworkSession.choose_episode(episode)
+		await _open_difficulty()
 		return
 	if flow == Flow.SUPER_TYRIAN:
 		_start_super_tyrian()
@@ -360,7 +358,11 @@ func _open_difficulty() -> void:
 	# Esc: episodeThenDifficultySelect / timedBattleThenDifficultySelect
 	# resume the previous choice.
 	var back := _open_timed if mode == MODE_TIMED else _open_episode
-	await _open("difficulty", "diff_title", _difficulty_items(), 54, 24, _difficulty_chosen, back, 1)
+	var selected := 1
+	if _network_episode and NetworkSession.selected_difficulty > 0:
+		selected = DIFFICULTY_LEVELS.find(NetworkSession.selected_difficulty)
+		difficulty_count = maxi(difficulty_count, selected + 1)
+	await _open("difficulty", "diff_title", _difficulty_items(), 54, 24, _difficulty_chosen, back, selected)
 
 
 func _difficulty_chosen(sel: int) -> void:
@@ -372,6 +374,10 @@ func _difficulty_chosen(sel: int) -> void:
 	idle = false
 	var level: int = DIFFICULTY_LEVELS[sel]
 	await fade_black(10)
+	if _network_episode:
+		NetworkSession.finish_difficulty_selection(level)
+		Game.goto_scene("res://scenes/network_lobby.tscn")
+		return
 	if flow == Flow.SUPER_ARCADE:
 		await _start_super_arcade(level)
 	else:

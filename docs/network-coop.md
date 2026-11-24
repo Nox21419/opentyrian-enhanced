@@ -723,3 +723,24 @@ Run these through gdUnit4 with an isolated player directory as described in
 [Testing](testing.md). `Capture` accepts `--capture=network_lobby:<file>:20`
 for original-framebuffer visual review. These checks do not replace two-phone
 Android testing or the exported-package gate before handing over a game build.
+
+### Host Difficulty screen checkpoint
+
+The maintainer approved continuing from the Episode checkpoint on 2026-11-24.
+Episode selection now opens the existing Difficulty screen. Selecting Difficulty
+returns to the same host peer and shows both original localized choice labels.
+Back returns to Episode; reopening restores both choices, including an unlocked
+secret difficulty. Changing Episode clears the previous Difficulty. Stop/exit
+clears both. Android retains the existing six rows and release-only touch input;
+desktop retains the original three starting rows and secret unlock behavior.
+
+This is preparation state only: no campaign start, gameplay tick, profile write,
+Ready action or placeholder state digest is introduced. The next frontend step
+requires review of this Difficulty screen; catalog validation and synchronized
+level preparation remain the next backend work in stages 4/5.
+
+The updated host-flow test checks release-only Difficulty activation, unchanged
+active campaign, exact peer preservation, restored rows, Back and reset on a new
+Episode. Existing local New Game and lobby suites are included in validation.
+The source capture is desktop evidence, not an Android device test or build
+handover. Linux package checks remain unavailable without WSL.
