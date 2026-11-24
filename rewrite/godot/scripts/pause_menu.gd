@@ -52,11 +52,13 @@ func open_menu(lvl: Node) -> bool:
 	if _touch_pause:
 		actions = preload("res://scripts/pause_actions.gd").new(self)
 		actions.background = vga.indices(VGA_SCREEN)
-	var bottom := 177 if _touch_pause else 137
-	vga.bar_shade(VGA_SCREEN, 3, 13, 217, bottom)
-	vga.bar_shade(VGA_SCREEN, 5, 15, 215, bottom - 2)
-	vga.bar_shade(VGA_SCREEN, 5, 15, 215, bottom - 2)
-	vga.bar_shade(VGA_SCREEN, 5, 15, 215, bottom - 2)
+	var tilt: bool = _touch_pause and level.tilt_enabled()
+	var bottom := (189 if tilt else 177) if _touch_pause else 137
+	var top := 5 if tilt else 13
+	vga.bar_shade(VGA_SCREEN, 3, top, 217, bottom)
+	vga.bar_shade(VGA_SCREEN, 5, top + 2, 215, bottom - 2)
+	vga.bar_shade(VGA_SCREEN, 5, top + 2, 215, bottom - 2)
+	vga.bar_shade(VGA_SCREEN, 5, top + 2, 215, bottom - 2)
 	vga.copy(VGA_SCREEN2, VGA_SCREEN)
 	(
 		menus
@@ -65,7 +67,7 @@ func open_menu(lvl: Node) -> bool:
 			_items(),
 			{
 				"x": PAUSE_X,
-				"y_start": PAUSE_Y_START,
+				"y_start": 12 if tilt else PAUSE_Y_START,
 				"step": PAUSE_STEP,
 				"row_width": PAUSE_ROW_W,
 				"no_shadow": true,
@@ -155,7 +157,14 @@ func _items() -> Array:
 	if _touch_pause:
 		items.insert(4, MenuEngine.item("ig_help", "", Kind.ACTION, {"action": _open_help}))
 		items.append(MenuEngine.item("ig_more", "", Kind.ACTION, {"action": actions.open_more}))
+		if level.tilt_enabled():
+			items.append(MenuEngine.item("tilt_reset", "", Kind.ACTION, {"action": _reset_tilt}))
 	return items
+
+
+func _reset_tilt() -> void:
+	_touch_release.cancel()
+	Sfx.play(Sfx.SELECT if level.reset_tilt_neutral() else Sfx.CLINK)
 
 
 func _open_help() -> void:
@@ -372,8 +381,9 @@ func _touch_target(p: Vector2i) -> String:
 	if actions != null and not actions.viewer.is_empty():
 		return actions.target_at(p)
 	var utilities: bool = menus.current().options.get("utilities", false)
-	if Rect2i(8, 18, 296 if utilities else 210, PAUSE_STEP * menus.current().items.size()).has_point(p):
-		var i := (p.y - 18) / PAUSE_STEP
+	var first_y: int = MenuEngine.tree_geometry(menus.current()).y_start - 2
+	if Rect2i(8, first_y, 296 if utilities else 210, PAUSE_STEP * menus.current().items.size()).has_point(p):
+		var i := (p.y - first_y) / PAUSE_STEP
 		# Crossing from a volume label to its bar cancels instead of muting.
 		var part := ":label" if p.x < PAUSE_VALUE_X else ":value"
 		return "row:%d%s" % [i, part if i < 2 and not utilities else ""]

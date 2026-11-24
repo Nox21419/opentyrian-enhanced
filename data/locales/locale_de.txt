@@ -1542,3 +1542,4 @@ tilt_controls=Neigung
 tilt_controls_desc=Zum Steuern neigen, zum Feuern gedrueckt halten.
 tilt_sensitivity=Empfindlichkeit
 tilt_sensitivity_desc=Hoehere Werte brauchen weniger Neigung.
+tilt_reset=Neigung zentrieren

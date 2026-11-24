@@ -2,9 +2,10 @@
 
 This target is for the Samsung Galaxy A35 and other ARM64 Android devices.
 It uses the existing Compatibility renderer, Original graphics and landscape
-orientation. During a level, **hold one finger on the playfield to steer and fire**;
-drag to move the target, and lift to stop firing. The ship approaches the finger
-at the existing movement speed and stays inside its normal bounds. Extra fingers
+orientation. By default, **hold one finger on the playfield to steer and fire**;
+drag to move the target, and lift to stop firing. Setup > Controls can instead
+enable tilt steering, with held playfield touch used only for firing. Both
+styles use the existing movement rules and normal ship bounds. Extra fingers
 can operate the Android weapon controls while the steering finger stays held;
 pause or focus loss cancels held input. The title screen has
 an Android-only two-column layout of the original gold menu text, including
@@ -22,7 +23,7 @@ on release using their original targets.
 Setup, Graphics, Sound, Gameplay, Mutators and picker popups also activate on
 release, with wider invisible row targets. Jukebox uses its existing text for
 touch controls. Setup's Joystick entry is grey and unavailable on Android. Controls replaces
-Key Bindings; see the tilt settings implementation status below. Mods toggles a pack when a tap is released on its row.
+Key Bindings; see Android tilt controls below. Mods toggles a pack when a tap is released on its row.
 High Scores keeps its original arrows with wider touch targets and adds a
 small Back label; both activate on release and cancel when dragged off.
 Replays uses its original rows and scroll indicators as release-activated
@@ -67,8 +68,9 @@ and obtain their express approval **before implementing the change**.
 
 The user has accepted the current single-finger destination-following control:
 the ship continues toward a held finger, using the existing simulation mouse
-path and its limit of 8 logical game pixels per tick per axis (280 pixels per
-second at normal 35 Hz pacing). This accepted input adaptation is not blanket
+path: input is clamped to ±30, contributing up to 8 logical pixels per tick
+per axis, with the existing ship inertia adding up to 4 more. The input
+contribution alone is 280 pixels per second at normal 35 Hz pacing. This accepted input adaptation is not blanket
 approval for other gameplay changes.
 
 On Android, permanent Auto-fire is locked off: normal fire comes from the
@@ -447,7 +449,8 @@ Android: its desktop Windowed/monitor chooser does not match Android's
 immersive display. Scaler, Scaling Mode, CRT, available sprite modes, Visual
 Effects and Explosion Style remain enabled. Desktop retains the Display chooser.
 
-Key Bindings and Joystick remain visible in grey but cannot be opened
+Joystick remains visible in grey but cannot be opened; Controls replaces
+Key Bindings with the tilt settings described below
 on Android; navigation skips them. Mods opens (see Mods touch toggles). Desktop retains those entries and its
 existing mouse-on-press behavior, row targets and picker handling.
 
@@ -1196,12 +1199,34 @@ glyph/width and diff checks passed. Android device verification is pending;
 no APK was built or installed in this pass. The exported Linux journey/smoke
 gate could not run because WSL/Linux is not installed on this host.
 
-## Tilt settings implementation in progress
+## Android tilt controls
 
-Android Setup replaces Key Bindings with Controls, using the original menu
-engine and release targets. Tilt Controls defaults to Off; Tilt Sensitivity
-ranges from 1 to 10, default 5. Both persist in `setup.cfg`. Desktop retains
-Key Bindings. These settings do not yet change flight input: sensor movement,
-level-start calibration and pause-menu reset await the staged menu review.
-`setup_touch_test.gd` covers release activation, drag cancellation, persistence
-and desktop scope.
+Setup > Controls replaces the unavailable Android Key Bindings entry. Tilt
+Controls defaults to Off, retaining held-finger destination steering. When On,
+tilt steers without touching; holding a finger on the playfield fires, and
+release/cancellation stops normal fire. Weapon controls retain their separate
+functions. Desktop input, demos, tools and replay playback do not read sensors.
+
+Each playable level captures its own neutral orientation. If the gravity sensor
+is not ready, movement waits and the first valid reading establishes neutral.
+Pause > Reset Tilt Neutral captures the current orientation and keeps the game
+paused; it appears only with tilt enabled. A failed capture plays the existing
+rejection sound and retains any previous neutral. Neutral is not saved between
+levels. Pause/focus loss still cancels held fire.
+
+Tilt Sensitivity is saved in `setup.cfg`, from 1 to 10 (default 5). A 2-degree
+dead zone suppresses drift, and readings are smoothed before conversion to
+integer mouse input. Full input is reached at 34 degrees on 1, approximately
+22 degrees on 5, and 8 degrees on 10. The existing simulation mouse clamp,
+inertia, bounds, timing, collisions, weapon cadence and RNG rules remain intact.
+Godot's gravity sensor is enabled in `project.godot`; Godot already rotates
+Android readings to match the display, so no second landscape rotation is added.
+See [Godot Input](https://docs.godotengine.org/en/stable/classes/class_input.html#class-input-method-get-gravity)
+and the [4.7.2 Android sensor rotation](https://github.com/godotengine/godot/blob/4.7.2-stable/platform/android/java/lib/src/main/java/org/godotengine/godot/input/GodotInputHandler.java#L744-L787).
+
+Godot tests cover calibration, delayed/invalid readings, upright orientation,
+dead zone, directions, sensitivity, native movement limits including inertia,
+independent fire, level-start capture, touch-only firing while tilting, paused
+recalibration, drag cancellation and desktop/demo/replay scope. Physical phone
+axis direction, comfort, sensor noise and focus/resume testing remain pending;
+no Android device was connected during this implementation.

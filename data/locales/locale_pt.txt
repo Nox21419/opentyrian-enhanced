@@ -1542,3 +1542,4 @@ tilt_controls=Inclinacao
 tilt_controls_desc=Incline para mover; segure para disparar.
 tilt_sensitivity=Sensibilidade
 tilt_sensitivity_desc=Valores altos exigem menos inclinacao.
+tilt_reset=Centrar inclinacao

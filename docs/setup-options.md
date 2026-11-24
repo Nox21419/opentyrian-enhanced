@@ -23,8 +23,8 @@ See [Android title-menu validation](android-build.md#title-touch-menu-first-menu
 
 ## Option behavior and persistence
 
-On Android, Setup's Key Bindings and Joystick entries are grey and
-unavailable; Mods toggles a pack on tap release (docs/android-build.md). The available Setup menus and their children use wider invisible
+On Android, Controls replaces Key Bindings with tilt settings. Joystick remains
+grey and unavailable; Mods toggles a pack on tap release (docs/android-build.md). The available Setup menus and their children use wider invisible
 touch targets. Graphics' desktop Display chooser is also grey and unavailable
 on Android; the remaining Graphics choices stay enabled. The menus
 activate on release, cancelling when dragged off. Jukebox
@@ -115,12 +115,12 @@ Pause menu options (in-level menu, `mainint.c:JE_inGameSetup`):
 | Pause menu | Music Vol. / Sound Vol. (`ig_music_vol`, `ig_sfx_vol`) | **wired** | same keys as Setup > Sound (`music_volume`, `fx_volume`, `music_disabled`, `samples_disabled`); Left/Right ±12, Enter mutes; saved when the menu closes (save_json_save) | `pause_menu_test.gd:test_volume_rows_apply_and_save` |
 | Pause menu | Game Speed (`ig_game_speed`) | **wired** | key `game_speed` (1..5, 4 = Normal, save_json.c "game_speed"); ticks per second of the level (`game_speed.gd`); `--speed=1..6` forces it without saving it | `pause_menu_test.gd:test_game_speed_rows_set_ticks_per_second`, `test_speed_override` |
 
-## Tilt settings implementation in progress
+## Android tilt controls
 
-Android Setup replaces Key Bindings with Controls, using the original menu
-engine and release targets. Tilt Controls defaults to Off; Tilt Sensitivity
-ranges from 1 to 10, default 5. Both persist in `setup.cfg`. Desktop retains
-Key Bindings. These settings do not yet change flight input: sensor movement,
-level-start calibration and pause-menu reset await the staged menu review.
-`setup_touch_test.gd` covers release activation, drag cancellation, persistence
-and desktop scope.
+Android Setup > Controls replaces Key Bindings, with Tilt Controls (Off by
+default) and saved Tilt Sensitivity (1–10, default 5). Enabled tilt steers the
+ship while held playfield touch fires. Each level captures neutral; Pause >
+Reset Tilt Neutral captures it again without resuming. The nine-row tilt pause
+menu moves up eight logical pixels to keep every row visible. Other pause
+layouts retain their positions. Sensor details, gameplay preservation and QA
+status are in [Android tilt controls](android-build.md#android-tilt-controls).

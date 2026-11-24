@@ -1596,3 +1596,4 @@ tilt_controls=Inclinaison
 tilt_controls_desc=Inclinez pour diriger, maintenez pour tirer.
 tilt_sensitivity=Sensibilite
 tilt_sensitivity_desc=Plus elevee : moins incliner pour bouger.
+tilt_reset=Recentrer inclinaison

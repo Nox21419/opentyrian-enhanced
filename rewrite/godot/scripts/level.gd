@@ -243,6 +243,8 @@ func _load_level() -> void:
 	_music_start()
 	_refresh()
 	_start_entry_fade()
+	if tilt_enabled():
+		reset_tilt_neutral()
 
 
 ## level_load.c:JE_loadMap: visual effects from Fast (processorType >= 2),
@@ -806,7 +808,11 @@ func _physics_process(_delta: float) -> void:
 		sim.set_new_key(_any_key_pressed and not replaying)
 	if sim != null and not replaying:
 		_take_mouse_delta()
-		if _touch_flight.active():
+		if tilt_enabled():
+			var movement := _tilt_flight.movement(Input.get_gravity(), int(SetupScreen.settings.tilt_sensitivity))
+			_mouse_dx = movement.x
+			_mouse_dy = movement.y
+		elif _touch_flight.active():
 			var player: PackedInt32Array = sim.player(1 if _two_players() else 0)
 			var movement := _touch_flight.movement(Vector2i(player[0], player[1]), SIM_X_TO_SCREEN)
 			_mouse_dx = movement.x
@@ -934,6 +940,7 @@ func _freeze_for_debrief() -> void:
 ## sidekicks, middle weapon switch (keyboard.c, SDL_MOUSEBUTTONDOWN).
 var _mouse_mask := 0
 var _touch_flight := TouchFlight.new()
+var _tilt_flight := TiltFlight.new()
 var _touch_weapons: TouchWeapons
 var _touch_pause := OS.get_name() == "Android"
 const TOUCH_PAUSE_RECT := Rect2(0, 0, 56, 16)
@@ -1107,6 +1114,17 @@ func _trace_tick() -> void:
 func _set_raw_mouse_events(on: bool) -> void:
 	if interactive:
 		Input.use_accumulated_input = not on
+
+
+## Sensors never feed demos, replays, tools or desktop gameplay.
+func tilt_enabled() -> bool:
+	return (
+		_touch_pause and interactive and not demo and not replaying and bool(SetupScreen.settings.tilt_controls_enabled)
+	)
+
+
+func reset_tilt_neutral() -> bool:
+	return _tilt_flight.calibrate(Input.get_gravity()) if tilt_enabled() else false
 
 
 func _two_players() -> bool:

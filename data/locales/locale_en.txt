@@ -1596,3 +1596,4 @@ tilt_controls=Tilt Controls
 tilt_controls_desc=Tilt to steer; hold the playfield to fire.
 tilt_sensitivity=Tilt Sensitivity
 tilt_sensitivity_desc=Higher values need less tilt to move.
+tilt_reset=Reset Tilt Neutral
