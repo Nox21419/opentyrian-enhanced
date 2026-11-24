@@ -56,6 +56,47 @@ fn kind_name(k: ItemKind) -> &'static str {
 
 #[godot_api]
 impl TyrianMods {
+    /// Read-only network preflight: parse the real level and check both players
+    /// against resolved item definitions. Does not create/step a Sim or draw RNG.
+    #[func]
+    fn network_validate_level(
+        &mut self,
+        episode: i32,
+        level_file: i32,
+        difficulty: i32,
+        player1: PackedInt32Array,
+        player2: PackedInt32Array,
+    ) -> VarDictionary {
+        if !(1..=5).contains(&episode) || !(1..=65535).contains(&level_file) || !(2..=9).contains(&difficulty) {
+            return vdict! { "error" => "invalid_level_configuration" };
+        }
+        let data_dir = self.data_dir.clone();
+        let Some(resolved) = self.resolve(episode) else { return vdict! { "error" => "content_unavailable" } };
+        if resolved.diagnostics.items.iter().any(|d| d.severity == Severity::Error) {
+            return vdict! { "error" => "invalid_enabled_mod" };
+        }
+        let Some(tables) = resolved.tables.as_ref() else { return vdict! { "error" => "content_unavailable" } };
+        if !network_equipment_valid(tables, player1.as_slice()) || !network_equipment_valid(tables, player2.as_slice())
+        {
+            return vdict! { "error" => "invalid_equipment" };
+        }
+        // Equipment is checked above; this disposable setup is only for parsing
+        // level/item data and applying validated event overrides, not simulation.
+        let Ok(mut setup) = tyrian_sim::setup::load_level(
+            &data_dir,
+            episode as u8,
+            0,
+            level_file as usize,
+            difficulty as u8,
+            crate::default_loadout(),
+            0,
+        ) else {
+            return vdict! { "error" => "invalid_level_data" };
+        };
+        resolved.apply_to(&mut setup, level_file as u16);
+        vdict! { "valid" => true, "events" => setup.level.events.events.len() as i64 }
+    }
+
     /// Hash the original runtime allowlist and the enabled, effective mod roots.
     /// Invalid enabled content fails closed; absolute local paths never enter the digest.
     #[func]
@@ -380,6 +421,30 @@ impl TyrianMods {
             .and_then(|r| r.levels.get(&(episode.clamp(1, 5) as u8, lvl_file_num.max(0) as u16)))
             .map_or(GString::new(), |l| GString::from(l.folder.as_str()))
     }
+}
+
+/// Only actual named definitions count: Tables pads absent records with zeros.
+/// Zero is allowed for empty rear/sidekick/special slots, not primary equipment.
+fn network_equipment_valid(t: &Tables, v: &[i32]) -> bool {
+    if v.len() != 10
+        || v.iter().any(|n| !(0..=255).contains(n))
+        || !(1..=11).contains(&v[2])
+        || !(1..=11).contains(&v[4])
+    {
+        return false;
+    }
+    let named = |name: String| !name.trim().is_empty();
+    v[0] > 0
+        && t.ships.get(v[0] as usize).is_some_and(|x| named(x.name.text()))
+        && v[1] > 0
+        && t.ports.get(v[1] as usize).is_some_and(|x| named(x.name.text()))
+        && (v[3] == 0 || t.ports.get(v[3] as usize).is_some_and(|x| named(x.name.text())))
+        && v[5] > 0
+        && t.shields.get(v[5] as usize).is_some_and(|x| named(x.name.text()))
+        && v[6] > 0
+        && t.generators.get(v[6] as usize).is_some_and(|x| named(x.name.text()))
+        && [7, 8].iter().all(|&i| v[i] == 0 || t.options.get(v[i] as usize).is_some_and(|x| named(x.name.text())))
+        && (v[9] == 0 || t.specials.get(v[9] as usize).is_some_and(|x| named(x.name.text())))
 }
 
 impl TyrianMods {

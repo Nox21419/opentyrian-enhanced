@@ -62,6 +62,27 @@ func attach(sim: Node) -> bool:
 	return true
 
 
+## Checks actual parsed assets and resolved definitions, without creating or
+## stepping a simulation. Initial/progression rule validation is also required.
+func validate_level(config: Dictionary) -> bool:
+	if not Config.valid(config) or config.episode != _episode:
+		return false
+	if not verify_current():
+		return false
+	if not _api.has_method("network_validate_level"):
+		return _fail("native_rebuild_required")
+	var result: Dictionary = _api.network_validate_level(
+		_episode,
+		config.level_file,
+		config.difficulty,
+		PackedInt32Array(config.loadout1),
+		PackedInt32Array(config.loadout2)
+	)
+	if result.get("valid") != true:
+		return _fail(result.get("error", "invalid_level_data"))
+	return verify_current()
+
+
 func _fail(reason: String) -> bool:
 	error = reason
 	_api = null

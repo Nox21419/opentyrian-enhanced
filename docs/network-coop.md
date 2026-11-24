@@ -807,3 +807,39 @@ after gdUnit had printed success. The new native suite now releases Music/Sfx
 streams in its `after` hook, matching existing native/menu suites. The final
 12-case run has an explicitly checked process exit code 0 as well as clean
 assertion/error/orphan results; the earlier printed success was insufficient.
+
+### Read-only level and equipment preflight
+
+`TyrianMods.network_validate_level` parses the actual episode level/item data,
+checks both ten-field equipment arrays against named resolved table entries,
+and applies validated level-event overrides to a disposable LevelSetup. It
+rejects absent/padded records, invalid powers/array lengths, missing levels and
+invalid episode/level/difficulty bounds. Empty rear/sidekick/special slots remain
+allowed. This initial-equipment preflight requires nonempty primary equipment;
+future modes allowing other equipment must extend the policy deliberately.
+
+No Sim is constructed or stepped, no RNG is drawn, and no campaign or save is
+written. The temporary setup uses a disposable default loadout: the requested
+loadouts are checked, not applied to active gameplay. Errors use bounded codes,
+not remote paths or native error logging for malformed proposals/missing levels.
+
+`NetworkContentSnapshot.validate_level` requires the configuration grammar and
+captured episode, verifies current bytes before the native check and again
+afterward. Content/preflight failure invalidates that capture. Initial-rule or
+progression authorization is still independently required; a valid asset check
+cannot skip the original shop, authorize a Start or prove complete state hashes.
+
+The rebuilt Windows bridge is used by the Godot tests. Coverage includes all
+five actual first-level files, both original starting loadouts, invalid item IDs,
+empty arrays, missing levels, invalid episode, changed content and invalidation.
+A separate case resolves all five shipped packs and validates their added ship
+and weapon definitions. Native preflight does not change local load_level APIs.
+Synchronized preparation, shop/session wiring and complete-state hashing remain
+the next backend work. Android execution and the Linux exported-package gate
+remain unavailable/unclaimed; the rebuilt DLL was not handed over as a build.
+
+Final verification for this checkpoint: 24/24 cases across content snapshot,
+identity, initial rules and startup pass, with no errors/failures/orphans and
+explicit process exit 0. Cargo formatting, changed GDScript lint/format and
+whitespace checks pass. Clippy passes with the same two previously documented
+baseline lint categories allowed; this is not an unfiltered lint claim.

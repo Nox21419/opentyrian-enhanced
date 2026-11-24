@@ -1,6 +1,8 @@
 extends GdUnitTestSuite
 
 const Snapshot := preload("res://scripts/network_content_snapshot.gd")
+const Policy := preload("res://scripts/network_initial_configuration.gd")
+const Setup := preload("res://test/fixtures/network_setup.gd")
 var _root := ""
 
 
@@ -79,3 +81,70 @@ func test_missing_enabled_mod_invalid_manifest_and_reset_fail_closed() -> void:
 	snapshot.clear()
 	assert_bool(snapshot.verify_current()).is_false()
 	assert_str(snapshot.digest).is_empty()
+
+
+func test_actual_level_and_initial_equipment_validate_for_each_episode() -> void:
+	var policy := Policy.new(Game.data_dir)
+	for episode in range(1, 6):
+		var snapshot := Snapshot.new()
+		assert_bool(snapshot.capture(Game.data_dir, PackedStringArray(), {}, episode)).is_true()
+		var config := Setup.configuration()
+		config.episode = episode
+		config.level_file = policy.first_level(episode, 2).lvl_file_num
+		assert_bool(snapshot.validate_level(config)).is_true()
+
+
+func test_invalid_equipment_and_missing_level_fail_without_native_error_logs() -> void:
+	var api: RefCounted = ClassDB.instantiate("TyrianMods")
+	api.load(Game.data_dir, PackedStringArray())
+	var config := Setup.configuration()
+	var first := PackedInt32Array(config.loadout1)
+	var second := PackedInt32Array(config.loadout2)
+	for slot in [0, 1, 3, 5, 6, 7, 8, 9]:
+		var bad := first.duplicate()
+		bad[slot] = 255
+		var result: Dictionary = api.network_validate_level(1, 9, 3, bad, second)
+		assert_str(result.get("error", "")).is_equal("invalid_equipment")
+	assert_str(api.network_validate_level(1, 65535, 3, first, second).get("error", "")).is_equal("invalid_level_data")
+	assert_str(api.network_validate_level(0, 9, 3, first, second).get("error", "")).is_equal(
+		"invalid_level_configuration"
+	)
+	assert_str(api.network_validate_level(1, 9, 3, PackedInt32Array(), second).get("error", "")).is_equal(
+		"invalid_equipment"
+	)
+
+
+func test_content_failure_prevents_validation_and_failed_level_poisons_capture() -> void:
+	var snapshot := Snapshot.new()
+	assert_bool(snapshot.capture(Game.data_dir, PackedStringArray([_root]), {"sample": true}, 1)).is_true()
+	_write("sample/changed.txt", "modified after capture")
+	assert_bool(snapshot.validate_level(Setup.configuration())).is_false()
+	assert_str(snapshot.error).is_equal("content_changed")
+	assert_bool(snapshot.capture(Game.data_dir, PackedStringArray(), {}, 1)).is_true()
+	var config := Setup.configuration()
+	config.level_file = 65535
+	assert_bool(snapshot.validate_level(config)).is_false()
+	assert_str(snapshot.error).is_equal("invalid_level_data")
+	assert_bool(snapshot.verify_current()).is_false()
+
+
+func test_resolved_shipped_mod_equipment_is_accepted_without_changing_global_mods() -> void:
+	var api: RefCounted = ClassDB.instantiate("TyrianMods")
+	api.load(Game.data_dir, Mods.dirs())
+	for mod in api.list(1):
+		api.set_enabled(mod.folder, true)
+	api.reload()
+	var config := Setup.configuration()
+	var seen := {}
+	for item in api.items(1):
+		var first := PackedInt32Array(config.loadout1)
+		if item.kind == "ship":
+			first[0] = item.id
+		elif item.kind == "weapon":
+			first[1] = item.id
+		else:
+			continue
+		seen[item.kind] = true
+		var result: Dictionary = api.network_validate_level(1, 9, 3, first, PackedInt32Array(config.loadout2))
+		assert_bool(result.get("valid", false)).is_true()
+	assert_bool(seen.has("ship") and seen.has("weapon")).is_true()
