@@ -248,18 +248,16 @@ func test_two_player_arcade() -> void:
 	assert_int(Game.campaign_modes[0]).is_equal(1)
 
 
-## Network entry: grayed out, refused (S_SPRING), the screen stays displayed.
-func test_network_entry_is_refused() -> void:
+## Network entry opens the connection-only lobby without starting a campaign.
+func test_network_entry_opens_lobby() -> void:
 	await _title()
 	_press(KEY_ENTER)
 	var ng := await _screen("gameplay")
 	_press(KEY_UP)
 	assert_int(ng.menus.selection()).is_equal(NG.MODE_NETWORK)
 	_press(KEY_ENTER)
-	await get_tree().process_frame
-	await _wait_until(func() -> bool: return ng.idle, 2000)
-	assert_object(_scene()).is_same(ng)
-	assert_str(ng.current_screen).is_equal("gameplay")
+	await _wait_until(func() -> bool: return _scene().scene_file_path == "res://scenes/network_lobby.tscn", 2000)
+	assert_str(_scene().scene_file_path).is_equal("res://scenes/network_lobby.tscn")
 	assert_bool(Game.campaign_active).is_false()
 
 

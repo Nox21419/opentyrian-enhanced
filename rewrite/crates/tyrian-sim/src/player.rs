@@ -728,15 +728,20 @@ impl World {
             // player_movement.c: mouse if inputDevice is 0 or 2 (has_mouse true in v2).
             let (mut mouse_xc, mut mouse_yc) = (0i32, 0i32);
             if device == 0 || device == 2 {
-                let m = self.mode.mouse;
+                let m = self.mode.player_mice.map_or(self.mode.mouse, |mice| mice[pi]);
                 self.controls.button[0] |= m.mask & 0x10 != 0;
                 self.controls.button[1] |= m.mask & 0x40 != 0;
                 self.controls.button[2] |= m.mask & 0x80 != 0;
                 self.controls.button[3] |= m.mask & 0x20 != 0;
-                if self.mode.mouse_pending {
+                let pending = if self.mode.player_mice.is_some() {
+                    &mut self.mode.player_mice_pending[pi]
+                } else {
+                    &mut self.mode.mouse_pending
+                };
+                if *pending {
                     mouse_xc += m.dx;
                     mouse_yc += m.dy;
-                    self.mode.mouse_pending = false;
+                    *pending = false;
                 }
             }
             if device == 0 || device == 1 {

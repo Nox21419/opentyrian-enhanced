@@ -216,7 +216,7 @@ func _open_gameplay() -> void:
 
 
 func _gameplay_disabled(row: int) -> bool:
-	return row == MODE_NETWORK or (_touch_players and row in [MODE_2P_ARCADE, MODE_2P_ENDLESS])
+	return _touch_players and row in [MODE_2P_ARCADE, MODE_2P_ENDLESS]
 
 
 func _gameplay_chosen(sel: int) -> void:
@@ -228,6 +228,12 @@ func _gameplay_chosen(sel: int) -> void:
 		menus.draw()
 		return
 	match sel:
+		MODE_NETWORK:
+			Sfx.play(Sfx.SELECT)
+			_busy = true
+			idle = false
+			await fade_black(10)
+			Game.goto_scene("res://scenes/network_lobby.tscn")
 		MODE_FULL, MODE_ARCADE, MODE_TIMED, MODE_2P_ARCADE:
 			Sfx.play(Sfx.SELECT)
 			_busy = true

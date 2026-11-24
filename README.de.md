@@ -97,7 +97,7 @@ Noch nicht moddbar: Levelkarten (Kacheln), Musik, Soundeffekte und die Palette. 
 - **macOS (experimentell)**: entpacke das Archiv und öffne `OpenTyrian2000 Enhanced.app` (du kannst die App in den Programme-Ordner verschieben). Die App ist noch nicht von Apple signiert oder notarisiert: Klicke beim ersten Mal mit der rechten Maustaste (oder mit gedrückter Ctrl-Taste) darauf, wähle **Öffnen** und dann noch einmal **Öffnen**. Verweigert macOS das Öffnen weiterhin, führe `xattr -cr "/Applications/OpenTyrian2000 Enhanced.app"` im Terminal aus (mit dem Pfad der App). Benötigt macOS 10.13 oder neuer auf Intel, macOS 11 oder neuer auf Apple Silicon.
 - Jeder Download enthält die Spieldaten, den MIDI-Soundtrack und die fünf Mod-Pakete; die Komplettpakete enthalten zusätzlich die HD-Grafik (KI). Lass den Ordner zusammen.
 
-Kein Installationsprogramm, kein Konto. Bekanntes Problem: Netzwerkspiel ist nicht verfügbar („Modem-/Netzwerkspiel“ ist ausgegraut).
+Kein Installationsprogramm, kein Konto. Netzwerkspiel ist nicht verfügbar. Der Entwicklungsstand enthält einen [LAN-Verbindungstest](docs/network-coop.md) unter „Modem-/Netzwerkspiel“; er startet kein Spiel.
 
 ## 🎮 Steuerung
 

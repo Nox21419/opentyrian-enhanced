@@ -1556,3 +1556,23 @@ destruct_touch_human=Humano
 destruct_touch_cpu=Computador
 destruct_touch_left_dir=Esq.
 destruct_touch_right_dir=Dir.
+
+# Network connection lobby (connection testing only)
+net_title=Jogo em rede
+net_host=Hospedar jogo
+net_join=Entrar no jogo
+net_stop_host=Parar de hospedar
+net_disconnect=Desconectar
+net_lan_only=Mesma Wi-Fi / ponto de acesso
+net_idle=Hospede ou entre na mesma Wi-Fi.
+net_waiting=Aguardando o outro telefone...
+net_connecting=Conectando...
+net_connected=Conectados - jogo ainda indisponível.
+net_disconnected=Conexão encerrada.
+net_host_failed=Falha ao hospedar. Porta talvez em uso.
+net_join_failed=Não foi possível conectar.
+net_bad_address=Digite um endereço IP válido.
+net_timeout=Tempo de conexão esgotado.
+net_incompatible=Protocolo ou versão incompatível.
+net_enter_address=Digite o IP do anfitrião e pressione Enter.
+net_connection_test=Teste de conexão - jogo ainda indisponível.

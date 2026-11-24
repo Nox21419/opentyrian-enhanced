@@ -61,6 +61,11 @@ pub struct ModeState {
     /// `golden_master.c:golden_master_mouse` / `keyboard.c:mouseGetRelativePosition`:
     /// the movement is read only once per tick (accumulator reset to zero).
     pub mouse_pending: bool,
+    /// Opt-in network input: a separate mouse for each player, using the same
+    /// device gates, button mapping and movement calculations as the shared mouse.
+    /// None retains the original once-per-tick shared accumulator.
+    pub player_mice: Option<[MouseInput; 2]>,
+    pub player_mice_pending: [bool; 2],
     /// Analog stick of each player for the tick, already reduced like
     /// `joystick.c:joystick_axis_reduce` (threshold then division by the
     /// sensitivity): added to `mouseXC`/`mouseYC` as in
@@ -169,6 +174,8 @@ impl Default for ModeState {
             devices: [1, 2],
             mouse: MouseInput::default(),
             mouse_pending: false,
+            player_mice: None,
+            player_mice_pending: [false; 2],
             analog: [(0, 0); 2],
             new_key: false,
         }

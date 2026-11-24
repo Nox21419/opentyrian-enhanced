@@ -21,6 +21,10 @@ adaptation repositions the original gold text into two columns and expands
 the invisible touch areas; the replacement button overlay was rejected.
 See [Android title-menu validation](android-build.md#title-touch-menu-first-menu-adaptation).
 
+The accepted two-phone networking direction reuses Players > Modem/Network Game
+with Host Game, Join Game and Back in the original style. The first screen is a
+connection-only LAN test awaiting maintainer review; see [network co-op](network-coop.md).
+
 ## Option behavior and persistence
 
 On Android, Controls replaces Key Bindings with tilt settings. Joystick remains

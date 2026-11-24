@@ -97,7 +97,7 @@ Pas encore modifiables par mod : les cartes des niveaux (tuiles), la musique, l
 - **macOS (expérimental)** : décompressez, puis ouvrez `OpenTyrian2000 Enhanced.app` (vous pouvez la déplacer dans Applications). L'app n'est pas encore signée ni notariée par Apple : la première fois, faites un clic droit (ou Contrôle-clic) dessus, choisissez **Ouvrir**, puis **Ouvrir** à nouveau. Si macOS refuse encore, lancez `xattr -cr "/Applications/OpenTyrian2000 Enhanced.app"` dans le Terminal (avec le chemin de l'app). Nécessite macOS 10.13 ou plus récent sur Intel, macOS 11 ou plus récent sur Apple Silicon.
 - Chaque téléchargement contient les données du jeu, la bande-son MIDI et les cinq packs de mods ; les paquets complets contiennent aussi les graphismes HD (IA). Gardez le dossier d'un seul tenant.
 
-Pas d'installateur, pas de compte. Problème connu : le jeu en réseau n'est pas disponible (« Partie modem/réseau » est grisé).
+Pas d'installateur, pas de compte. Le jeu en réseau n'est pas disponible. La version de développement propose un [test de connexion LAN](docs/network-coop.md) dans « Partie modem/réseau » ; il ne lance pas de partie.
 
 ## 🎮 Commandes
 

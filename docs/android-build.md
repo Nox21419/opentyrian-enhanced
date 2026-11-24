@@ -11,7 +11,9 @@ pause or focus loss cancels held input. The title screen has
 an Android-only two-column layout of the original gold menu text, including
 a visible Side Modes entry with the same lettering.
 The Players screen keeps its original single-column text, adds Back and wider
-touch areas, and greys out/disables its two-player and network entries.
+touch areas, and greys out/disables its local two-player entries. The network
+entry opens the [connection-only LAN lobby](network-coop.md); network gameplay
+is not implemented yet.
 Episode Select keeps its original five labels and placement, adds Back and
 wider touch areas, and activates a choice on release. Difficulty Select uses
 the same release-to-select adaptation with Back to Episode or Timed Battle.
@@ -72,6 +74,12 @@ path: input is clamped to ±30, contributing up to 8 logical pixels per tick
 per axis, with the existing ship inertia adding up to 4 more. The input
 contribution alone is 280 pixels per second at normal 35 Hz pacing. This accepted input adaptation is not blanket
 approval for other gameplay changes.
+
+The maintainer separately approved network-only per-player touch/mouse input
+routing on 2026-11-24, preserving existing movement/linking rules and co-op
+weapon ownership. The opt-in Rust/bridge API is being validated; it is not yet
+connected to Android gameplay. Local play keeps the shared input path. See the
+[full co-op plan and input audit](network-coop.md#approved-player-input-adaptation-and-audit-stage-3).
 
 On Android, permanent Auto-fire is locked off: normal fire comes from the
 held steering finger, continues while that finger is stationary, and stops on

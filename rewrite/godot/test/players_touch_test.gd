@@ -64,9 +64,9 @@ func test_drag_off_cancels_choice() -> void:
 	assert_bool(screen.get("_busy")).is_false()
 
 
-func test_mobile_two_player_and_network_choices_cannot_start() -> void:
+func test_mobile_local_two_player_choices_cannot_start() -> void:
 	var screen := await _open_players()
-	for row in [NG.MODE_2P_ARCADE, NG.MODE_2P_ENDLESS, NG.MODE_NETWORK]:
+	for row in [NG.MODE_2P_ARCADE, NG.MODE_2P_ENDLESS]:
 		assert_bool(screen._gameplay_disabled(row)).is_true()
 		_button(screen, row, true)
 		_button(screen, row, false)

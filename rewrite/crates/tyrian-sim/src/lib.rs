@@ -604,6 +604,12 @@ impl Sim {
         self.world.mode.mouse = mouse;
     }
 
+    /// Opt-in per-player pointing devices for network sessions. None restores
+    /// the original shared mouse. Device assignments and movement rules still apply.
+    pub fn set_player_mice(&mut self, mice: Option<[modes::MouseInput; 2]>) {
+        self.world.mode.player_mice = mice;
+    }
+
     /// Dedicated Android special control. None retains desktop/C input behavior.
     pub fn set_special_input(&mut self, pressed: Option<bool>) {
         self.world.controls.special_input = pressed;
@@ -642,6 +648,7 @@ impl Sim {
     /// Advances one tick.
     pub fn step(&mut self, inputs: [PlayerInput; 2]) {
         self.world.mode.mouse_pending = true;
+        self.world.mode.player_mice_pending = [true; 2];
         if self.state.level_ended {
             self.world.mode.new_key = false;
             return;

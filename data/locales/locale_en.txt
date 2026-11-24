@@ -1610,3 +1610,23 @@ destruct_touch_human=Human
 destruct_touch_cpu=Computer
 destruct_touch_left_dir=Left
 destruct_touch_right_dir=Right
+
+# Network connection lobby (connection testing only)
+net_title=Network Game
+net_host=Host Game
+net_join=Join Game
+net_stop_host=Stop Hosting
+net_disconnect=Disconnect
+net_lan_only=Same Wi-Fi / hotspot
+net_idle=Host or join on the same Wi-Fi.
+net_waiting=Waiting for the other phone...
+net_connecting=Connecting...
+net_connected=Connected - gameplay not available yet.
+net_disconnected=Connection closed.
+net_host_failed=Could not host. Port may be in use.
+net_join_failed=Could not connect.
+net_bad_address=Enter a valid IP address.
+net_timeout=Connection timed out.
+net_incompatible=Incompatible connection protocol or version.
+net_enter_address=Enter host IP, then press Enter.
+net_connection_test=Connection test - gameplay not available yet.

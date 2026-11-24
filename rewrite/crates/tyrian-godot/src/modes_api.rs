@@ -24,6 +24,28 @@ impl TyrianSim {
         }
     }
 
+    /// Network sessions only: one pointing device per player. Button ownership,
+    /// device selection, linking and movement are still handled by the core.
+    #[func]
+    fn set_player_mice(&mut self, p1_mask: i32, p1_dx: i32, p1_dy: i32, p2_mask: i32, p2_dx: i32, p2_dy: i32) {
+        if self.replay.is_some() {
+            return;
+        }
+        if let Some(sim) = self.sim.as_mut() {
+            sim.set_player_mice(Some([
+                MouseInput { mask: (p1_mask & 0xf0) as u8, dx: p1_dx, dy: p1_dy },
+                MouseInput { mask: (p2_mask & 0xf0) as u8, dx: p2_dx, dy: p2_dy },
+            ]));
+        }
+    }
+
+    #[func]
+    fn clear_player_mice(&mut self) {
+        if let Some(sim) = self.sim.as_mut() {
+            sim.set_player_mice(None);
+        }
+    }
+
     /// Analog stick of players 1 and 2 for the following ticks, in
     /// values reduced by `joystick.c:joystick_axis_reduce` (controls.gd).
     /// Ignored while playing back a `.rep`: its inputs come from the file.

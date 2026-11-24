@@ -68,6 +68,7 @@ const SCENES := {
 	"destruct": "res://scenes/destruct.tscn",
 	"debrief": "res://scenes/debrief.tscn",
 	"instructions": "res://scenes/instructions.tscn",
+	"network_lobby": "res://scenes/network_lobby.tscn",
 }
 const SETTLE_FRAMES := 4
 

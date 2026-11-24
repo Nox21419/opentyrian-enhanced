@@ -1556,3 +1556,23 @@ destruct_touch_human=Humano
 destruct_touch_cpu=Ordenador
 destruct_touch_left_dir=Izq.
 destruct_touch_right_dir=Der.
+
+# Network connection lobby (connection testing only)
+net_title=Partida en red
+net_host=Crear partida
+net_join=Unirse
+net_stop_host=Dejar de alojar
+net_disconnect=Desconectar
+net_lan_only=Misma Wi-Fi / punto de acceso
+net_idle=Crea o únete en la misma Wi-Fi.
+net_waiting=Esperando al otro teléfono...
+net_connecting=Conectando...
+net_connected=Conectados - el juego aún no está disponible.
+net_disconnected=Conexión cerrada.
+net_host_failed=No se pudo alojar. Puerto quizás ocupado.
+net_join_failed=No se pudo conectar.
+net_bad_address=Introduce una dirección IP válida.
+net_timeout=Tiempo de conexión agotado.
+net_incompatible=Protocolo o versión incompatible.
+net_enter_address=Introduce la IP del anfitrión y pulsa Intro.
+net_connection_test=Prueba de conexión - aún no se puede jugar.
