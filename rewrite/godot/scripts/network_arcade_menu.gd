@@ -12,6 +12,7 @@ func _ready() -> void:
 		Game.goto_scene.call_deferred("res://scenes/network_lobby.tscn")
 		return
 	_arcade_menu = 9
+	_arcade_sel = NetworkSession.arcade_row
 	var rules := Rules.new(Game.data_dir)
 	var preview := rules.first_level(NetworkSession.selected_episode, NetworkSession.selected_difficulty)
 	if preview.is_empty():
@@ -31,7 +32,7 @@ func _render() -> void:
 
 
 func _arcade_item_metadata(row: int) -> Dictionary:
-	return {"unavailable": row in [1, 2, 3]}
+	return {"unavailable": row in [1, 2]}
 
 
 func _decorate_arcade() -> void:
@@ -47,7 +48,9 @@ func _arcade_action(action: StringName) -> void:
 	if action in [TyrianControls.LEFT, TyrianControls.RIGHT]:
 		return
 	if action in [TyrianControls.UP, TyrianControls.DOWN]:
-		_arcade_sel = 6 if _arcade_sel == 2 else 2
+		var rows := [2, 5, 6]
+		var direction := -1 if action == TyrianControls.UP else 1
+		_arcade_sel = rows[posmod(rows.find(_arcade_sel) + direction, rows.size())]
 		_state.sel = _arcade_sel
 		Sfx.play(Sfx.CURSOR)
 		_render()
@@ -61,6 +64,8 @@ func _arcade_function() -> void:
 		Game.goto_scene("res://scenes/network_lobby.tscn")
 	elif _arcade_sel == 6:
 		_quit_request()
+	elif _arcade_sel == 5 and NetworkSession.begin_options():
+		Game.goto_scene("res://scenes/network_options.tscn")
 	else:
 		Sfx.play(Sfx.SPRING)
 
@@ -75,7 +80,7 @@ func _quit_request() -> void:
 
 
 func handle_event(event: InputEvent) -> void:
-	# Child Help/Options are separate review steps; preserve shared navigation.
+	# Help is a separate review step; preserve shared navigation.
 	if TyrianControls.global_pressed(event, TyrianControls.HELP):
 		return
 	super.handle_event(event)
@@ -86,7 +91,7 @@ func handle_mouse(event: InputEvent) -> void:
 		if (
 			not modal_active
 			and event is InputEventMouse
-			and _arcade_row_2p_at(Vector2i(event.position.floor()), 6) in [1, 2, 3]
+			and _arcade_row_2p_at(Vector2i(event.position.floor()), 6) in [1, 2]
 		):
 			return
 		super.handle_mouse(event)
@@ -100,7 +105,7 @@ func handle_mouse(event: InputEvent) -> void:
 			_phone_pressed = row
 		elif row >= 0 and row == _phone_pressed:
 			_phone_pressed = -1
-			if row in [0, 4]:
+			if row in [0, 3, 4]:
 				_arcade_sel = row + 2
 				Sfx.play(Sfx.CLICK)
 				_arcade_function()

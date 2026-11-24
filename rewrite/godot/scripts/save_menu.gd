@@ -494,10 +494,9 @@ func _open_options() -> void:
 		MenuEngine.item(TyrianText.L("opt_done"), "mmhelp_%d" % (HELP_DONE - 1), MenuEngine.Kind.BACK),
 	]
 	menus.stack.clear()
-	var first_row := entry_row if entry_row != 0 else _remembered_row("options")
-	for row in [4, 5, 6]:
-		items[row]["unavailable"] = _mobile_controls_disabled
-	entry_row = 0
+	var first_row := _options_entry_row()
+	for row in _unavailable_options_rows():
+		items[row]["unavailable"] = true
 	menus.open(TyrianText.L("opt_options"), items, {
 		"sel": first_row,
 		"style": MenuEngine.Style.GAME_MENU, "accept": [TyrianControls.ACCEPT, TyrianControls.SELECT],
@@ -516,6 +515,18 @@ func _open_options() -> void:
 			_help(menus.current().items[menus.selection()].help),
 		"on_back": _leave,
 	})
+
+
+## Local campaigns consume the static entry row; isolated network screens may
+## retain their own row without changing local campaign navigation.
+func _options_entry_row() -> int:
+	var row := entry_row if entry_row != 0 else _remembered_row("options")
+	entry_row = 0
+	return row
+
+
+func _unavailable_options_rows() -> Array:
+	return [4, 5, 6] if _mobile_controls_disabled else []
 
 
 ## game_menu.c:JE_itemScreen: Music / Sound volume bars ("Changing the

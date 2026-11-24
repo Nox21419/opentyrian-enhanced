@@ -14,7 +14,9 @@ Join Game becomes **Choose Episode**. It reuses the original Episode screen and
 then opens the original Difficulty and two-player Arcade Game Menu screens.
 Start records host intent and returns to the same live lobby with both choices
 shown. It does not launch gameplay. Back preserves the host connection;
-leaving the lobby stops it and clears both choices. No save/profile is written.
+leaving the lobby stops it and clears both choices. No campaign save is written;
+the host's original Options screen may save local audio preferences. Options
+awaits review; the preceding host screens are approved.
 
 The maintainer approved this first screen on 2026-11-24 ("looks good, continue")
 and required the entire implementation plan to be documented before more code.
@@ -1142,3 +1144,49 @@ final cleanup suite to complete. The cause is not established or claimed fixed.
 The framebuffer capture exits cleanly too. No Android run, Linux exported gate
 or game build handover occurred. Review this Arcade screen before its Options
 child or a new frontend step; backend work can continue independently.
+
+Next frontend plan, approved by the maintainer on 2026-11-24: retain the original
+eight-row Options screen, with host-local Music/Sound volume and Done active.
+Dim unsupported network save/load and local device configuration. Reuse its
+original drawing, volume setters/bars, menu navigation and Android release
+handling; keep remembered rows and status outside Game's campaign fields.
+Done/Back returns to the same host Arcade menu/peer. Unexpected scene exit or
+session loss cleans up rather than falling into a local campaign. Review only
+this screen before any new Options child frontend. Audio preferences may be
+saved locally; no campaign save/load or network configuration change is implied.
+
+### Original host-local Options screen checkpoint
+
+The approved eight-row direction is implemented by `network_options.gd`, derived
+from the existing save_menu screen. It reuses original labels, picture-1 palette/
+artwork, menu layout, volume bars/setters, keyboard/gamepad/mouse navigation and
+Android release handling. Load/Save and Joystick/Keyboard/Mouse rows are dimmed;
+Music, Sound and Done are active. Audio changes save the host's local preferences,
+not a network campaign checkpoint or a guest setting.
+
+Two small save_menu hooks supply the entry row and unavailable rows. Their
+original defaults retain local campaign behavior; the network screen keeps its
+remembered row and original zero-credit status in NetworkSession. It does not
+consume the local save menu's static entry row or mutate Game's campaign/loadout/
+menu fields. Arcade Options is now enabled; Done/Back restores its selected row
+and the exact peer object. A fresh Episode/Difficulty flow resets menu rows.
+Unexpected exit closes the session, and a lost host returns to a cleared lobby.
+No save/load or controller child screen can be opened by this network screen.
+
+Verification: 23 cases report success across existing Setup Options and touch
+release suites, network Episode/Arcade and the three new Options tests. New
+checks verify both Music and Sound values in active audio settings and the saved
+setup.cfg, release-only volume changes, disabled rows, remembered selection,
+unchanged local campaign fields/static entry row, peer preservation and cleanup.
+The first run exits 0. A final run with added Sound persistence assertions has
+clean assertion/error/orphan results but exits with the previously observed
+Windows native access violation after the runner reports success. This is
+qualified evidence, not a clean final process/package gate or a resolved crash.
+
+The original-framebuffer capture `build/network-host-options.png` exits 0 and was
+visually checked. Changed networking GDScript formatting/lint, locale consistency,
+hard-coded-text and whitespace checks pass. No Android execution, exported Linux
+package gate or game build handover is claimed. Options is the one frontend
+screen awaiting maintainer review; playable co-op and Ready/live startup remain
+pending. The selected original menu direction does not authorize replacing it
+with a compact screen in a later continuation.

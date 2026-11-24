@@ -25,8 +25,10 @@ The accepted two-phone networking direction reuses Players > Modem/Network Game
 with Host Game, Join Game and Back in the original style. The first screen is a
 connection-only LAN test, visually approved. The original host Episode screen
 now leads to the original Difficulty screen, then the host-operated original
-Arcade Game Menu. Episode/Difficulty are approved; the Arcade menu awaits review.
-Its Start action records intent and returns to the lobby; playable co-op remains pending.
+Arcade Game Menu. Those screens are approved. Its original Options screen now
+enables host-local Music/Sound volume and Done, with unsupported save/load/device
+rows dimmed; this Options screen awaits review. Start records intent and returns
+to the lobby; playable co-op remains pending.
 See [network co-op](network-coop.md).
 
 ## Option behavior and persistence

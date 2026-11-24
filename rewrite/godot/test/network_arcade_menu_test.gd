@@ -54,10 +54,10 @@ func test_original_menu_records_start_without_launching_or_mutating_campaign() -
 	var menu := await _open()
 	var peer: ENetMultiplayerPeer = NetworkSession.lobby.peer
 	assert_int(menu.get("_arcade_menu")).is_equal(9)
-	for row in [1, 2, 3]:
+	for row in [1, 2]:
 		assert_bool(menu.menus.current().items[row].unavailable).is_true()
 	menu.handle_action(TyrianControls.DOWN)
-	assert_int(menu.get("_arcade_sel")).is_equal(6)
+	assert_int(menu.get("_arcade_sel")).is_equal(5)
 	menu.handle_action(TyrianControls.UP)
 	assert_int(menu.get("_arcade_sel")).is_equal(2)
 	menu.set("_phone_touch", true)
@@ -93,7 +93,7 @@ func test_fixed_rows_and_cancelled_touch_do_not_change_devices_or_request_start(
 	event.pressed = false
 	menu.handle_mouse(event)
 	assert_bool(NetworkSession.start_requested).is_false()
-	for row in [3, 4, 5]:
+	for row in [3, 4]:
 		menu.set("_arcade_sel", row)
 		menu._arcade_function()
 	assert_array(Array(Game.campaign_modes)).is_equal(Array(_modes))

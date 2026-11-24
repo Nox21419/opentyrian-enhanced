@@ -15,8 +15,10 @@ touch areas, and greys out/disables its local two-player entries. The network
 entry opens the [connection-only LAN lobby](network-coop.md); while hosting,
 Choose Episode reuses the original Episode, Difficulty and two-player Arcade
 Game Menu screens. Start records host intent and returns to the same live lobby;
-it does not launch gameplay. Episode/Difficulty are approved; the host-operated
-Arcade menu awaits review. Synchronized player startup is not implemented.
+it does not launch gameplay. Episode/Difficulty and the host-operated Arcade
+menu are approved. Its original Options screen now enables host-local audio
+volume with unsupported save/load/device rows dimmed; Options awaits review.
+Synchronized player startup is not implemented.
 Episode Select keeps its original five labels and placement, adds Back and
 wider touch areas, and activates a choice on release. Difficulty Select uses
 the same release-to-select adaptation with Back to Episode or Timed Battle.

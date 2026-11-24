@@ -9,6 +9,9 @@ var selected_episode := 0
 var selected_difficulty := 0
 var selecting_episode := false
 var selecting_arcade := false
+var selecting_options := false
+var options_row := 2
+var arcade_row := 2
 var start_requested := false
 var _returning := false
 
@@ -70,6 +73,8 @@ func begin_arcade_menu() -> bool:
 	if not lobby.hosting or lobby.peer == null or selected_episode == 0 or selected_difficulty == 0:
 		return false
 	selecting_arcade = true
+	arcade_row = 2
+	options_row = 2
 	return true
 
 
@@ -83,11 +88,33 @@ func finish_arcade_menu() -> void:
 	_returning = true
 
 
+func begin_options() -> bool:
+	if not selecting_arcade or not lobby.hosting or lobby.peer == null:
+		return false
+	selecting_arcade = false
+	selecting_options = true
+	arcade_row = 5
+	return true
+
+
+func finish_options() -> bool:
+	if not selecting_options or not lobby.hosting or lobby.peer == null:
+		stop()
+		_returning = true
+		return false
+	selecting_options = false
+	selecting_arcade = true
+	return true
+
+
 func stop() -> void:
 	selected_episode = 0
 	selected_difficulty = 0
 	selecting_episode = false
 	selecting_arcade = false
+	selecting_options = false
+	options_row = 2
+	arcade_row = 2
 	start_requested = false
 	_returning = false
 	lobby.close()
