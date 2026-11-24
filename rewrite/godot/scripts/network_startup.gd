@@ -45,6 +45,10 @@ func configuration() -> Dictionary:
 	return _config.duplicate(true)
 
 
+func context() -> Dictionary:
+	return {"session": _session, "epoch": _epoch, "player": _player}
+
+
 func take_messages() -> Array[Dictionary]:
 	var messages: Array[Dictionary] = _outbox.duplicate(true)
 	_outbox.clear()

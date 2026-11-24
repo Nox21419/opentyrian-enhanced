@@ -17,7 +17,7 @@ Choose Episode reuses the original Episode, Difficulty and two-player Arcade
 Game Menu screens. Start records host intent and returns to the same live lobby;
 it does not launch gameplay. Episode/Difficulty and the host-operated Arcade
 menu are approved. Its original Options screen now enables host-local audio
-volume with unsupported save/load/device rows dimmed; Options awaits review.
+volume with unsupported save/load/device rows dimmed; Options is approved.
 Synchronized player startup is not implemented.
 Episode Select keeps its original five labels and placement, adds Back and
 wider touch areas, and activates a choice on release. Difficulty Select uses

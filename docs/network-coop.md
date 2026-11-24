@@ -2,7 +2,7 @@
 
 ## Current status (2026-11-24)
 
-**Network gameplay is not implemented yet.** New Game > Modem/Network Game
+**Network gameplay is not available from the player menus yet.** New Game > Modem/Network Game
 now opens a connection-only LAN lobby. It has Host Game, Join Game and Back,
 using the original picture-2 backdrop, bitmap fonts, palette and menu engine.
 Android activates the wider invisible row targets on release; dragging off
@@ -16,7 +16,10 @@ Start records host intent and returns to the same live lobby with both choices
 shown. It does not launch gameplay. Back preserves the host connection;
 leaving the lobby stops it and clears both choices. No campaign save is written;
 the host's original Options screen may save local audio preferences. Options
-awaits review; the preceding host screens are approved.
+is approved along with the preceding host screens. The detached backend now
+executes matching native simulations over ENet, but player-scene input, rendering,
+progression and internet integration remain unfinished. See the verification
+ledger below; this is not yet playable phone co-op.
 
 The maintainer approved this first screen on 2026-11-24 ("looks good, continue")
 and required the entire implementation plan to be documented before more code.
@@ -1190,3 +1193,105 @@ package gate or game build handover is claimed. Options is the one frontend
 screen awaiting maintainer review; playable co-op and Ready/live startup remain
 pending. The selected original menu direction does not authorize replacing it
 with a compact screen in a later continuation.
+
+Next backend input step: add an explicitly Android touch/tilt-only input policy
+and detached paired-tick runner. Existing touch and tilt reduce movement to mouse
+deltas in -30..30; gamepad analog axes are outside this initial profile. Reject
+out-of-range/malformed values, guest special flags and inconsistent dedicated
+special bits instead of clamping remote inputs. Use the approved per-player
+mouse API and OR the two new-key flags (the original flag means any key).
+
+Capture hardware once per scheduled tick, retain the captured frame while
+waiting/retransmitting, and require both next-tick inputs before one native
+step. Preserve negotiated neutral delay prefill but capture that tick's future
+local frame before advancing, so no future frame is skipped. Check the native
+tick before and after each step; stop on external stepping or invalid inputs.
+Use the existing bounded codec/buffer and do not create a new simulation clock,
+predict inputs, mutate Game or enable a player scene/Ready action. A future
+handoff must explicitly activate this runner only after real startup barriers.
+
+Follow-up backend wiring: after the touch runner passes its native/reference
+checks, add a separate gameplay backend derived from the preview owner. Bind
+Ready and host Start explicitly to unchanged validated previews, then activate
+the runner only after the startup coordinator reaches RUNNING. Multiplex binary
+gameplay packets only in that phase and only for an opt-in listener. Keep all
+existing connection-only screens and preview-only APIs unchanged. No automatic
+clock or player scene handoff is added. Test actual ENet delivery and native
+state equality, early-start rejection and failure/disconnect cleanup. This is a
+backend simulation milestone, not a claim that phone gameplay is integrated.
+
+Two-process verification step: add an explicitly invoked development probe,
+not a player scene. Run host and guest in independent Godot processes over
+localhost ENet, with explicit Ready/Start and one advance opportunity per normal
+35 Hz physics tick. Record per-tick diagnostic hashes and compare both reports.
+Warm up ordinary loading only in the host to perturb its process-global star
+history. Reports, profiles and logs stay under ignored build/. Keep the detached
+presentation/observer boundary untouched and verify actual process exits; this
+still does not constitute Android, internet or player-scene gameplay evidence.
+
+### Android-profile paired input runner
+
+`network_touch_inputs.gd` explicitly scopes the initial runner to the approved
+Android touch/tilt profile: devices [0,0], mouse deltas -30..30 and zero gamepad
+analog fields. The generic codec still preserves i32 fields; this additional
+policy rejects unsafe physical values before native calls. Player 2 cannot send
+dedicated-special flags; player-1 special press requires its dedicated flag and
+the negotiated dedicated-special option. Original linked-ship/action handling
+remains in Rust. Existing local desktop/gamepad input paths are unchanged.
+
+`network_touch_runner.gd` combines this policy, the existing bounded wire/buffer
+and the native per-player mouse bridge. It captures a future local frame once,
+retains it during stalls/retransmission and refuses to advance even neutral
+prefill until that scheduled local capture exists. Each advance requires the
+complete next pair and exactly the expected native tick. It applies both mice,
+zero analog and the union of new-key flags, then calls the existing native step
+once. Missing frames wait without prediction, neutral substitution or new
+hardware sampling. Invalid physical data, conflicting duplicates, invalid
+windows, external stepping or missing simulations stop the runner. Valid old
+session/epoch packets are discarded before applying the current physical policy.
+The caller owns the node; the session owner disposes it on stop/failure.
+
+The runner has no clock, transport or player-scene side effects. Activation is
+explicit and requires a fresh loaded native node. The 18 codec/buffer/runner
+cases pass with a clean process exit. The five new cases include two detached
+native peers under delay/reordering/duplication/delayed retransmission and an
+independent direct-input native reference. All three match at every one of 180
+ticks. This is input-delivery determinism evidence, not new independent C parity.
+
+### Detached gameplay connection and independent-process probe
+
+`network_gameplay_connection.gd` derives from the preview owner and adds explicit
+Ready and host Start plus the touch runner. Unchanged content/preview checks
+precede those commands; both Ready acknowledgements and the host's Start must
+complete before activation. The startup adapter forwards bounded binary OT2N
+packets only in RUNNING and only to an opt-in listener; connection-only and
+preview-only screens retain their prior behavior. Gameplay failure/disconnect
+stops the runner, closes the peer and releases the native node. Capture/advance
+remain explicit; no new player simulation clock or scene handoff is introduced.
+
+Eleven cases across real gameplay/startup connections and the runner report
+success, including 60 matching native ticks over actual ENet, early/guest Start
+rejection, duplicate Ready, malformed physical-input rejection and disconnect
+cleanup. Five runner cases overlap the earlier 18-case selection. The process
+then hits the known Windows native shutdown access violation; do not count its
+internal success message as a clean process gate.
+
+The source-only `tools/network_gameplay_probe.gd` runs independent host and guest
+processes with explicit --probe-role/--probe-report arguments. Its driver offers
+one advance per 35 Hz physics tick. Reports/logs/profiles stay under build/.
+With two ordinary local-level warmups only on the host, both independent
+processes execute 120 ticks at 35 Hz and produce identical configuration and all
+120 per-tick diagnostic hashes. Neither reports a simulation/transport error.
+The host process exits 0; the guest reports completion then exits with the same
+native access violation. This confirms the shutdown issue also occurs outside
+gdUnit; its cause is still unproven. A two-process simulation result is not a
+clean two-process lifecycle/package gate, Android evidence or a complete level.
+
+Diagnostics remain conservative and comparisons in these probes use untouched
+observer-consumption boundaries. The backend has no active effects renderer or
+phone HUD. Player-menu binding, role-specific live input/render/audio/pause,
+level endings/progression, device checks and internet bootstrap remain pending.
+The player-facing menu therefore still records preparation intent and does not
+launch network gameplay. No build handover or Linux exported-package gate is
+claimed; WSL remains unavailable. New/changed GDScript lint/format and whitespace
+checks pass. No Rust gameplay or arithmetic implementation changed here.

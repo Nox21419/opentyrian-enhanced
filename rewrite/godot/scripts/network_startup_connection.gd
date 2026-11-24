@@ -4,10 +4,12 @@
 extends Node
 
 signal changed
+signal gameplay_packet_received(packet: PackedByteArray)
 
 const Lobby := preload("res://scripts/lan_lobby.gd")
 const Startup := preload("res://scripts/network_startup.gd")
 const Protocol := preload("res://scripts/network_startup_protocol.gd")
+const Gameplay := preload("res://scripts/network_protocol.gd")
 
 var transport := Lobby.new()
 var startup: RefCounted
@@ -104,6 +106,14 @@ func _connection_changed() -> void:
 
 func _receive_packet(packet: PackedByteArray) -> void:
 	if startup == null or not error.is_empty():
+		return
+	if (
+		startup.phase == Startup.Phase.RUNNING
+		and packet.size() <= Gameplay.MAX_PACKET_BYTES
+		and packet.slice(0, 4) == "OT2N".to_utf8_buffer()
+		and not gameplay_packet_received.get_connections().is_empty()
+	):
+		gameplay_packet_received.emit(packet)
 		return
 	var expected := 2 if transport.hosting else 1
 	startup.receive(Protocol.decode(packet, expected))
