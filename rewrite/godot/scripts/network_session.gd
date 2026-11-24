@@ -8,6 +8,8 @@ var lobby := Lobby.new()
 var selected_episode := 0
 var selected_difficulty := 0
 var selecting_episode := false
+var selecting_arcade := false
+var start_requested := false
 var _returning := false
 
 
@@ -53,18 +55,39 @@ func choose_episode(episode: int) -> void:
 		return
 	if selected_episode != episode:
 		selected_difficulty = 0
+		start_requested = false
 	selected_episode = episode
 
 
 func finish_difficulty_selection(difficulty: int) -> void:
 	if selecting_episode and lobby.hosting and difficulty in [1, 2, 3, 4, 6, 8]:
 		selected_difficulty = difficulty
+		start_requested = false
 	finish_episode_selection()
+
+
+func begin_arcade_menu() -> bool:
+	if not lobby.hosting or lobby.peer == null or selected_episode == 0 or selected_difficulty == 0:
+		return false
+	selecting_arcade = true
+	return true
+
+
+func finish_arcade_menu() -> void:
+	if not lobby.hosting:
+		stop()
+		_returning = true
+		return
+	start_requested = lobby.hosting and selecting_arcade
+	selecting_arcade = false
+	_returning = true
 
 
 func stop() -> void:
 	selected_episode = 0
 	selected_difficulty = 0
 	selecting_episode = false
+	selecting_arcade = false
+	start_requested = false
 	_returning = false
 	lobby.close()

@@ -91,6 +91,11 @@ func test_episode_and_difficulty_preserve_host_connection_without_starting_game(
 	assert_int(NetworkSession.selected_difficulty).is_equal(0)
 	event.pressed = false
 	episode.handle_mouse(event)
+	await _wait(func(): return Effects.current_game_scene().scene_file_path == "res://scenes/network_arcade_menu.tscn")
+	var arcade: Node = Effects.current_game_scene()
+	assert_bool(NetworkSession.lobby.hosting).is_true()
+	assert_bool(Game.campaign_active).is_false()
+	arcade._arcade_function()
 	await _wait(
 		func(): return Effects.current_game_scene().scene_file_path == LOBBY and Effects.current_game_scene().idle
 	)

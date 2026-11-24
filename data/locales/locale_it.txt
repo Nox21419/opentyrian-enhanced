@@ -1631,3 +1631,5 @@ net_timeout=Tempo di connessione scaduto.
 net_incompatible=Protocollo o versione incompatibile.
 net_enter_address=Inserisci l'IP dell'host, poi premi Invio.
 net_connection_test=Test di connessione - gioco non disponibile.
+net_phone=Telefono
+net_start_selected=Avvio preparato

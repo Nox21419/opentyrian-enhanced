@@ -11,8 +11,9 @@ All text is localized in the six game languages.
 
 The host Episode and Difficulty checkpoints are implemented and approved: while hosting,
 Join Game becomes **Choose Episode**. It reuses the original Episode screen and
-then opens the original Difficulty screen. Choosing Difficulty returns to the
-same live lobby with both choices shown. Back preserves the host connection;
+then opens the original Difficulty and two-player Arcade Game Menu screens.
+Start records host intent and returns to the same live lobby with both choices
+shown. It does not launch gameplay. Back preserves the host connection;
 leaving the lobby stops it and clears both choices. No save/profile is written.
 
 The maintainer approved this first screen on 2026-11-24 ("looks good, continue")
@@ -1088,3 +1089,56 @@ cancellation. New/changed GDScript lint/format and whitespace checks pass.
 No Android/device or Linux package gate was run and no game build was handed
 over. These are two peers in one Godot process over real localhost ENet, not a
 two-process, two-phone or internet gameplay test.
+
+Host Arcade menu frontend checkpoint plan: reuse shop.gd's original picture-1
+Arcade layout, menu engine, fonts, palette, navigation and Quit confirmation in
+a small derived screen. Keep its state outside Game so no local campaign is
+started or saved. Difficulty opens this one screen; Start records host intent
+and returns to the existing live lobby (still explicitly connection-only).
+Fixed input rows show the two phones and cannot cycle local devices. Options
+is visibly disabled until its separate network screen is integrated/reviewed.
+Do not open the Options child screen in this checkpoint. Android uses release
+activation with drag cancellation. No gameplay or Ready action is enabled.
+
+### Host-operated original Arcade Game Menu checkpoint
+
+After the approved host-operated direction, Difficulty now opens
+`network_arcade_menu.gd`, a derived original shop/Arcade screen. It reuses the
+original picture-1 background, Game Menu title/rows, fonts, palette, menu-engine
+layout and Quit confirmation. The small shared `_arcade_item_metadata` hook
+returns empty metadata for every existing local menu; only this network screen
+uses it to dim fixed player-input rows and unavailable Options. Keyboard/gamepad
+navigation skips those unavailable choices. Desktop retains original mouse
+selection/activation behavior; Android activates Start/Quit only on release and
+cancels a dragged-off press. Phone labels are translated in all six locales.
+
+This screen keeps its loadout, zero credits and selections outside Game. It
+reads the selected episode's native script for the original shop song. Start
+records a host request, retains the existing peer and returns to the live lobby,
+which explicitly still says gameplay is unavailable. It does not launch a local
+two-player level, perform a purchase, save a campaign or mark either player
+Ready. Input rows cannot change local device assignments. Options/Help children
+are not opened before this one-screen checkpoint is reviewed. Quit uses the
+original Yes/No box; Yes closes the session. Unexpected scene exit also cleans
+up. The guest stays in the connection lobby.
+
+The source framebuffer capture is `build/network-host-arcade.png`. New tests
+cover original menu identity, disabled rows, navigation, release-only Start,
+peer preservation, unchanged Game episode/campaign/modes, cancelled touch,
+fixed input rows and unexpected-exit cleanup. Existing Episode flow tests now
+traverse the Arcade screen before returning to the lobby. Locale consistency,
+glyph/width and hard-coded-text checks pass; changed GDScript lint/format and
+diff whitespace pass. Existing shop/new_game formatter limitations are not
+silently rewritten as part of this change.
+
+Final frontend verification: 28 flow cases pass across the network Arcade,
+Episode, existing Arcade mouse and local New Game suites. A focused follow-up
+passes 10 cases across the final network Arcade tests and lobby suite (two
+menu cases overlap the flow run). Both final processes exit 0 with no error
+lines/failures/orphans. Quit Yes/No and all translated value/status widths are
+also checked. An earlier 28-case process reported success then exited with the
+previously observed Windows access violation; the successful repeat allowed the
+final cleanup suite to complete. The cause is not established or claimed fixed.
+The framebuffer capture exits cleanly too. No Android run, Linux exported gate
+or game build handover occurred. Review this Arcade screen before its Options
+child or a new frontend step; backend work can continue independently.

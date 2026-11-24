@@ -1704,7 +1704,9 @@ func _render_arcade() -> void:
 		var gap := 0
 		if _arcade_menu == 9:
 			gap = (16 if x > 3 else 0) + (16 if x > 4 else 0)
-		items.append(MenuEngine.item(TyrianText.L(keys[x - 1]), "", MenuEngine.Kind.ACTION, {"gap": gap}))
+		var metadata := _arcade_item_metadata(x - 2)
+		metadata["gap"] = gap
+		items.append(MenuEngine.item(TyrianText.L(keys[x - 1]), "", MenuEngine.Kind.ACTION, metadata))
 	menus.stack.clear()
 	menus.open(TyrianText.L(keys[0]), items, {
 		"style": MenuEngine.Style.GAME_MENU, "external": true, "sel": _arcade_sel - 2, "draw": false,
@@ -1712,6 +1714,10 @@ func _render_arcade() -> void:
 		"decorate": _decorate_arcade,
 	})
 	menus.draw()
+
+
+func _arcade_item_metadata(_row: int) -> Dictionary:
+	return {}
 
 
 func _decorate_arcade() -> void:

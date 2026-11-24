@@ -1631,3 +1631,5 @@ net_timeout=Connection timed out.
 net_incompatible=Incompatible connection protocol or version.
 net_enter_address=Enter host IP, then press Enter.
 net_connection_test=Connection test - gameplay not available yet.
+net_phone=Phone
+net_start_selected=Start request prepared

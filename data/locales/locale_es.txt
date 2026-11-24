@@ -1577,3 +1577,5 @@ net_timeout=Tiempo de conexión agotado.
 net_incompatible=Protocolo o versión incompatible.
 net_enter_address=Introduce la IP del anfitrión y pulsa Intro.
 net_connection_test=Prueba de conexión - aún no se puede jugar.
+net_phone=Teléfono
+net_start_selected=Inicio preparado

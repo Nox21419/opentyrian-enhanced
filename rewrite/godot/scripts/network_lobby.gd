@@ -74,6 +74,10 @@ func _draw_row(_item: Dictionary, _x: int, y: int, selected: bool, row: int) -> 
 
 
 func _draw_details() -> void:
+	if NetworkSession.start_requested and not _typing:
+		TyrianText.draw_font_hv_shadow(
+			self, 160, 43, TyrianText.L("net_start_selected"), SMALL_FONT, CENTERED, 15, 4, false, 1
+		)
 	var text := _address if _typing else TyrianText.L("net_lan_only")
 	if not _typing and NetworkSession.selected_episode > 0:
 		text = TyrianText.L("ep_%d" % NetworkSession.selected_episode)

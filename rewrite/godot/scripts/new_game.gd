@@ -376,7 +376,10 @@ func _difficulty_chosen(sel: int) -> void:
 	await fade_black(10)
 	if _network_episode:
 		NetworkSession.finish_difficulty_selection(level)
-		Game.goto_scene("res://scenes/network_lobby.tscn")
+		if NetworkSession.begin_arcade_menu():
+			Game.goto_scene("res://scenes/network_arcade_menu.tscn")
+		else:
+			Game.goto_scene("res://scenes/network_lobby.tscn")
 		return
 	if flow == Flow.SUPER_ARCADE:
 		await _start_super_arcade(level)
