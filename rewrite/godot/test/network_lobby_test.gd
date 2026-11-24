@@ -119,7 +119,7 @@ func test_desktop_keeps_original_text_targets() -> void:
 
 
 func test_translated_labels_fit_original_fonts() -> void:
-	var keys := ["host", "join", "stop_host", "disconnect"]
+	var keys := ["host", "join", "stop_host", "disconnect", "choose_episode"]
 	var details := [
 		"lan_only",
 		"idle",

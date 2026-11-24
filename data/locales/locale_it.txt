@@ -1614,6 +1614,7 @@ destruct_touch_right_dir=Des.
 # Network connection lobby (connection testing only)
 net_title=Partita in rete
 net_host=Ospita partita
+net_choose_episode=Scegli episodio
 net_join=Unisciti
 net_stop_host=Smetti di ospitare
 net_disconnect=Disconnetti

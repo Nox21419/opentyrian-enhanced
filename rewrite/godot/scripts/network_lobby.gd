@@ -2,12 +2,12 @@
 ## LAN connection testing only; gameplay stays unavailable until synchronized.
 extends TyrianScreen
 
-const Lobby := preload("res://scripts/lan_lobby.gd")
+const NewGame := preload("res://scripts/new_game.gd")
 const ROW_Y := 83
 const ROW_STEP := 22
 const ADDRESS_MAX := 45
 
-var session := Lobby.new()
+var session: Node
 var menus := MenuEngine.new(self)
 var idle := false
 var _busy := true
@@ -17,10 +17,12 @@ var _typing := false
 var _keyboard_requested := false
 var _address := ""
 var _previous_address := ""
+var _handoff := false
 
 
 func _ready() -> void:
-	add_child(session)
+	NetworkSession.enter_lobby()
+	session = NetworkSession.lobby
 	session.changed.connect(_refresh)
 	_run.call_deferred()
 
@@ -59,6 +61,8 @@ func _row_label(row: int) -> String:
 		0:
 			return TyrianText.L("net_stop_host" if session.hosting else "net_host")
 		1:
+			if session.hosting:
+				return TyrianText.L("net_choose_episode")
 			return TyrianText.L("net_disconnect" if session.peer != null and not session.hosting else "net_join")
 	return TyrianText.L("gd_back")
 
@@ -71,6 +75,8 @@ func _draw_row(_item: Dictionary, _x: int, y: int, selected: bool, row: int) -> 
 
 func _draw_details() -> void:
 	var text := _address if _typing else TyrianText.L("net_lan_only")
+	if not _typing and NetworkSession.selected_episode > 0:
+		text = TyrianText.L("ep_%d" % NetworkSession.selected_episode)
 	# An IPv6 literal can exceed the available width; keep the caret visible.
 	while TyrianText.width(text, SMALL_FONT) > 280:
 		text = text.substr(1)
@@ -121,12 +127,14 @@ func _activate(row: int) -> void:
 	match row:
 		0:
 			if session.hosting:
-				session.close()
+				NetworkSession.stop()
 			else:
-				session.host()
+				NetworkSession.host()
 		1:
-			if session.peer != null and not session.hosting:
-				session.close()
+			if session.hosting:
+				_choose_episode()
+			elif session.peer != null:
+				NetworkSession.stop()
 			else:
 				_previous_address = _address
 				_typing = true
@@ -136,12 +144,23 @@ func _activate(row: int) -> void:
 	_refresh()
 
 
+func _choose_episode() -> void:
+	if not NetworkSession.begin_episode_selection():
+		return
+	_handoff = true
+	_busy = true
+	idle = false
+	NewGame.flow = NewGame.Flow.NETWORK_EPISODE
+	await fade_black(10)
+	Game.goto_scene(Game.SCENE_NEW_GAME)
+
+
 func _back() -> void:
 	if _busy:
 		return
 	_busy = true
 	idle = false
-	session.close()
+	NetworkSession.stop()
 	_hide_keyboard()
 	Sfx.play(Sfx.SPRING)
 	await fade_black(15)
@@ -186,7 +205,7 @@ func _finish_address(accept: bool) -> void:
 	_typing = false
 	_hide_keyboard()
 	if accept:
-		session.join(_address)
+		NetworkSession.join(_address)
 	else:
 		_address = _previous_address
 	_refresh()
@@ -232,5 +251,7 @@ func handle_mouse(event: InputEvent) -> void:
 
 
 func _exit_tree() -> void:
+	idle = false
 	_hide_keyboard()
-	session.close()
+	if not _handoff:
+		NetworkSession.stop()

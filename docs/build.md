@@ -31,6 +31,26 @@ The generated folders — `godot/bin/`, `godot/assets/imported/`, `godot/levels/
 `godot/assets/upscaled/`, `godot/.godot/` — are ignored by git and are
 regenerated with the scripts below.
 
+## Network compatibility build metadata
+
+`tyrian-godot/build.rs` embeds a SHA-256 identity of native source files, manifests,
+the lockfile, compiler version and explicit compiler flags. Rebuild the extension
+after native changes; an editable release label is not a compatibility identity.
+The source identity is conservative and byte-sensitive, including line endings;
+it does not establish tested cross-platform interoperability by itself.
+
+Keep the **Tyrian Network Identity** editor/export plugin enabled. Every export,
+including manual editor exports, inserts a fresh `assets/network-client-id.json`
+from the effective client source/configuration. Nothing is generated into that
+path in the source checkout. Editor runs hash the loose source files directly;
+an exported client without a valid stamp cannot supply a network identity.
+This metadata is compatibility infrastructure; network gameplay is still
+unavailable in the ordinary player flow. See the [co-op plan](network-coop.md).
+
+The new SHA-256 dependency and its locked dependency notices are included in
+`rewrite/licenses/network-hashing-LICENSES.txt`; desktop packaging and the
+Android runtime bundle copy that file alongside the existing notices.
+
 ## WSL / Linux
 
 ```bash

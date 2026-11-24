@@ -3,11 +3,14 @@
 extends Node
 
 signal changed
+signal packet_received(packet: PackedByteArray)
 
 const PORT := 26635
 const PROTOCOL := 1
 const CONNECT_TIMEOUT_MS := 8000
 const MAX_PACKET_BYTES := 256
+const MAX_SESSION_PACKET_BYTES := 2048
+const MAX_PACKETS_PER_POLL := 32
 
 var peer: ENetMultiplayerPeer
 var hosting := false
@@ -94,6 +97,16 @@ func _peer_disconnected(id: int) -> void:
 		_pending_failure = "net_disconnected"
 
 
+## Opt-in startup/session traffic. Ordinary connection-only screens register no
+## receiver and still reject additional packets after the version hello.
+func send_packet(packet: PackedByteArray) -> Error:
+	if not connected or peer == null or packet.is_empty() or packet.size() > MAX_SESSION_PACKET_BYTES:
+		return ERR_INVALID_PARAMETER
+	peer.set_target_peer(_remote)
+	peer.transfer_mode = MultiplayerPeer.TRANSFER_MODE_RELIABLE
+	return peer.put_packet(packet)
+
+
 func _process(_delta: float) -> void:
 	if peer == null:
 		return
@@ -104,10 +117,25 @@ func _process(_delta: float) -> void:
 	if peer.get_connection_status() == MultiplayerPeer.CONNECTION_DISCONNECTED:
 		_fail("net_disconnected", ERR_CONNECTION_ERROR)
 		return
-	while peer != null and peer.get_available_packet_count() > 0:
+	for _packet in MAX_PACKETS_PER_POLL:
+		if peer == null or peer.get_available_packet_count() == 0:
+			break
 		var sender := peer.get_packet_peer()
 		var packet := peer.get_packet()
-		if sender != _remote or connected or packet.size() > MAX_PACKET_BYTES:
+		if sender != _remote:
+			_fail("net_incompatible", ERR_INVALID_DATA)
+			return
+		if connected:
+			if (
+				packet.is_empty()
+				or packet.size() > MAX_SESSION_PACKET_BYTES
+				or packet_received.get_connections().is_empty()
+			):
+				_fail("net_incompatible", ERR_INVALID_DATA)
+				return
+			packet_received.emit(packet)
+			continue
+		if packet.size() > MAX_PACKET_BYTES:
 			_fail("net_incompatible", ERR_INVALID_DATA)
 			return
 		var hello: Variant = JSON.parse_string(packet.get_string_from_utf8())

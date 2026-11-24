@@ -31,6 +31,7 @@ Capture="*res://tools/capture.gd"
 Bench="*res://tools/bench.gd"
 CampaignBot="*res://tools/campaign_bot.gd"
 JourneyState="*res://tools/journey_state.gd"
+NetworkSession="*res://scripts/network_session.gd"
 
 [display]
 
@@ -44,7 +45,7 @@ window/handheld/orientation=0
 
 [editor_plugins]
 
-enabled=PackedStringArray("res://addons/tyrian_level_editor/plugin.cfg")
+enabled=PackedStringArray("res://addons/tyrian_level_editor/plugin.cfg", "res://addons/tyrian_networking/plugin.cfg")
 
 [input_devices]
 

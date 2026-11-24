@@ -9,6 +9,12 @@ Android activates the wider invisible row targets on release; dragging off
 cancels. Desktop mouse, keyboard and controller navigation remain available.
 All text is localized in the six game languages.
 
+The first host Episode checkpoint is now implemented for review: while hosting,
+Join Game becomes **Choose Episode**. It reuses the original Episode screen and
+returns to the same live lobby with the chosen episode shown. It does not open
+Difficulty or start a game yet. Back preserves the host connection; leaving the
+lobby stops it and clears the temporary choice. No save/profile is written.
+
 The maintainer approved this first screen on 2026-11-24 ("looks good, continue")
 and required the entire implementation plan to be documented before more code.
 That is visual approval, not a two-phone gameplay test. Do not interpret a successful connection as playable co-op,
@@ -34,6 +40,13 @@ with an APK built from this checkout. An older APK does not contain this screen.
 5. Both screens should report connected, with gameplay explicitly unavailable.
    Disconnect, Stop Hosting or Back releases the connection. Back returns to
    Players. Suspending the Android application also closes the connection.
+
+For the host Episode checkpoint, Host Game first, then Choose Episode. Choose
+an available episode or Back; the lobby connection remains open. Reopening the
+Episode screen restores the selected row. The host may make this preparation
+choice before a guest connects. The choice is local preparation, not a broadcast
+configuration or a guest Ready acknowledgement. Review this one screen before
+the selected original Difficulty screen is connected.
 
 The LAN transport uses UDP port **26635**, one guest, and a reliable ENet hello
 containing a lobby protocol version and application version. Socket creation,
@@ -363,7 +376,7 @@ limitations; all required gates passed or explicitly unresolved, never hidden.
 | 1 | Implemented; visual review accepted | 29 tests and original-framebuffer review; phone test pending |
 | 2 | Input/control primitives implemented | 13 codec/buffer tests pass, including a 500-tick adverse-delivery pair; configuration/progression payloads remain for stages 4/7 |
 | 3 | Core and bridge routing verified; phone integration pending | 5 Rust routing tests, 2 native bridge tests, strict covered parity and existing touch-control regression tests pass; phone HUD/session integration remains |
-| 4 | Design selected; implementation next | Host uses original Episode then Difficulty screens; guest waits; both confirm Ready; content/build/configuration checks still required |
+| 4 | Backend tested; first host Episode screen awaiting review | Identities, configuration grammar, shared load/Ready/start barrier and real ENet adapter tested; persistent version-only lobby and original host Episode choice wired; Difficulty, catalog validation and full level-state integration remain |
 | 5–8 | Pending | LAN play, session control and progression |
 | 9–10 | Pending | Native WebRTC probe, local services, deployment and internet room flow |
 | 11 | Pending | Adverse-network/device tests and exported-package gate |
@@ -376,6 +389,194 @@ its release. See
 [Godot WebRTC support](https://docs.godotengine.org/en/stable/tutorials/networking/webrtc.html)
 and [WebRTC connection setup](https://webrtc.org/getting-started/peer-connections).
 No service endpoint or TURN credentials have been configured or deployed.
+
+## Compatibility and startup backend (stage 4)
+
+The initial foundations and complete plan were committed and pushed to
+`origin/main` as `cee40cf` on 2026-11-24 at the maintainer's express request.
+That spent the one-commit authorization. The following continued implementation
+is a separate working-tree change, not an additional authorized commit.
+
+The ordinary Network Game screen still runs the connection-only lobby. It has
+not been connected to the startup coordinator or a level, so its Connected
+message still does not mean playable co-op. The selected original host Episode
+screen is now a separate frontend review checkpoint; Difficulty follows after
+that review, under the existing chosen direction.
+
+### Four independent identities
+
+`network_identity.gd:collect` obtains four SHA-256 values, all required:
+
+- **Native:** `tyrian-godot/build.rs` hashes root-relative source names and bytes
+  under every local native crate's `src`, crate manifests/build scripts, workspace
+  manifest/lockfile, rustc version and explicit compiler flags. The resulting ID
+  is embedded in the loaded binary and exposed by `TyrianSim.network_build_id`.
+  It does not read mutable Git HEAD, file timestamps or the application version.
+  Compiler flags and byte/line-ending differences can conservatively reject
+  otherwise equivalent independent builds; cross-platform compatibility still
+  requires tests. A matching ID is not client authentication or anti-cheat.
+- **Client:** editor runs hash current `project.godot` plus `.gd`, `.tscn`,
+  `.tres` and `.cfg` files under scripts, effects, scenes, config and the
+  networking export plugin. Tests/generated import caches/player files are
+  excluded. The `tyrian_networking` export plugin inserts a fresh
+  `res://assets/network-client-id.json` directly into every exported pack,
+  including manual editor exports. Exported clients read that stamp because
+  compiled `.gdc` files need not retain source text. Missing/invalid stamps
+  fail collection; no stale source-checkout stamp is reused.
+- **Content:** `TyrianMods.network_content_identity` hashes the desktop/Android
+  runtime-data allowlist and all regular files in the effective enabled mod
+  roots selected by the actual Rust loader. Invalid enabled mods or resolution
+  errors fail closed. The disabled/retired packs and repository-only catalogs
+  are not inputs. Mod documentation/art is conservatively included; no cosmetic
+  exception has been assumed. Root locations and timestamps do not enter the
+  hash. A later session must freeze/recheck content around actual loading;
+  hashing does not protect against external file edits during a run.
+- **Engine:** a digest of the explicit major/minor/patch/status/build/hash fields
+  reported by the running Godot engine.
+
+File manifests sort names and hash `name UTF-8`, NUL byte, lowercase SHA-256
+hex of the file's actual bytes, then LF. Native runtime manifests also include
+the `manifest/runtime-version` domain entry. Reads are streamed. Manifests cap
+files at 4096, traversed entries at 8192, nesting at 32 and bytes at 512 MiB;
+native manifests reject symlinks/nonregular content and ambiguous names. Client
+scans reject links/ambiguous names and require readable sources. These are
+compatibility bounds, not new simulation resource limits.
+
+The file inventory is not a serialization of cached resolved tables. Before
+player-flow negotiation is enabled, preparation must refresh the loader and its
+resolved caches on both peers, freeze mod/configuration changes, collect the
+inventory, and recheck it around actual level loading. External edits after a
+previous mod load must not allow old cached definitions to be presented as the
+new on-disk content. This remains part of the pending game integration.
+
+The identity collector is read-only. Native SHA-256 uses `sha2` 0.10.9;
+the locked dependencies' own MIT/Apache-2.0 texts are preserved in
+`rewrite/licenses/network-hashing-LICENSES.txt`. Both package paths include it.
+
+### Startup configuration and wire schema
+
+`network_configuration.gd` defines an immutable **Arcade-only** startup grammar:
+mode, episode, level file, initial/actual difficulty, seed, both loadouts and
+cash values, devices, input delay, mutators, processor type, game speed,
+explosion style, hitstop, combos and dedicated-special input mode. The original
+two-player difficulty increment is explicit. Seeds and cash are 16-character
+hexadecimal u64 values, avoiding JSON double precision loss. Equipment is ten
+typed fields per player; loadout power bounds and device ranges are checked.
+Endless and save-resume configurations are not silently accepted.
+
+Grammar validation is not catalog validation. The coordinator requires a local
+application validator on **both** peers. It receives a deep copy and must return
+a boolean; unknown/missing equipment, unsupported content and level-load checks
+must be supplied by the later game integration. A truthy string/value is not
+acceptance. No currently visible Start action bypasses this unfinished work.
+
+`network_startup_protocol.gd` uses a distinct `OT2S` prefix and schema version 1,
+not the gameplay `OT2N` packets or original LAN JSON hello. Its body is a compact
+ordered JSON array: version, kind, sender role and the kind-specific fields.
+Object-key duplication cannot change a configuration because configurations
+are ordered field arrays, too. Packets are limited to 2048 printable ASCII
+bytes; malformed/non-ASCII data, fractional numbers, trailing fields, invalid
+digests, unknown fields/kinds and wrong sender roles fail validation before
+being accepted. No object/Variant deserialization occurs.
+
+Hello carries native/client/content/engine digests. All other messages carry
+session ID, nonzero epoch, nonzero sender-specific control sequence and the
+configuration digest. Config adds the ordered proposal; Accept is guest-only;
+Loaded/Ready/Start add the initial-state digest. Start is host-only. Config
+and Ready are not gameplay input and never advance a simulation tick.
+
+### Shared startup barrier
+
+`network_startup.gd` enforces this sequence:
+
+1. Both identities match before the host can propose configuration.
+2. Host proposes immutable configuration for a session/epoch; both local
+   validators must accept it, and the guest acknowledges the same digest.
+3. Each caller explicitly reports its actual loaded-state digest. Both reports
+   must match before either can confirm Ready. A slow loader cannot be skipped.
+4. Both people explicitly confirm Ready. Only then can the host send Start,
+   and the guest accepts it only for the agreed epoch/configuration/state.
+
+Duplicate last controls are idempotent; conflicting repeats fail startup.
+Out-of-order sequences are rejected, and stale session/epoch messages do not
+consume a valid sequence. Compatibility/reply waits have an 8-second prototype
+timeout; agreed loading has 30 seconds. Human selection and Ready confirmation
+have no arbitrary deadline once the relevant machine barrier is satisfied.
+Failures clear queued startup messages. No host migration or resume is implied.
+
+The coordinator **does not derive a complete level-state digest**, load scenes,
+change profile/settings, validate the entire equipment catalog or step a Sim.
+The existing snapshot completeness audit in stage 5 remains mandatory. Supplying
+a digest in a backend test is not proof of a real game-level loading barrier.
+
+`network_startup_connection.gd` binds this protocol to real ENet peers.
+`lan_lobby.gd` permits post-hello traffic only when an explicit receiver is
+registered; ordinary connection-only screens keep rejecting it. Processing is
+capped at 32 packets per poll, with a 2048-byte session payload cap. Sender roles
+come from the transport assignment, not a claim in the packet. Incompatibility,
+bad startup messages and disconnect stop the adapter; its `running` property
+requires both a completed barrier and a live connection.
+
+### Verification and remaining integration
+
+Four native fingerprint tests cover byte sensitivity, path/order independence,
+runtime allowlist behavior, enabled-content selection and manifest bounds.
+Godot tests cover configuration precision/canonicalization, malformed wire data,
+four identity mismatch categories, mandatory validators, duplicate/conflicting
+controls, stale epochs, premature Ready/Start, state mismatch and timeouts.
+Real localhost ENet tests run the entire startup exchange, reject incompatible
+peers/bad packets and exchange actual loaded native/content/client identities.
+Additional identity tests compare a cross-language hashing fixture and exercise
+source additions, missing roots and stable native content collection.
+
+An internal Windows resource-pack export was probed in a separate Godot process:
+the embedded client digest matched the current loose source digest. This is an
+export-metadata check, not a distributed/handed-over game build or Android proof.
+Android bundle tests verify deterministic manifests and inclusion of the new
+dependency notices. No APK, phone/network test, exported Linux package gate or
+internet service deployment is claimed for this stage.
+
+### First host Episode screen checkpoint
+
+`NetworkSession` is a small persistent autoload owning the original version-only
+LAN lobby and a temporary selected-episode value. `network_lobby.gd` hands that
+connection to the original `new_game.gd` Episode screen through a one-shot flow.
+Selecting an episode returns to the same lobby/peer object, shows the chosen
+original episode label, and restores that row on reopening. Back cancels the
+screen without stopping the host. Unexpected departure from the host Episode
+scene or leaving the lobby closes the socket; the one-shot flow cannot leak
+into an ordinary local new game. Android uses the existing wide release targets;
+desktop keyboard/gamepad/mouse navigation remains the original menu behavior.
+
+This menu state is deliberately separate from `network_startup_connection.gd`.
+It does not supply a placeholder catalog validator, fake a loaded state, modify
+Game's active campaign/episode, write a save, or advance into a local two-player
+level. Choosing an episode only prepares the next host menu step. Difficulty
+and Ready are not exposed as dummy actions.
+
+`network_episode_test.gd` checks selection-on-release, exact peer preservation,
+Back/exit cleanup, selected-row restoration, unchanged active game state and
+normal-flow reset. Original-framebuffer captures show the original Episode
+screen and the returned host lobby with Episode 3 selected. These are desktop
+source captures, not Android phone validation or an APK handover.
+
+Next after this screen's review: connect the original Difficulty screen and
+actual catalog/configuration checks and level preparation, then bind the tested
+startup coordinator to the player session. Keep gameplay disabled until the
+complete state/start/input path is in place and verified.
+
+Verification for the continued working-tree checkpoint (2026-11-24): **74/74
+Godot cases** pass across 13 selected suites, with no error lines or orphan
+nodes; **4 native fingerprint tests** and **3 Android bundle tests** pass.
+Both strict in-app original-input replays pass (6,967 and 6,422 ticks reported
+by the app capture path). The earlier Rust comparator's 13,391-tick count is a
+different reference accounting path, not an added recording. The export stamp
+was re-probed after the host Episode changes and still matches current sources.
+Changed networking GDScript, Cargo formatting, Python lint/format, locale/glyph/
+width checks, shell syntax and local documentation links pass. Clippy passes
+with the same two previously identified baseline lint categories allowed;
+unfiltered lint and the Linux package gate are not claimed green. No Android
+device test or APK handover occurred.
 
 ## Gameplay wire primitives (stage 2)
 

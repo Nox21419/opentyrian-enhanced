@@ -12,8 +12,11 @@ an Android-only two-column layout of the original gold menu text, including
 a visible Side Modes entry with the same lettering.
 The Players screen keeps its original single-column text, adds Back and wider
 touch areas, and greys out/disables its local two-player entries. The network
-entry opens the [connection-only LAN lobby](network-coop.md); network gameplay
-is not implemented yet.
+entry opens the [connection-only LAN lobby](network-coop.md); while hosting,
+Choose Episode now reuses the original Episode screen and returns to the same
+live lobby with that preparation choice. This first host-screen checkpoint is
+awaiting review; Difficulty/startup are not exposed yet and network gameplay
+is not implemented.
 Episode Select keeps its original five labels and placement, adds Back and
 wider touch areas, and activates a choice on release. Difficulty Select uses
 the same release-to-select adaptation with Back to Episode or Timed Battle.
@@ -145,6 +148,9 @@ the A35. The helper stores APK assets uncompressed, then realigns and re-signs
 them; bootstrap also stages the native-data ZIP into a loose private file before
 ZIPReader seeks. A regression test covers asset storage and stale-signature removal.
 The default artifact is `build/android/OpenTyrian2000-Enhanced.apk`.
+The enabled network-identity export plugin stamps the current client sources
+inside the APK export; the runtime bundle also includes the hashing dependency
+notices. These support later compatibility negotiation, not playable co-op yet.
 Debug signing is for personal testing; release signing/distribution is separate.
 
 `Game._ready()` extracts the bundle before its first native campaign/profile

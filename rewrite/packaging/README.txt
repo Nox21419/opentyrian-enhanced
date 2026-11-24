@@ -53,6 +53,6 @@ What is in this folder
 ----------------------
 COPYING            licence of the game code (GPL)
 DATA-NOTICES.txt   licences and credits of the game data, music and HD art
-licenses/          licence texts of the bundled library and SoundFont
+licenses/          licence texts of bundled libraries and the SoundFont
 
 More: https://github.com/Patm4nzzz/opentyrian-enhanced

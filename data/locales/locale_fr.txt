@@ -1614,6 +1614,7 @@ destruct_touch_right_dir=Droite
 # Network connection lobby (connection testing only)
 net_title=Partie en réseau
 net_host=Héberger
+net_choose_episode=Choisir l'épisode
 net_join=Rejoindre
 net_stop_host=Arrêter l'hébergement
 net_disconnect=Déconnecter

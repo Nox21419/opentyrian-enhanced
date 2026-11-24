@@ -59,6 +59,7 @@ class AndroidBundleTests(unittest.TestCase):
                 self.assertIn("data/demo.1", names)
                 self.assertIn("data/soundfont.sf2", names)
                 self.assertIn("licenses/rustysynth-LICENSE.txt", names)
+                self.assertIn("licenses/network-hashing-LICENSES.txt", names)
                 self.assertFalse(
                     any("reference/" in name or "/mods/" in name or name.endswith(".snd") for name in names)
                 )

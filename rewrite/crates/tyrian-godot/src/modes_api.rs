@@ -15,6 +15,13 @@ use crate::TyrianSim;
 
 #[godot_api(secondary)]
 impl TyrianSim {
+    /// Identity of native sources/dependencies embedded in this loaded binary.
+    /// Independent of the user-editable application release label.
+    #[func]
+    fn network_build_id(&self) -> GString {
+        env!("TYRIAN_NETWORK_BUILD_ID").into()
+    }
+
     /// Mouse of the next `step`: `mask` in bits of the keyboard mask (0x10 fire,
     /// 0x20 fire switch, 0x40 / 0x80 sidekicks), `dx`/`dy` in game pixels.
     #[func]

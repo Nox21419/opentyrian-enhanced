@@ -45,7 +45,7 @@ const START_LOADOUT := [1, 1, 1, 0, 1, 4, 2, 0, 0, 0, 0]
 const PLAYER2_LOADOUT := [1, 1, 1, 15, 1, 4, 2, 0, 0, 0]
 
 ## Entry path: title "New Game", Super Arcade code, ENGAGE code.
-enum Flow { NEW_GAME, SUPER_ARCADE, SUPER_TYRIAN }
+enum Flow { NEW_GAME, SUPER_ARCADE, SUPER_TYRIAN, NETWORK_EPISODE }
 static var flow := Flow.NEW_GAME
 ## Super Arcade code typed at the title (index of specialName, 0-based).
 static var super_arcade := 0
@@ -76,9 +76,13 @@ var _lord_progress := 0
 var _super_tyrian_difficulty := DIFFICULTY_ZINGLON
 var _secret_difficulty := 0
 var _secret_return := false
+var _network_episode := false
 
 
 func _ready() -> void:
+	_network_episode = flow == Flow.NETWORK_EPISODE
+	if _network_episode:
+		flow = Flow.NEW_GAME
 	_secret_difficulty = secret_difficulty
 	_secret_return = secret_return
 	secret_difficulty = 0
@@ -87,6 +91,10 @@ func _ready() -> void:
 
 
 func _run() -> void:
+	if _network_episode:
+		mode = MODE_2P_ARCADE
+		await _open_episode()
+		return
 	match flow:
 		Flow.SUPER_ARCADE:
 			mode = MODE_ARCADE
@@ -263,7 +271,14 @@ static func episode_available(ep: int) -> bool:
 
 
 func _open_episode() -> void:
-	await _open("episode", "ep_title", _episode_rows(), 50, 30, _episode_chosen, _to_title)
+	var back := _network_episode_back if _network_episode else _to_title
+	var selected := maxi(NetworkSession.selected_episode - 1, 0) if _network_episode else 0
+	await _open("episode", "ep_title", _episode_rows(), 50, 30, _episode_chosen, back, selected)
+
+
+func _network_episode_back() -> void:
+	NetworkSession.finish_episode_selection()
+	Game.goto_scene("res://scenes/network_lobby.tscn")
 
 
 func _episode_chosen(sel: int) -> void:
@@ -279,6 +294,12 @@ func _episode_chosen(sel: int) -> void:
 	idle = false
 	await fade_black(10)
 	episode = sel + 1  # JE_initEpisode(selectedIndex + 1)
+	if _network_episode:
+		# First host-screen checkpoint: record the choice and return to the
+		# live lobby. Difficulty/Ready/level launch remain gated for later work.
+		NetworkSession.finish_episode_selection(episode)
+		Game.goto_scene("res://scenes/network_lobby.tscn")
+		return
 	if flow == Flow.SUPER_TYRIAN:
 		_start_super_tyrian()
 	else:
@@ -538,6 +559,11 @@ func wait_input() -> void:
 
 
 # --- Input -------------------------------------------------------------------
+
+
+func _exit_tree() -> void:
+	if _network_episode and NetworkSession.selecting_episode:
+		NetworkSession.stop()
 
 func handle_mouse(event: InputEvent) -> void:
 	var touch := (_touch_players and current_screen == "gameplay") \

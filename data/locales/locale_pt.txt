@@ -1560,6 +1560,7 @@ destruct_touch_right_dir=Dir.
 # Network connection lobby (connection testing only)
 net_title=Jogo em rede
 net_host=Hospedar jogo
+net_choose_episode=Escolher episódio
 net_join=Entrar no jogo
 net_stop_host=Parar de hospedar
 net_disconnect=Desconectar

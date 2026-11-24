@@ -56,6 +56,30 @@ fn kind_name(k: ItemKind) -> &'static str {
 
 #[godot_api]
 impl TyrianMods {
+    /// Hash the original runtime allowlist and the enabled, effective mod roots.
+    /// Invalid enabled content fails closed; absolute local paths never enter the digest.
+    #[func]
+    fn network_content_identity(&mut self, episode: i32) -> VarDictionary {
+        if !(1..=5).contains(&episode) {
+            return vdict! { "error" => "invalid_episode" };
+        }
+        let Some(set) = self.set.as_ref() else { return vdict! { "error" => "mods_not_loaded" } };
+        let mut folders = BTreeMap::new();
+        for folder in set.folders.iter().filter(|f| f.enabled) {
+            if !folder.error.is_empty() || folder.root.is_none() {
+                return vdict! { "error" => "invalid_enabled_mod" };
+            }
+            folders.insert(folder.folder.clone(), folder.path.clone());
+        }
+        if self.resolve(episode).is_none_or(|r| r.diagnostics.items.iter().any(|d| d.severity == Severity::Error)) {
+            return vdict! { "error" => "invalid_enabled_mod" };
+        }
+        match crate::network_fingerprint::content_digest(&self.data_dir, &folders) {
+            Ok(digest) => vdict! { "digest" => digest.as_str() },
+            Err(error) => vdict! { "error" => error.as_str() },
+        }
+    }
+
     /// Reads the mod folders (`mods_dirs`, in priority order) with
     /// the manifest of `data_dir`. Returns the number of active mods.
     #[func]

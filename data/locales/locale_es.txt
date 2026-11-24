@@ -1560,6 +1560,7 @@ destruct_touch_right_dir=Der.
 # Network connection lobby (connection testing only)
 net_title=Partida en red
 net_host=Crear partida
+net_choose_episode=Elegir episodio
 net_join=Unirse
 net_stop_host=Dejar de alojar
 net_disconnect=Desconectar

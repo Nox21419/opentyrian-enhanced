@@ -51,6 +51,7 @@ MIDI: third-party transcriptions (karlsitretro.com) of Alexander Brandon and And
 third-party licence NOT INCLUDED, rights not verified.
 SoundFont: TimGM6mb, Tim Brechbill and David Bolton, GPL v2 (see licenses/).
 Synthesizer: rustysynth, Nobuaki Tanaka, MIT (see licenses/); midly, Unlicense.
+Network hashing: sha2 and dependencies, MIT/Apache-2.0 (see licenses/network-hashing-LICENSES.txt).
 Sharp pixel-art shader: libretro/glsl-shaders, Hyllian (MIT), Zenju (GPL v3).
 Godot: MIT, https://godotengine.org/license/ (includes engine third-party notices).
 No HD assets in this proof of concept. Example mod packs: mods/ (shipped disabled).
@@ -95,6 +96,7 @@ def bundle_files(repo: Path) -> dict[str, bytes]:
         "COPYING": repo / "COPYING",
         "licenses/rustysynth-LICENSE.txt": repo / "rewrite/licenses/rustysynth-LICENSE.txt",
         "licenses/TimGM6mb-LICENSE.txt": repo / "rewrite/licenses/TimGM6mb-LICENSE.txt",
+        "licenses/network-hashing-LICENSES.txt": repo / "rewrite/licenses/network-hashing-LICENSES.txt",
     }.items():
         result[name] = path.read_bytes()
     result.update(mod_files(repo))

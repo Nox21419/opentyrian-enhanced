@@ -1614,6 +1614,7 @@ destruct_touch_right_dir=Right
 # Network connection lobby (connection testing only)
 net_title=Network Game
 net_host=Host Game
+net_choose_episode=Choose Episode
 net_join=Join Game
 net_stop_host=Stop Hosting
 net_disconnect=Disconnect

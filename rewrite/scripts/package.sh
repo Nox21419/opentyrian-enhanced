@@ -243,7 +243,8 @@ copy_data() {
     # the binary (midly, Unlicense, does not require it). GPL v2 of the TimGM6mb
     # SoundFont copied above (data/soundfont.sf2), with its copyright notice.
     mkdir -p "$dest/licenses"
-    cp "$rewrite/licenses/rustysynth-LICENSE.txt" "$rewrite/licenses/TimGM6mb-LICENSE.txt" "$dest/licenses/"
+    cp "$rewrite/licenses/rustysynth-LICENSE.txt" "$rewrite/licenses/TimGM6mb-LICENSE.txt" \
+        "$rewrite/licenses/network-hashing-LICENSES.txt" "$dest/licenses/"
     printf '%s\n' \
         'Code: see COPYING (GPL). The Tyrian data is separate from the code.' \
         'Tyrian 2000 data: freeware since 2004, not covered by the GPL of the code.' \
@@ -255,6 +256,7 @@ copy_data() {
         'data/soundfont.sf2: TimGM6mb SoundFont (Tim Brechbill, David Bolton), GPL v2: licence text and' \
         'copyright notice in licenses/TimGM6mb-LICENSE.txt.' \
         'MIDI synthesiser: rustysynth (Nobuaki Tanaka, MIT licence, text in licenses/) and midly (Unlicense), linked into the game.' \
+        'Network hashing: sha2 and dependencies, MIT/Apache-2.0; texts in licenses/network-hashing-LICENSES.txt.' \
         'Left out of data/: third-party mods and files not needed at runtime.' \
         'upscaled/ (HD (AI) mode): 4x upscale by the 4x-PixelPerfectV4 model (mutin-choler, WTFPL licence,' \
         'https://openmodeldb.info/models/4x-PixelPerfectV4), ESRGAN architecture, run with spandrel (MIT) and PyTorch (BSD).' \
