@@ -28,8 +28,11 @@ requests synchronized Pause using Back or the original touch pause target.
 The host operates the original Pause menu; the guest sees PAUSED. Host-local
 Music/Sound, Return and Quit work; negotiated settings and unsupported rows stay
 dim. Host Return resumes both; guest Back while paused leaves. Focus loss,
-disconnect or first-level end closes this prototype session and returns to the
-lobby. Later levels, independent-process lifecycle validation
+disconnect closes this prototype session and returns to the lobby. On agreed
+level completion, surviving players now see the original two-player debrief and
+Statistics on both views, with host-only advancement. Both final fades finish
+before the first-level prototype returns to the lobby. Normal all-dead results
+exit after agreement without a successful debrief. Later levels, independent-process lifecycle validation
 and internet integration remain unfinished. Desktop networking remains a
 diagnostic transport/backend profile, not a shipped desktop input profile.
 The previously observed intermittent Windows shutdown access violation remains
@@ -2039,3 +2042,95 @@ and host Arcade continuation remain next, with later-level loading still subject
 to the pending scoped approval. No new frontend direction, APK/package handover,
 physical-device test or exported Linux gate is claimed. The preceding
 result/Statistics checkpoint was pushed as `b5e639b`.
+
+### Live first-level Statistics handoff plan (2026-11-25)
+
+Reuse the approved original shared Statistics flow inside the existing owned
+player scene. On the final fully presented tick, stop the clock, clear flight
+gestures and capture the result once; retain the borrowed native node until the
+owner closes the session. Measure host-only wall time from the view-start barrier,
+including human pauses, without assigning Game.level_start_ms or changing ticks.
+Await matching results before routing: any surviving player opens the original
+two-player debrief/Statistics; normal all-dead results retain the prototype exit
+without showing a successful debrief. Current initial Arcade validation remains
+unchanged; bonus/retry campaign routing belongs to the later cursor adaptation.
+
+Bind and freeze the original final framebuffer before adding the debrief child,
+then connect readiness/host requests/commits to the completion backend. Clear
+gameplay input and hide its pause target while the original screen owns input.
+Preserve focus-loss/disconnect cleanup while the native node remains borrowed.
+Freeze/drawing and every screen transition must leave final native diagnostics
+unchanged. Handle reentrant backend notifications and failed bindings safely.
+
+Extend the existing completion READY/ADVANCE sequence range to phase 3 for an
+internal fade-finished barrier. The view itself retains only its two user-facing
+screens. Each peer announces phase 3 only after its original final fade; the host
+automatically requests the commit. This prevents session teardown from cutting
+off the other phone's fade. For this explicitly first-level LAN prototype, both
+then return to the existing lobby. This intermediate exit does not implement or
+replace the approved later host Arcade continuation, retry or next-level load.
+
+Test the live controller's result gating, frozen background, both original
+screens, host-only input, phase-3 wait, all-dead exit, focus loss/disconnect and
+native ownership. Use named fixture results for controlled successful-screen
+tests and distinguish them from natural native completion evidence. Re-run the
+real ENet completion and existing player/Pause/debrief regressions. No simulation
+or later-level loader change, new frontend layout or APK handover is included.
+
+### Live first-level Statistics implementation (2026-11-25)
+
+`network_player.gd` now routes its final fully presented tick through result
+agreement instead of immediately closing. It captures once, stops the clock,
+clears gestures and retains focus-loss/disconnect handling. The host's private
+wall-clock start is recorded at the view-ready barrier; no local campaign timer
+or simulation timing is assigned. After agreement, a surviving result binds the
+original `network_debrief.gd` as an owned child over the frozen final playfield
+and full two-player HUD. The borrowed simulation remains owned by preparation.
+The agreed core diagnostic must still match before binding and remain unchanged
+by framebuffer freezing. Failed binding/changed state closes safely.
+
+Readiness and host requests now drive the two original screen phases through
+the completion backend. READY/ADVANCE phase 3 is the internal final-fade barrier:
+both views finish fading before the host commits prototype exit. Phase 3 has no
+additional menu or input prompt. The host and guest then return to the existing
+lobby; this remains a first-level test, with the approved later host Arcade menu
+and campaign continuation still pending the loader/cursor work. All-dead normal
+results do not show successful Statistics or invent a retry policy.
+
+Cancellation also guards the original debrief's deferred entry and post-wait
+continuations. The network view's original palette-fade loop stops when removed,
+so an old disconnected screen cannot fade the replacement lobby. Ordinary local
+debrief rendering and navigation remain on their existing default paths.
+
+Validation ledger:
+
+- The initial combined controller/completion/ENet/codec run passed 17 cases with
+  process exit 0, including the new fade phase. A separate player-menu/Pause/
+  detached-result regression run passed 14 cases with process exit 0.
+- After cancellation guards, the controller/debrief/local-regression run passed
+  22 cases with process exit 0: five live-controller cases, four detached-view
+  cases and all 13 original local debrief/Statistics/touch/exit cases.
+- The final cancellation/ENet run passed seven cases with process exit 0,
+  including the fifth detached-view test added for removal during an active fade.
+  Replacement palette bytes remain unchanged, and removed Statistics do not
+  start a late fade or completion callback. Real ENet still agrees final results
+  after pause/resume and holds native diagnostics through phase 3.
+- All nine changed/new GDScript files pass formatter/linter checks;
+  `git diff --check` passes. No native mechanics or loader code changed. Clean
+  exits here do not prove the older intermittent Windows shutdown crash fixed.
+
+Successful controller tests use named survival/result fixtures over a real
+native renderer; they do not prove a naturally won network level. They verify
+single capture from the physics completion branch, result gating, host-only
+requests, frozen-frame read-only checks, both screens, waiting for the other fade,
+all-dead routing, changed-state rejection and focus-loss detachment. Inspected
+captures `build/network-live-summary-1.png`, `build/network-live-summary-2.png`
+and `build/network-live-statistics-2.png` use that controlled result data (including
+its warp flag). They are not phone screenshots or natural-win journey evidence.
+The real ENet terminal tests use original game-over acknowledgement instead.
+
+The preceding coordinator was pushed as `75fd2f6`.
+The approved host Arcade continuation, campaign cursor,
+retry/bonus/episode paths, later-level native loading and full multi-level
+journeys remain next; the scoped loader approval is still pending. No APK/package
+was handed over and the unavailable WSL/Linux exported-package gate was not run.

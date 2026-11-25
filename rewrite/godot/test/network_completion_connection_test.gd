@@ -149,7 +149,7 @@ func test_natural_final_result_and_screen_controls_after_pause_resume_use_curren
 		)
 	)
 	assert_str(peers[1].error).is_empty()
-	for stage in [1, 2]:
+	for stage in [1, 2, 3]:
 		assert_bool(peers[0].mark_result_screen_ready(stage)).is_true()
 		assert_bool(peers[0].request_result_advance(stage)).is_true()
 		assert_bool(peers[1].request_result_advance(stage)).is_false()

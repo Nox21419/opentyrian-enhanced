@@ -103,6 +103,8 @@ func _any_button() -> bool:
 
 
 func _wait_summary(_was_animating: bool) -> void:
+	if not is_inside_tree():
+		return
 	_stage = 1
 	_requested = false
 	_input_seen = false
@@ -114,6 +116,8 @@ func _wait_summary(_was_animating: bool) -> void:
 
 
 func _wait_statistics() -> void:
+	if not is_inside_tree():
+		return
 	_stage = 2
 	_requested = false
 	_input_seen = false
@@ -137,3 +141,19 @@ func handle_action(action: StringName) -> void:
 func _finish_debrief() -> void:
 	if is_inside_tree() and _committed == 2:
 		finished.emit()
+
+
+## Original palette fade, cancelled when disconnect/scene exit removes this
+## screen. Never let an old coroutine fade the replacement lobby's shared VGA.
+func fade_black(steps: int, surf := VGA_SCREEN) -> void:
+	if not is_inside_tree():
+		return
+	push_pointer_hidden()
+	vga.fade_solid_init(Color.BLACK, 0, 255)
+	for step in range(steps, 0, -1):
+		if not is_inside_tree():
+			break
+		vga.fade_step(step, 0, 255)
+		present(surf)
+		await wait_units(1)
+	pop_pointer_hidden()

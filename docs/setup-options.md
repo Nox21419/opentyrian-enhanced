@@ -38,9 +38,10 @@ Return and Quit are enabled; negotiated settings and unsupported rows stay dim.
 The host resumes; the guest may leave with Back while paused. Focus loss or
 disconnect returns to the lobby. Later levels, two-phone validation and internet
 bootstrap remain pending.
-The next approved screen is the original two-player debrief/Statistics on both
-phones, with host-only advance and a guest-wait footer. A detached rendering
-component passes source tests; live level-end handoff and later levels remain pending.
+The approved original two-player debrief/Statistics is now wired into the source
+player flow on both phones, with host-only advance and a guest-wait footer after
+result agreement. An internal barrier waits for both final fades before this
+first-level prototype returns to the lobby; later campaign continuation remains pending.
 See [network co-op](network-coop.md).
 
 ## Option behavior and persistence

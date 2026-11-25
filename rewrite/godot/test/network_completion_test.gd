@@ -45,7 +45,7 @@ func test_completion_wire_fixture_and_strict_lengths_roles_elapsed_and_phases() 
 	assert_str(Wire.encode(message).hex_encode()).is_equal(fixture)
 	assert_dict(Wire.decode(fixture.hex_decode(), SESSION, 2, 1)).is_equal(message)
 	for kind in [Wire.Kind.LEVEL_READY, Wire.Kind.LEVEL_ADVANCE]:
-		for stage in [1, 2]:
+		for stage in [1, 2, 3]:
 			message = _message(1, kind, stage)
 			assert_dict(Wire.decode(Wire.encode(message), SESSION, 2, 1)).is_equal(message)
 	var packet := fixture.hex_decode()
@@ -61,7 +61,7 @@ func test_completion_wire_fixture_and_strict_lengths_roles_elapsed_and_phases() 
 	message.elapsed = 1
 	assert_bool(Wire.encode(message).is_empty()).is_true()
 	assert_bool(Wire.encode(_message(2, Wire.Kind.LEVEL_ADVANCE, 1)).is_empty()).is_true()
-	assert_bool(Wire.encode(_message(1, Wire.Kind.LEVEL_READY, 3)).is_empty()).is_true()
+	assert_bool(Wire.encode(_message(1, Wire.Kind.LEVEL_READY, 4)).is_empty()).is_true()
 	assert_bool(Wire.encode(_message(1, Wire.Kind.LEVEL_READY, 0)).is_empty()).is_true()
 
 
@@ -73,7 +73,7 @@ func test_result_agreement_and_host_waiting_for_both_screen_readiness() -> void:
 		assert_bool(peer.may_advance(100)).is_false()
 		peer.poll(1000000)  # Deliberate human wait has no agreement timeout.
 		assert_str(peer.error).is_empty()
-	for stage in [1, 2]:
+	for stage in [1, 2, 3]:
 		assert_bool(pair[1].request_advance(stage, 1000000)).is_false()
 		assert_bool(pair[0].screen_ready(stage)).is_true()
 		_deliver(pair[0], pair[1])

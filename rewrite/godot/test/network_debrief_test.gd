@@ -15,6 +15,29 @@ class FastView:
 			await get_tree().process_frame
 
 
+class CancelView:
+	extends "res://scripts/network_debrief.gd"
+	var fades := 0
+	var completions := 0
+
+	func wait_units(_units: int) -> void:
+		if is_inside_tree():
+			await get_tree().process_frame
+
+	func fade_black(_steps: int, _surf := VGA_SCREEN) -> void:
+		fades += 1
+
+	func _finish_debrief() -> void:
+		completions += 1
+
+
+class FadeOnlyView:
+	extends "res://scripts/network_debrief.gd"
+
+	func _ready() -> void:
+		pass
+
+
 func before_test() -> void:
 	for key in [
 		"debrief", "debrief_frozen", "episode", "campaign_active", "loadout", "campaign_carry", "level_start_ms"
@@ -129,3 +152,34 @@ func test_guest_wait_prompt_fits_original_summary_and_statistics_in_all_language
 		assert_str(label).is_not_equal("net_wait_host")
 		assert_int(TyrianText.width(label, TyrianScreen.SMALL_FONT)).is_less_equal(288)
 		assert_int(TyrianText.width(label, TyrianScreen.NORMAL_FONT)).is_less_equal(304)
+
+
+func test_removed_statistics_screen_does_not_start_a_late_fade_or_completion() -> void:
+	var view: Node = auto_free(CancelView.new())
+	assert_bool(view.bind(_result(), Fixture.configuration(), 1, 125)).is_true()
+	add_child(view)
+	assert_bool(await _wait(func(): return view.idle)).is_true()
+	assert_bool(view.commit_phase(1)).is_true()
+	assert_bool(await _wait(func(): return view.stats_shown)).is_true()
+	remove_child(view)
+	await get_tree().process_frame
+	await get_tree().process_frame
+	assert_int(view.fades).is_equal(0)
+	assert_int(view.completions).is_equal(0)
+
+
+func test_removal_during_fade_preserves_replacement_screen_palette() -> void:
+	var view: Node = auto_free(FadeOnlyView.new())
+	assert_bool(view.bind(_result(), Fixture.configuration(), 1, 125)).is_true()
+	add_child(view)
+	var replacement: Array[PackedByteArray] = []
+	view.presented.connect(
+		func(_surface: int):
+			remove_child(view)
+			view.vga.set_colors(Color.MAGENTA, 0, 255)
+			replacement.append(view.vga.palette_bytes()),
+		CONNECT_ONE_SHOT
+	)
+	await view.fade_black(15)
+	assert_int(replacement.size()).is_equal(1)
+	assert_bool(view.vga.palette_bytes() == replacement[0]).is_true()

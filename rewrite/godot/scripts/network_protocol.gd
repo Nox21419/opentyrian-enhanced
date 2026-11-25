@@ -76,7 +76,7 @@ static func valid_message(message: Variant) -> bool:
 		Kind.LEVEL_READY, Kind.LEVEL_ADVANCE:
 			return (
 				_hex(message.digest, 64)
-				and message.sequence in [1, 2]
+				and message.sequence in [1, 2, 3]
 				and (message.kind == Kind.LEVEL_READY or message.player == 1)
 			)
 		Kind.PAUSE:

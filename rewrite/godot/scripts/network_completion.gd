@@ -1,4 +1,4 @@
-## Per-level result agreement and two host-operated original screen barriers.
+## Per-level agreement, two original screen barriers and a final fade barrier.
 ## No native node, scene, gameplay mutation or transport ownership.
 extends RefCounted
 
@@ -84,7 +84,7 @@ func reached(tick: int, digest: String, elapsed: int, now: int) -> bool:
 
 
 func screen_ready(stage: int) -> bool:
-	if not agreed() or stage < 1 or stage > 2:
+	if not agreed() or stage < 1 or stage > 3:
 		return false
 	if stage <= _local_ready:
 		return true

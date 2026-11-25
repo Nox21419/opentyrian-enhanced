@@ -82,6 +82,8 @@ func out_text_glow_centered(y: int, s: String) -> void:
 
 ## fonthand.c:JE_outTextGlow.
 func out_text_glow(x: int, y: int, s: String) -> void:
+	if not is_inside_tree():
+		return
 	glow_log.append(s)
 	glow_ys.append(y)
 	glow_xs.append(x)
@@ -90,6 +92,8 @@ func out_text_glow(x: int, y: int, s: String) -> void:
 		TyrianText.out_text_adjust(self, x + d[0], y + d[1], s, 0, -12, GLOW_FONT, false)
 	if _frame_count_max > 0:
 		for z in range(1, 13):
+			if not is_inside_tree():
+				return
 			TyrianText.out_text_adjust(self, x, y, s, c, z - 10, GLOW_FONT, false)
 			if _any_button():
 				_frame_count_max = 0
@@ -97,6 +101,8 @@ func out_text_glow(x: int, y: int, s: String) -> void:
 			await wait_units(_frame_count_max)
 	var start := 6 if _frame_count_max == 0 else 12
 	for z in range(start, _glow_brightness - 1, -1):
+		if not is_inside_tree():
+			return
 		TyrianText.out_text_adjust(self, x, y, s, c, z - 10, GLOW_FONT, false)
 		if _any_button():
 			_frame_count_max = 0
@@ -125,6 +131,8 @@ func draw_cube(x: int, y: int, filter: int, brightness: int) -> void:
 
 
 func _run() -> void:
+	if not is_inside_tree():
+		return
 	var d: Dictionary = _debrief_data()
 	_frame_count_max = 4
 	# The C draws over the last game frame (frozen VGAScreen): the
@@ -239,12 +247,18 @@ func _run() -> void:
 		await wait_units(1)
 	if not Capture.active:
 		await _wait_summary(was_animating)
+	if not is_inside_tree():
+		return
 	idle = false
 	await _level_statistics(d)
+	if not is_inside_tree():
+		return
 	# tyrian2.c:320: fade_song() after JE_endLevelAni (the end-of-level
 	# song plays throughout the summary).
 	Music.fade_song()
 	await fade_black(15)
+	if not is_inside_tree():
+		return
 	_finish_debrief()
 
 
