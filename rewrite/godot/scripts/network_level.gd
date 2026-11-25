@@ -10,6 +10,7 @@ signal network_tick_presented(tick: int)
 var backend: Node
 var player := 0
 var use_entry_fade := false
+var pause_controls := false
 var _config := {}
 var _network_level_name := ""
 var _presented_tick := 0
@@ -181,6 +182,8 @@ func capture_network_input() -> bool:
 	if not _network_input_enabled or not _borrow_valid() or not backend.needs_local_input():
 		return false
 	_sync_touch_weapons()
+	if backend.inputs_quiesced():
+		return backend.capture_local(TouchPolicy.neutral_frame(player, _config))
 	var gravity := Input.get_gravity() if tilt_enabled() else Vector3.ZERO
 	return backend.capture_local(_sample_network_touch(gravity))
 
@@ -206,6 +209,8 @@ func _input(event: InputEvent) -> void:
 	if not _network_input_enabled or not _borrow_valid():
 		return
 	if event is InputEventScreenTouch or event is InputEventScreenDrag:
+		if pause_controls and _pause_touch_event(event):
+			return
 		_sync_touch_weapons()
 		if _touch_weapons != null and _touch_weapons.feed(event):
 			return
@@ -252,12 +257,13 @@ func _sync_touch_weapons() -> void:
 		_hud_vga.touch_layout = true
 	_touch_weapons.update_state(
 		TouchPolicy.controls_hud(sim.hud_state(), player, _config.dedicated_special),
-		not sim.level_ended() and not entry_pending()
+		not sim.level_ended() and not entry_pending() and not paused and not backend.inputs_quiesced()
 	)
 
 
 func _build_touch_pause_label() -> void:
-	pass
+	if pause_controls:
+		super._build_touch_pause_label()
 
 
 func _draw_endless_hud() -> void:

@@ -32,8 +32,12 @@ lobby Ready check (approved), followed by host-only Start. The source now hands
 off to the approved original full two-player view on Android. Both original
 entry fades/readiness acknowledgements precede simulation. Assigned touch/tilt
 and session-owned effects/pacing are tested in source. This first-level LAN
-prototype returns to the lobby on Back/focus loss/disconnect; synchronized pause,
-later levels, two-phone validation and internet bootstrap remain pending.
+prototype now synchronizes Pause from either phone: the host operates the
+original Pause menu and the guest sees PAUSED. Only host-local Music/Sound,
+Return and Quit are enabled; negotiated settings and unsupported rows stay dim.
+The host resumes; the guest may leave with Back while paused. Focus loss or
+disconnect returns to the lobby. Later levels, two-phone validation and internet
+bootstrap remain pending.
 See [network co-op](network-coop.md).
 
 ## Option behavior and persistence

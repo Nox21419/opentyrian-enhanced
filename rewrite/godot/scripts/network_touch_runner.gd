@@ -55,6 +55,18 @@ func needs_local_input() -> bool:
 	return _running() and _buffer.needs_local_input()
 
 
+## Only the agreed pause/resume controller may call this. No native setters,
+## reload, RNG changes or replay of the already-executed absolute tick history.
+func resume_inputs(epoch: int, tick: int) -> bool:
+	if not _running() or epoch != _epoch + 1 or tick != ticks_executed or _sim.tick() != tick:
+		return _fail("invalid_input_resume")
+	var neutral := [Policy.neutral_frame(1, _config), Policy.neutral_frame(2, _config)]
+	if _buffer.configure_at(_session, epoch, _player, _config.input_delay, tick, neutral) != OK:
+		return _fail("invalid_input_resume")
+	_epoch = epoch
+	return true
+
+
 ## Waiting/retransmission returns the exact frozen packet. The caller should
 ## poll hardware only after needs_local_input(), never once per render frame.
 func capture_local(frame: Dictionary) -> PackedByteArray:

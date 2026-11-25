@@ -28,19 +28,34 @@ var _history := {}
 
 
 func configure(session: String, epoch: int, local_player: int, delay: int) -> Error:
+	return configure_at(session, epoch, local_player, delay, 0)
+
+
+## New input epoch at an unchanged absolute simulation tick. No core ownership.
+func configure_at(session: String, epoch: int, local_player: int, delay: int, tick: int, neutral: Array = []) -> Error:
 	reset()
 	if not Wire.valid_session(session) or epoch < 1 or epoch > Wire.MAX_TICK:
 		return ERR_INVALID_PARAMETER
 	if local_player not in [1, 2] or delay < 0 or delay > MAX_DELAY:
 		return ERR_INVALID_PARAMETER
+	if tick < 0 or tick > Wire.MAX_TICK - delay:
+		return ERR_INVALID_PARAMETER
+	if (
+		not neutral.is_empty()
+		and (neutral.size() != 2 or not Wire.valid_frame(neutral[0]) or not Wire.valid_frame(neutral[1]))
+	):
+		return ERR_INVALID_PARAMETER
 	_session = session
 	_epoch = epoch
 	_local_player = local_player
 	_delay = delay
+	_next_tick = tick
 	_active = true
-	for tick in delay:
+	for frame_tick in range(tick, tick + delay):
 		for player in 2:
-			_frames[player][tick] = Wire.neutral_frame()
+			_frames[player][frame_tick] = (
+				Wire.neutral_frame() if neutral.is_empty() else neutral[player].duplicate(true)
+			)
 	return OK
 
 

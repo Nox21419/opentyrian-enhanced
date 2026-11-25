@@ -640,10 +640,15 @@ func _draw_menu_tree(m: Dictionary) -> void:
 		var it: Dictionary = items[i]
 		var y: int = g.y_start + (i - m.top) * g.step
 		if it.get("unavailable", false):
+			if it.has("unavailable_draw"):
+				it.unavailable_draw.call(it, x0, y)
+				continue
 			TyrianText.draw_font_hv_shadow(s, x0, y, TyrianText.L(it.label), s.NORMAL_FONT, s.LEFT, 10, -3, false, 2)
 			var disabled_suffix := value_suffix(it)
 			if disabled_suffix != "":
-				TyrianText.draw_font_hv_shadow(s, x0 + VALUE_X_OFFSET, y, disabled_suffix, s.NORMAL_FONT, s.LEFT, 10, -3, false, 2)
+				TyrianText.draw_font_hv_shadow(
+					s, x0 + VALUE_X_OFFSET, y, disabled_suffix, s.NORMAL_FONT, s.LEFT, 10, -3, false, 2
+				)
 			continue
 		if it.kind == Kind.CUSTOM:  # render_item: CUSTOM drawing
 			it.draw.call(it, x0, y, i == m.sel)
@@ -694,9 +699,7 @@ func _draw_title(m: Dictionary) -> void:
 	var layout: Callable = m.options.get("title_position", Callable())
 	if layout.is_valid():
 		position = layout.call(m.sel)
-	TyrianText.draw_font_hv(
-		s, position.x, position.y, m.items[m.sel].label, s.NORMAL_FONT, s.CENTERED, 15, -1
-	)
+	TyrianText.draw_font_hv(s, position.x, position.y, m.items[m.sel].label, s.NORMAL_FONT, s.CENTERED, 15, -1)
 
 
 ## title_screen.c:titleScreen, `restart` branch: entries with dark outline

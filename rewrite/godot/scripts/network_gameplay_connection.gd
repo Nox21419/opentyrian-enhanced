@@ -6,10 +6,12 @@ const Runner := preload("res://scripts/network_touch_runner.gd")
 const Buffer := preload("res://scripts/network_input_buffer.gd")
 const Wire := preload("res://scripts/network_protocol.gd")
 const Config := preload("res://scripts/network_configuration.gd")
+const PauseController := preload("res://scripts/network_pause.gd")
 var _runner := Runner.new()
 var _activated := false
 var _view_local := false
 var _view_remote := false
+var _pause := PauseController.new()
 
 
 func _ready() -> void:
@@ -18,6 +20,7 @@ func _ready() -> void:
 
 
 func stop() -> void:
+	_pause = PauseController.new()
 	_view_local = false
 	_view_remote = false
 	_runner.stop()
@@ -52,11 +55,11 @@ func running() -> bool:
 
 
 func needs_local_input() -> bool:
-	return running() and _runner.needs_local_input()
+	return running() and _pause.may_advance(ticks_executed()) and _runner.needs_local_input()
 
 
 func capture_local(frame: Dictionary) -> bool:
-	if not running():
+	if not running() or not _pause.may_advance(ticks_executed()):
 		return false
 	var packet: PackedByteArray = _runner.capture_local(frame)
 	if not _runner.error.is_empty():
@@ -69,7 +72,7 @@ func capture_local(frame: Dictionary) -> bool:
 
 
 func advance() -> bool:
-	if not running():
+	if not running() or not _pause.may_advance(ticks_executed()):
 		return false
 	var advanced: bool = _runner.advance()
 	if not _runner.error.is_empty():
@@ -125,6 +128,64 @@ func views_ready() -> bool:
 	return running() and _view_local and _view_remote
 
 
+func request_pause() -> bool:
+	if not views_ready() or not _pause.request_pause(ticks_executed(), Time.get_ticks_msec()):
+		return false
+	return _settle_pause()
+
+
+func request_resume() -> bool:
+	if not views_ready() or not _pause.request_resume(Time.get_ticks_msec()):
+		return false
+	return _settle_pause()
+
+
+func inputs_quiesced() -> bool:
+	return running() and _pause.quiesced()
+
+
+func pause_boundary_reached() -> bool:
+	return running() and not _pause.may_advance(ticks_executed())
+
+
+func pause_confirmed() -> bool:
+	return running() and _pause.phase == PauseController.Phase.PAUSED
+
+
+func local_paused() -> bool:
+	return running() and _pause.local_paused()
+
+
+func note_pause_boundary() -> bool:
+	if running() and _pause.local_paused():
+		return true
+	if not running() or not _pause.reached(ticks_executed(), diagnostic_digest()):
+		return _fail(_pause.error if not _pause.error.is_empty() else "invalid_pause_boundary")
+	return _settle_pause()
+
+
+func _settle_pause() -> bool:
+	if not _pause.error.is_empty():
+		return _fail(_pause.error)
+	if _pause.needs_input_reset():
+		if not _runner.resume_inputs(_pause.epoch + 1, _pause.target):
+			return _fail(_runner.error)
+		if not _pause.input_reset_done(diagnostic_digest()):
+			return _fail(_pause.error)
+	for message in _pause.take_messages():
+		if _connection.transport.send_packet(Wire.encode(message)) != OK:
+			return _fail("pause_send_failed")
+	changed.emit()
+	return running()
+
+
+func _process(_delta: float) -> void:
+	if running():
+		_pause.poll(Time.get_ticks_msec())
+		if not _pause.error.is_empty():
+			_fail(_pause.error)
+
+
 func _receive_view_ready(packet: PackedByteArray) -> void:
 	var context: Dictionary = _connection.startup.context()
 	var message := Wire.decode(packet, packet.slice(8, 24).hex_encode(), packet.decode_u32(24), 3 - context.player)
@@ -172,6 +233,10 @@ func _changed() -> void:
 			_fail(_runner.error)
 			return
 		_activated = true
+		_pause = PauseController.new()
+		if not _pause.configure(context.session, context.epoch, context.player, configuration().input_delay):
+			_fail(_pause.error)
+			return
 	changed.emit()
 
 
@@ -180,7 +245,14 @@ func _receive_input(packet: PackedByteArray) -> void:
 		_fail("input_before_start")
 		return
 	if packet.size() >= Wire.HEADER_BYTES and int(packet[6]) == Wire.Kind.READY:
-		_receive_view_ready(packet)
+		var initial_epoch: int = _connection.startup.context().epoch
+		if packet.decode_u32(24) == initial_epoch and packet.decode_u32(28) == 0:
+			_receive_view_ready(packet)
+		else:
+			_receive_pause(packet)
+		return
+	if packet.size() >= Wire.HEADER_BYTES and int(packet[6]) in [Wire.Kind.PAUSE, Wire.Kind.STATE]:
+		_receive_pause(packet)
 		return
 	var result: int = _runner.receive(packet)
 	if not _runner.error.is_empty():
@@ -189,7 +261,19 @@ func _receive_input(packet: PackedByteArray) -> void:
 		_fail("invalid_remote_input")
 
 
+func _receive_pause(packet: PackedByteArray) -> void:
+	if not views_ready():
+		_fail("pause_before_views")
+		return
+	var message := Wire.decode(packet, packet.slice(8, 24).hex_encode(), packet.decode_u32(24), 3 - player_for_view())
+	if not _pause.receive(message, ticks_executed(), Time.get_ticks_msec()):
+		_fail(_pause.error)
+		return
+	_settle_pause()
+
+
 func _fail(reason: String) -> bool:
+	_pause = PauseController.new()
 	_view_local = false
 	_view_remote = false
 	_runner.stop()

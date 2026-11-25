@@ -43,6 +43,9 @@ class Backend:
 	func needs_local_input() -> bool:
 		return needs
 
+	func inputs_quiesced() -> bool:
+		return false
+
 	func capture_local(frame: Dictionary) -> bool:
 		frames.append(frame.duplicate(true))
 		needs = false

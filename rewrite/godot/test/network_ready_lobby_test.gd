@@ -199,10 +199,9 @@ func _play_player_and_leave(role: int, focus_loss: bool) -> void:
 	if focus_loss:
 		view._notification(NOTIFICATION_APPLICATION_FOCUS_OUT)
 	else:
-		var back := InputEventAction.new()
-		back.action = "tyrian_level_exit"
-		back.pressed = true
-		view._unhandled_input(back)
+		# Active Back now requests synchronized Pause. Explicit session exit is
+		# exercised here; menu Back/Return is covered by the pause flow suite.
+		view._leave()
 	await _wait(func(): return Effects.current_game_scene().scene_file_path == LOBBY)
 	assert_object(NetworkSession.backend).is_null()
 	assert_int(Engine.physics_ticks_per_second).is_equal(_rate)

@@ -48,6 +48,50 @@ func _frame(player: int, tick: int) -> Dictionary:
 	return frame
 
 
+func test_input_epoch_resume_keeps_native_state_and_matches_cleared_android_reference() -> void:
+	var config := Fixture.configuration()
+	config.loadout1[9] = 1  # Equipped special: neutral must retain the Android flag.
+	var native := _sim(config)
+	var reference := _sim(config)
+	var runner := Runner.new()
+	assert_bool(runner.activate(native, config, SESSION, 1, 1)).is_true()
+	var pending: Array[Dictionary] = [{}, {}]
+	var epoch := 1
+	for tick in 100:
+		if tick == 60:
+			runner.capture_local(_frame(1, tick))
+			var digest: String = native.network_diagnostic_digest()
+			assert_bool(runner.resume_inputs(2, tick)).is_true()
+			assert_str(native.network_diagnostic_digest()).is_equal(digest)
+			assert_int(native.tick()).is_equal(tick)
+			assert_int(runner.receive(_packet(_frame(2, tick), 2, tick + 3, 1))).is_equal(Buffer.Result.WRONG_SESSION)
+			epoch = 2
+		for player in [1, 2]:
+			var frame := Policy.neutral_frame(player, config)
+			if tick < 60 or tick >= 70:
+				frame.mouse_mask = Game.MASK_FIRE
+				frame.mouse_dx = -8 if player == 1 else 8
+			pending[player - 1][tick + 3] = frame
+			if player == 1:
+				assert_bool(not runner.capture_local(frame).is_empty()).is_true()
+			else:
+				assert_int(runner.receive(_packet(frame, 2, tick + 3, epoch))).is_equal(Buffer.Result.ACCEPTED)
+		assert_bool(runner.advance()).is_true()
+		var frames := [Wire.neutral_frame(), Wire.neutral_frame()]
+		for player in [1, 2]:
+			if tick >= 60 and tick < 63:
+				frames[player - 1] = Policy.neutral_frame(player, config)
+			elif tick >= 3:
+				frames[player - 1] = pending[player - 1][tick]
+		reference.set_player_mice(
+			frames[0].mouse_mask, frames[0].mouse_dx, 0, frames[1].mouse_mask, frames[1].mouse_dx, 0
+		)
+		reference.set_analog(0, 0, 0, 0)
+		reference.set_new_key(false)
+		reference.step(frames[0].mask, frames[1].mask)
+		assert_str(native.network_diagnostic_digest()).is_equal(reference.network_diagnostic_digest())
+
+
 func test_touch_policy_rejects_unbounded_axes_and_special_ownership_violations() -> void:
 	var config := Fixture.configuration()
 	for player in [1, 2]:

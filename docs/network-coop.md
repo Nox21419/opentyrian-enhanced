@@ -23,9 +23,13 @@ Start. The player-menu handoff now opens the original full two-player view,
 finishes the original entry fade and waits for both views before advancing.
 Assigned Android touch/tilt input and session-owned effects/pacing drive the
 prototype clock. Source tests cover both roles at Normal/Turbo, matching 60
-per-tick diagnostics, Back/focus exit and clock restoration. Back, focus loss,
+per-tick diagnostics, Back/focus exit and clock restoration. Either phone now
+requests synchronized Pause using Back or the original touch pause target.
+The host operates the original Pause menu; the guest sees PAUSED. Host-local
+Music/Sound, Return and Quit work; negotiated settings and unsupported rows stay
+dim. Host Return resumes both; guest Back while paused leaves. Focus loss,
 disconnect or first-level end closes this prototype session and returns to the
-lobby. Synchronized pause, later levels, independent-process lifecycle validation
+lobby. Later levels, independent-process lifecycle validation
 and internet integration remain unfinished. Desktop networking remains a
 diagnostic transport/backend profile, not a shipped desktop input profile.
 The previously observed intermittent Windows shutdown access violation remains
@@ -1721,3 +1725,110 @@ handed over and the unavailable WSL/Linux package gate was not run.
 Next required steps remain synchronized pause/exit design, original level-end
 statistics and host-controlled Arcade progression through new epochs,
 independent-process shutdown, two-phone execution and internet bootstrap.
+
+### Approved synchronized-pause implementation plan and input audit
+
+The maintainer chose the host-operated original Pause menu while the guest sees
+the original paused display. Either phone may request pause; only the host may
+resume. Host Quit uses the original confirmation; the guest may leave with Back.
+Keep the original nine-row Android layout. Music/Sound, Return and Quit work;
+negotiated detail/speed and unsupported Help/More/Controls remain visibly locked.
+Volume changes stay host-local and must not reapply gameplay settings.
+
+The local pause path resets TouchFlight/TouchWeapons and mouse/new-key capture,
+but does not reset the simulation, tilt neutral/filter or pacing credit. Android
+ordinary ticks also keep player 1's dedicated-special flag set: player.rs uses
+Some(false) to suppress legacy special gestures. Generic zero-mask input would
+lose that flag. Preserve it in post-pause neutral frames, with no movement,
+fire, analog, new-key or special press. This is the existing Android control
+contract, not permission to introduce a new special-activation rule.
+
+Implement and verify in this order:
+
+1. Extend the pure input buffer to configure an absolute start tick, retaining
+   the existing zero-start API/default behavior. Add an input-only runner resume
+   at the same native tick under the next epoch, discarding unexecuted old
+   frames and prefilling the existing delay with profile-correct neutral input.
+   Never reload/reseed/reconfigure the native node. Verify unchanged complete
+   native diagnostics during buffer reset and equivalence to the existing
+   cleared Android input path after resume, including an equipped special.
+2. Add a transport-independent pause state machine. On a host pause request,
+   commit target tick current-host-tick + input-delay + 1. Reliable ordered ENet
+   sends that commit before later host input frames; a peer can reach the target
+   but cannot execute beyond it before receiving the commit. A guest request
+   asks the host to choose the target. Quiesce new input captures while arming;
+   retain already transmitted frames unchanged until the target is reached.
+3. Freeze before the target's next simulation step. Exchange bounded STATE
+   digests at that exact post-presentation boundary; both must match before the
+   host menu opens. Keep the core/RNG/effects tick progression stopped during
+   pause. Host resume commits a new input epoch at the same native tick, then
+   both reset only their input buffers and exchange new-epoch READY digests.
+   No simulation step may resume before both acknowledgements. Old-epoch input
+   is discarded; malformed/conflicting/current out-of-order controls fail closed.
+   Use bounded control sequence/history and preparation/resume timeouts, with
+   no timeout while humans are deliberately paused. Keep all traffic on the
+   existing reliable ordered channel; unordered/multiple-channel transport would
+   need another ordering audit before reusing this target-tick proof.
+4. Integrate the backend's advancement/capture gates and clock without resetting
+   the existing due-tick/credit or tilt calibration. Clear held fingers and
+   queued buttons at pause/resume, and require fresh flight touch afterward.
+   Show the guest's existing PAUSED text; reuse the original frozen host Pause
+   menu with locked rows and narrow audio setters. Reuse the original touch
+   pause symbol and release hit area; keep local menus/input unchanged.
+5. Test pure/adverse control delivery, duplicate/stale/conflicting messages,
+   boundary hashes and repeated epochs; native input resume/reference equality;
+   real ENet host/guest pause and resume, queued fire/movement, menu audio,
+   locked settings, Back/Quit, disconnects and unchanged local campaign fields.
+   Save original-framebuffer host/guest pause captures and verify locales and
+   formatting. Record actual native process exit codes separately from assertion
+   results. No APK handover or internet/device validation is implied.
+
+### Synchronized-pause implementation and evidence (2026-11-25)
+
+The approved screen is implemented in `network_pause_menu.gd`, deriving the
+existing Pause menu. The original nine rows, volume bars, quit confirmation,
+selection sounds and release-based touch targets remain. Disabled negotiated
+detail/speed values use an optional unavailable-row drawing callback in
+MenuEngine; ordinary menus retain their existing disabled rendering. Volume
+actions use narrow output setters, avoiding broad Setup application to the
+simulation or negotiated physics rate. No locale strings were added.
+
+`network_pause.gd` owns bounded controls, exact boundary STATE comparison and
+new-input-epoch READY acknowledgements. The backend gates capture/advancement;
+the player scene owns the frozen host menu/guest PAUSED display. Resume resets
+only the input buffer at the absolute native tick, preserving the borrowed node,
+RNG, effect state, tilt calibration and fractional clock credit. Profile-neutral
+prefill preserves player 1's dedicated-special flag. This boundary diagnostic
+includes observer queues; it is not a general live desync detector or snapshot.
+
+Validation on Windows source:
+
+- Combined pause/input/handoff run: 23 cases passed, process exit 0. After the
+  game-over Back guard was added, the three-case real ENet pause-flow suite
+  passed again with process exit 0 (two cases overlap that combined run).
+- The native runner reference covers 100 ticks with an equipped special,
+  resuming at tick 60 on the same node. Complete diagnostics match the existing
+  cleared Android input path at every tick; stale input is discarded.
+- Real ENet exercises requests from both roles, repeated epochs, original touch
+  pause release, frozen ticks/digests, locked rows, local audio, retained clock
+  credit/tilt calibration, guest Back and host confirmed Quit.
+- Gameplay/view/clock/entry/weapon regression assertions passed all 32 cases,
+  followed by the previously observed native shutdown access violation
+  (-1073741819). A passing assertion summary is not a clean process exit.
+- Original touch Pause alone passed 16 cases with process exit 0 using both
+  the committed renderer and the current renderer in separate fresh profiles.
+  An earlier combined local Pause run failed the quick-load modal's fixed-frame
+  waits; this was not reproduced in either isolated comparison. No test waits
+  were changed to hide that result. The full three-suite local Pause retry then
+  passed all 30 cases with process exit 0 in another fresh profile. The earlier
+  timing failure remains recorded rather than classified as a proven baseline.
+- All 14 changed/new GDScript files pass formatter and linter checks;
+  `git diff --check` passes. Host and guest framebuffer captures were inspected
+  at `build/network-pause-host.png` and `build/network-pause-guest.png`.
+
+This checkpoint supersedes the earlier prototype Back-to-lobby behavior during
+active play: Back now requests Pause; guest Back while paused leaves. Focus loss,
+disconnect and first-level completion still close the session. Original level-end
+statistics/progression, independent-process shutdown, two-phone execution and
+internet bootstrap remain next. No APK/package was handed over; the unavailable
+WSL/Linux exported-package gate was not run.

@@ -6,6 +6,13 @@ const Config := preload("res://scripts/network_configuration.gd")
 const MAX_DELTA := 30
 
 
+static func neutral_frame(player: int, config: Dictionary) -> Dictionary:
+	var frame := Wire.neutral_frame()
+	if player == 1 and config.dedicated_special:
+		frame.mask = Game.MASK_DEDICATED_SPECIAL
+	return frame
+
+
 ## The original two-player HUD publishes player 2's sidekicks/rear mode and
 ## player 1's special. Project only the controls; keep the full HUD unchanged.
 static func controls_hud(hud: PackedInt32Array, player: int, dedicated_special: bool) -> PackedInt32Array:
