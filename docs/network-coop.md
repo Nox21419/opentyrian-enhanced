@@ -2309,3 +2309,147 @@ cursor/native adoption, retry/ending routes and multi-level journeys remain next
 The scoped mechanics approval is still pending. No APK/package, phone execution
 or exported Linux gate is claimed. The preceding planner checkpoint was pushed
 as `24de5d4`.
+
+### Approved later-level loader and difficulty plan (2026-11-25)
+
+The maintainer expressly approved: "Approve scoped network loading and two-player
+difficulty adaptation." This authorizes the network-only adaptation and its
+verification; it does not authorize rebalancing or changing ordinary local play.
+The earlier pending-approval notes above are historical and superseded here.
+
+Implementation order and audit boundaries:
+
+1. Preserve the strict initial configuration and prepare_network_level APIs.
+   Add a distinct detached continuation loader with a validated 21-field level
+   configuration, exact seven-value carry and bonus-level flag. Accept adjusted
+   difficulty, full u64 cash and both ending equipment sets. Treat player 1 rear
+   power and player 2 front power as the existing byte-sized lives counters,
+   including zero; retain ordinary 1..11 validation for actual weapon powers.
+   Continue validating named catalog entries and real/modded level data.
+2. Retain existing setup order: load tables/level, original initial difficulty,
+   two-player modes/equipment/cash, processor/effects, carry and mod application,
+   then create the simulation, private stars and presentation. Require a fresh
+   native node; never reload or mutate the old running/ended simulation. Add an
+   opt-in core constructor so full player-1 cash and player-2 sidekick carry are
+   present before HUD initialization and loop_top. The ordinary constructor's
+   behavior must remain unchanged. Preserve friction/special-fire bits exactly;
+   do not invent a new alive/revival rule or restore unrelated transient state.
+3. Add a network-specific native campaign difficulty method using the existing
+   software-arithmetic two-player helper and combined cash. Preserve raw unsigned
+   cash via strict hexadecimal strings and the core's wrapping currency
+   arithmetic. Keep the existing local one-player bridge unchanged. The network
+   continuation planner may then record the approved network difficulty separately
+   from the audited local reference and remove only its difficulty-review marker.
+4. Build a separate strict GDScript next-level request from a sealed continuation
+   proposal, original configuration, explicit agreed seed and script level stop.
+   Retain carry, source/parent lineage and bonus flag; reject shops, story-only
+   stops, mini-games and retry/episode transitions until their respective owners
+   handle them. Do not weaken startup validation or infer a new input epoch.
+5. Verify core default-path equivalence, cash/lives/sidekick/friction/special
+   restoration at tick zero, tick/RNG equality against reference setups, and
+   deterministic repeated loads. Verify difficulty threshold boundaries,
+   monotonicity, combined cash and u64 edge cases. Test native API strict rejection,
+   private effects/peer isolation, unchanged old node and two peers preparing the
+   same next level. Rebuild the Windows library before Godot tests; cross-compile
+   ARM64 where available and report actual exits and unavailable package checks.
+6. Only after adapter checks pass, integrate fresh owned next-level preparation,
+   proposal/load/view-ready barriers and the approved host Arcade continuation.
+   Keep old views detached before freeing their native owner. This loader
+   checkpoint alone must not be described as completed multi-level gameplay.
+
+The audit found that LevelCarry's existing bridge has seven values: four friction
+counters, held special fire, and player-2 sidekick level/series. World startup
+currently restores sidekick progression only for Endless. The network opt-in
+path will restore that carried progression before draw_options, without changing
+ordinary campaign/Endless startup. Full u64 player-1 cash likewise must precede
+credits_start and startup script evaluation; a post-load setter is insufficient.
+The local c-final tag is unavailable, so comparisons with existing core/reference
+paths and covered frozen goldens are not new independent C transition recordings.
+
+### Fresh continuation ownership implementation order
+
+After adapter validation, add a detached preparation fork before changing the
+live player. The old context must retain its ended native node while a fresh
+context captures the same selected content, compares the complete source identity,
+builds the next request from the locally sealed proposal and explicit agreed seed,
+validates continuation equipment and prepares its own tick-zero native node.
+Retain the request/script/parent lineage in copied accessors. Repeated preparation
+must reverify the new diagnostic. Reject different requests, source edits and
+unsupported script effects. Test independent peers, old-node lifetime, new-node
+cleanup, no Game/save writes and unchanged strict initial validation. Only then
+add the network load/activation barrier and scene ownership transfer; these remain
+separate from this detached fork and must not reuse the ended runner or input epoch.
+
+### Detached loader checkpoint (2026-11-25)
+
+Implemented the approved Rust opt-in constructor and fresh-node native
+`prepare_network_continuation` API. They preserve full player-1 cash before
+credits_start/loop_top, carried player-2 sidekick progression before HUD drawing,
+the existing friction/special bits, both equipment sets and zero/byte-sized lives.
+Ordinary construction and the strict initial loader keep their existing rules.
+The separate campaign API applies the existing software-arithmetic two-player
+helper to the wrapping sum of both unsigned cash counters. The planner records
+`network_difficulty` alongside the unchanged `local_difficulty` audit reference;
+its difficulty-review flag is now resolved. Loader adaptation remains marked on
+the read-only proposal until an actual request is prepared.
+
+`network_next_level.gd` builds copied, sealed requests from a locally derived
+level proposal, its source configuration/result/parent and an explicit agreed
+seed. Initial configuration validation is unchanged. New validation allows only
+the two lives counters to depart from weapon power bounds, adjusted difficulty
+and the existing network device/pacing profile. Invalid gear still fails native
+catalog checks. Shops, retries, episode/title/eof stops, mini-games, story screens
+and pending autosaves are refused here; their owners must handle them first.
+No story, save, epoch or progression effect is silently applied.
+
+`NetworkPreparation.fork_continuation` captures independent frozen content and
+source identity, validates the request and owns its fresh tick-zero preview.
+The old node stays alive. Returned request/entry/configuration data are copies;
+clearing/failing one fork releases only its own native node. Startup validation
+cannot replace a continuation's accepted configuration.
+
+Validation of this checkpoint:
+
+- Four new core tests passed: ordinary constructor equivalence over three
+  episodes, exact carried state before the first tick, independent carried-peer
+  ticks/RNG, and unsupported-profile rejection.
+- All native bridge unit tests passed: 64 passed, three existing ignored tests.
+  The new helper tests cover strict carry/money parsing, the 62,500 combined-cash
+  threshold, monotonicity, wrapping sums and existing extreme-value conversion.
+  One initial test incorrectly expected huge cash to saturate difficulty; the
+  audited core helper instead converts through its existing wrapping i64 path.
+  The adapter retains that behavior rather than changing arithmetic policy.
+- Strict frozen two-player respawn/link/linked recordings match all groups and
+  level endings: 7,197/7,197 ticks across three recordings. This does not prove
+  new independent C parity for later-level transitions.
+- The final loader/planner/preparation Godot run passed 21 tests with actual
+  process exit 0, including fresh fork lifetime/cleanup, two-peer diagnostics,
+  unchanged old node, malformed requests/catalog entries and separate local vs
+  network difficulty. Formatter/linter checks pass for all six affected scripts
+  and tests; Rust formatting and scoped clippy pass with the two pre-existing
+  lint exceptions documented in prior checkpoints.
+- Windows release and Android ARM64 release builds succeeded. No APK, device
+  play or exported Linux journey/smoke gate is claimed. The intermittent native
+  Windows shutdown crash remains unresolved despite these clean exits.
+- The five-case ENet continuation/completion regression passed assertions on
+  both runs. The earlier run exited 0; the final run after the preparation-fork
+  change exited -1073741819 (0xC0000005) during shutdown, after gdUnit reported
+  success. The final process run therefore did not pass cleanly. It reproduces
+  the pre-existing shutdown issue; this checkpoint does not establish its cause
+  or fix it. No assertion failures or orphan nodes were reported.
+
+The live first-level player still exits after Statistics. Next: bind the new
+owned preparation to an explicit load/digest/activation barrier, allocate a fresh
+input epoch, adopt later-level campaign cursor context, and detach old views
+before releasing their owner. Then connect the already approved host-operated
+Arcade progression and verify a real multi-level journey. No further mechanics
+approval is needed for the scoped adaptation implemented above.
+
+Live integration must also explicitly adapt consumers that currently accept only
+initial configurations: touch policy/runner activation, HUD/view binding and its
+Ready digest, result capture, and cursor begin/adoption. They must select the
+continuation grammar only for an agreed owned request, retaining strict startup
+validation. Pause/resume epochs and delayed old-level packets must remain distinct
+from the new tick-zero epoch. NetworkSession's current scene-exit hook stops the
+backend, so planned replacement needs a guarded detach/adopt path before its old
+view exits. The detached fork does not bypass any of these existing checks.

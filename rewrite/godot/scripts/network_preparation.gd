@@ -6,6 +6,7 @@ const Content := preload("res://scripts/network_content_snapshot.gd")
 const Identity := preload("res://scripts/network_identity.gd")
 const Rules := preload("res://scripts/network_initial_configuration.gd")
 const Config := preload("res://scripts/network_configuration.gd")
+const Next := preload("res://scripts/network_next_level.gd")
 
 var error := ""
 var _content: RefCounted
@@ -20,6 +21,7 @@ var _data_dir := ""
 var _dirs := PackedStringArray()
 var _enabled := {}
 var _episode := 0
+var _next_request := {}
 
 
 func capture(data_dir: String, dirs: PackedStringArray, enabled: Dictionary, episode: int) -> bool:
@@ -52,6 +54,7 @@ func clear() -> void:
 	_config.clear()
 	_entry.clear()
 	_digest = ""
+	_next_request.clear()
 
 
 func _notification(what: int) -> void:
@@ -78,9 +81,19 @@ func prepare_preview() -> bool:
 	if not verify_current():
 		return false
 	_preview = ClassDB.instantiate("TyrianSim")
-	if not _preview.has_method("prepare_network_level"):
+	var method := "prepare_network_continuation" if not _next_request.is_empty() else "prepare_network_level"
+	if not _preview.has_method(method):
 		return _fail("native_rebuild_required")
-	if not _content.attach(_preview) or not _preview.prepare_network_level(_data_dir, _config):
+	if not _content.attach(_preview):
+		return _fail("preview_load_failed")
+	var loaded: bool
+	if _next_request.is_empty():
+		loaded = _preview.prepare_network_level(_data_dir, _config)
+	else:
+		loaded = _preview.prepare_network_continuation(
+			_data_dir, _config, _next_request.carry, _next_request.bonus_level
+		)
+	if not loaded:
 		return _fail("preview_load_failed")
 	if not verify_current():
 		return false
@@ -114,9 +127,43 @@ func entry() -> Dictionary:
 	return _entry.duplicate(true) if error.is_empty() else {}
 
 
+## Caller owns this new context. The old preview stays alive and unchanged.
+## Agreement, fresh epoch allocation and scene adoption are separate operations.
+func fork_continuation(proposal: Dictionary, seed: String) -> RefCounted:
+	if _preview == null or not verify_current():
+		return null
+	var request := Next.build(_config, proposal, seed)
+	if request.is_empty():
+		return null
+	var context: RefCounted = get_script().new()
+	if not context.capture(_data_dir, _dirs, _enabled, _episode) or context.identity() != _identity:
+		context.clear()
+		return null
+	if not context._accept_continuation(request) or not context.prepare_preview() or not verify_current():
+		context.clear()
+		return null
+	return context
+
+
+func continuation_request() -> Dictionary:
+	return _next_request.duplicate(true) if error.is_empty() else {}
+
+
+func _accept_continuation(request: Dictionary) -> bool:
+	if not _config.is_empty() or not _content.validate_continuation_level(request.configuration):
+		return _fail("invalid_continuation_configuration")
+	_next_request = request.duplicate(true)
+	_config = request.configuration.duplicate(true)
+	_entry = request.entry.duplicate(true)
+	_digest = Next.configuration_digest(_config)
+	return not _digest.is_empty() and verify_current()
+
+
 ## Supply this callable to NetworkStartup/NetworkStartupConnection on both peers.
 ## Once accepted, a different config requires fresh capture/negotiation.
 func validate(config: Dictionary) -> bool:
+	if not _next_request.is_empty():
+		return false
 	if _rules == null or not error.is_empty():
 		return false
 	if not Config.valid(config):
@@ -162,6 +209,7 @@ func verify_current() -> bool:
 
 func _fail(reason: String) -> bool:
 	_release_preview()
+	_next_request.clear()
 	error = reason
 	_identity.clear()
 	_config.clear()

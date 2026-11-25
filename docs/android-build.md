@@ -103,6 +103,13 @@ are implemented and tested in source; actual two-phone play remains unverified.
 Local play keeps the shared input path. See the
 [full co-op plan and input audit](network-coop.md#approved-player-input-adaptation-and-audit-stage-3).
 
+On 2026-11-25 the maintainer also approved the scoped network continuation
+loader and original two-player difficulty helper. The detached adapter preserves
+full cash bits, byte-sized lives counters and the existing seven-value carry;
+ordinary local loading and its difficulty bridge remain unchanged. This is not
+yet a live multi-level handoff. See the
+[approved implementation plan](network-coop.md#approved-later-level-loader-and-difficulty-plan-2026-11-25).
+
 On Android, permanent Auto-fire is locked off: normal fire comes from the
 held steering finger, continues while that finger is stationary, and stops on
 release or cancellation. Sidekick/Mode/Special touches do not hold normal fire.

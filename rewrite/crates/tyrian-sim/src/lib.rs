@@ -436,7 +436,32 @@ pub type ReplayPositions = ((i32, i32), Option<(i32, i32)>);
 
 impl Sim {
     pub fn new(setup: LevelSetup) -> Self {
-        let mut world = World::start_level(&setup);
+        let world = World::start_level(&setup);
+        Self::begin_world(setup, world)
+    }
+
+    /// Opt-in two-player Arcade continuation. Restore full cash and the existing
+    /// carried sidekick progression before HUD initialization and loop_top.
+    /// Ordinary campaign/Endless construction remains on `new` unchanged.
+    pub fn new_network_continuation(setup: LevelSetup) -> Option<Self> {
+        let m = setup.modes;
+        if !m.two_player
+            || m.galaga
+            || m.one_player_action
+            || m.super_arcade != 0
+            || m.super_tyrian
+            || m.timed != 0
+            || m.endless_lives.is_some()
+            || m.loadout2.is_none()
+            || setup.carry_over.is_none()
+        {
+            return None;
+        }
+        let world = World::start_network_level(&setup);
+        Some(Self::begin_world(setup, world))
+    }
+
+    fn begin_world(setup: LevelSetup, mut world: World) -> Self {
         world.loop_top();
         let mut sim = Self {
             setup,
@@ -1164,6 +1189,9 @@ impl Sim {
         }
     }
 }
+
+#[cfg(test)]
+mod network_continuation_tests;
 
 #[cfg(test)]
 mod bonus_game_over_tests {

@@ -67,6 +67,34 @@ impl TyrianMods {
         player1: PackedInt32Array,
         player2: PackedInt32Array,
     ) -> VarDictionary {
+        self.network_validate_level_profile(episode, level_file, difficulty, player1, player2, false)
+    }
+
+    /// Same catalog/data checks, with the two Arcade lives slots treated as
+    /// byte counters rather than weapon powers. Initial validation stays strict.
+    #[func]
+    pub(crate) fn network_validate_continuation_level(
+        &mut self,
+        episode: i32,
+        level_file: i32,
+        difficulty: i32,
+        player1: PackedInt32Array,
+        player2: PackedInt32Array,
+    ) -> VarDictionary {
+        self.network_validate_level_profile(episode, level_file, difficulty, player1, player2, true)
+    }
+}
+
+impl TyrianMods {
+    fn network_validate_level_profile(
+        &mut self,
+        episode: i32,
+        level_file: i32,
+        difficulty: i32,
+        player1: PackedInt32Array,
+        player2: PackedInt32Array,
+        continuation: bool,
+    ) -> VarDictionary {
         if !(1..=5).contains(&episode) || !(1..=65535).contains(&level_file) || !(2..=9).contains(&difficulty) {
             return vdict! { "error" => "invalid_level_configuration" };
         }
@@ -76,8 +104,13 @@ impl TyrianMods {
             return vdict! { "error" => "invalid_enabled_mod" };
         }
         let Some(tables) = resolved.tables.as_ref() else { return vdict! { "error" => "content_unavailable" } };
-        if !network_equipment_valid(tables, player1.as_slice()) || !network_equipment_valid(tables, player2.as_slice())
-        {
+        let valid = if continuation {
+            network_continuation_equipment_valid(tables, player1.as_slice(), 4)
+                && network_continuation_equipment_valid(tables, player2.as_slice(), 2)
+        } else {
+            network_equipment_valid(tables, player1.as_slice()) && network_equipment_valid(tables, player2.as_slice())
+        };
+        if !valid {
             return vdict! { "error" => "invalid_equipment" };
         }
         // Equipment is checked above; this disposable setup is only for parsing
@@ -96,7 +129,10 @@ impl TyrianMods {
         resolved.apply_to(&mut setup, level_file as u16);
         vdict! { "valid" => true, "events" => setup.level.events.events.len() as i64 }
     }
+}
 
+#[godot_api(secondary)]
+impl TyrianMods {
     /// Hash the original runtime allowlist and the enabled, effective mod roots.
     /// Invalid enabled content fails closed; absolute local paths never enter the digest.
     #[func]
@@ -445,6 +481,15 @@ fn network_equipment_valid(t: &Tables, v: &[i32]) -> bool {
         && t.generators.get(v[6] as usize).is_some_and(|x| named(x.name.text()))
         && [7, 8].iter().all(|&i| v[i] == 0 || t.options.get(v[i] as usize).is_some_and(|x| named(x.name.text())))
         && (v[9] == 0 || t.specials.get(v[9] as usize).is_some_and(|x| named(x.name.text())))
+}
+
+fn network_continuation_equipment_valid(t: &Tables, v: &[i32], lives_slot: usize) -> bool {
+    if v.len() != 10 || v.iter().any(|n| !(0..=255).contains(n)) {
+        return false;
+    }
+    let mut equipment = v.to_vec();
+    equipment[lives_slot] = 1;
+    network_equipment_valid(t, &equipment)
 }
 
 impl TyrianMods {

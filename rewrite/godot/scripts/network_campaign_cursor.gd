@@ -58,6 +58,7 @@ func completed(record: Dictionary) -> Dictionary:
 		"episode": _config.episode,
 		"initial_difficulty": _config.initial_difficulty,
 		"local_difficulty": _config.difficulty,
+		"network_difficulty": _config.difficulty,
 		"requires_loader_adaptation": true,
 		"difficulty_rule_review_required": false,
 		"earned": stats.duplicate(true),
@@ -73,12 +74,20 @@ func completed(record: Dictionary) -> Dictionary:
 		if stats.bonus_level and stats.next_level > 0:
 			section = stats.next_level
 		proposal.next_section = section
-		# Reference the current local call only; its one-player helper is not
-		# approval to use that rule for the later network two-player loader.
-		proposal.difficulty_rule_review_required = true
+		# Keep the local reference for auditing; the approved network rule uses
+		# combined unsigned cash and the original two-player thresholds.
 		proposal.local_difficulty = _campaign.adjust_difficulty(
 			_config.difficulty, _config.initial_difficulty, stats.total_score
 		)
+		if not _campaign.has_method("adjust_network_two_player_difficulty"):
+			_fail("native_rebuild_required")
+			return {}
+		proposal.network_difficulty = _campaign.adjust_network_two_player_difficulty(
+			_config.difficulty, _config.initial_difficulty, unsigned_cash(stats.cash), unsigned_cash(stats.cash2)
+		)
+		if not Config.integer(proposal.network_difficulty, _config.difficulty, 9):
+			_fail("invalid_network_difficulty")
+			return {}
 		proposal.script = _read_section(section, stats)
 		if not STOPS.has(proposal.script.get("stop")):
 			_fail("unsupported_campaign_stop")
@@ -196,6 +205,15 @@ static func proposal_digest(proposal: Dictionary) -> String:
 	var body := proposal.duplicate(true)
 	body.erase("digest")
 	return _hash(body)
+
+
+## Native exposes u64 cash through signed Variant integers. Preserve its bits.
+static func unsigned_cash(value: int) -> String:
+	var bytes := PackedByteArray()
+	bytes.resize(8)
+	bytes.encode_s64(0, value)
+	bytes.reverse()
+	return bytes.hex_encode()
 
 
 static func _hash(value: Dictionary) -> String:

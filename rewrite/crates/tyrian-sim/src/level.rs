@@ -20,6 +20,14 @@ impl World {
     /// Builds the state at the moment of `golden_master_level_start` (right before
     /// `level_loop`).
     pub fn start_level(setup: &LevelSetup) -> World {
+        Self::start_level_with_network_carry(setup, false)
+    }
+
+    pub(crate) fn start_network_level(setup: &LevelSetup) -> World {
+        Self::start_level_with_network_carry(setup, true)
+    }
+
+    fn start_level_with_network_carry(setup: &LevelSetup, network_carry: bool) -> World {
         let mut tables = Tables::new(&setup.items);
         tables.apply(&setup.patch);
         let lvl = &setup.level.events;
@@ -96,8 +104,10 @@ impl World {
         // endless.c:endless_start / endless_resume: "memset(&player[p].items, 0, …)"
         // without JE_initPlayerData; player 2's sidekick level stays at 0 (no
         // indicator of varz.c:JE_drawOptionLevel lit), not at 101 as in the campaign.
-        if m.endless_lives.is_some() {
-            items1.sidekick_level = 0;
+        if m.endless_lives.is_some() || network_carry {
+            if m.endless_lives.is_some() {
+                items1.sidekick_level = 0;
+            }
             // Next wave: the level acquired by player 2 is kept (endless.c:849
             // only resets it to zero at the start of the run).
             if let Some(c) = setup.carry_over {
@@ -135,7 +145,7 @@ impl World {
             p.last_y_shot_move = p.y;
             p.invulnerable_ticks = 100;
         }
-        players[0].cash = lo.cash as u64;
+        players[0].cash = if network_carry { m.cash.0 } else { lo.cash as u64 };
         if let Some(carry) = setup.carry_over {
             for (p, c) in players.iter_mut().zip(carry.players) {
                 p.x_friction_ticks = c.x_friction_ticks;

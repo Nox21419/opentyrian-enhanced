@@ -17,6 +17,9 @@ class ScriptReader:
 	func adjust_difficulty(_previous: int, _initial: int, _score: int) -> int:
 		return 4
 
+	func adjust_network_two_player_difficulty(_previous: int, _initial: int, _cash1: String, _cash2: String) -> int:
+		return 4
+
 	func run_script(
 		ep: int, section: int, difficulty: int, ship: int, alive: bool, cubes: int, two: bool, timed: int
 	) -> Dictionary:
@@ -130,7 +133,8 @@ func test_real_episode_and_difficulty_routes_match_existing_campaign_calls() -> 
 			assert_int(proposal.next_section).is_equal(level.next_level)
 			assert_int(proposal.sequence).is_equal(1)
 			assert_bool(proposal.requires_loader_adaptation).is_true()
-			assert_bool(proposal.difficulty_rule_review_required).is_true()
+			assert_bool(proposal.difficulty_rule_review_required).is_false()
+			assert_int(proposal.network_difficulty).is_equal(difficulty + 1)
 			assert_dict(proposal.earned).is_equal(record.stats)
 
 
@@ -154,6 +158,17 @@ func test_warp_survivor_context_and_exact_two_player_state_are_preserved() -> vo
 	assert_dict(proposal.script).is_equal(oracle.run_script(1, 41, 2, 11, false, 0, true, 0))
 	proposal.earned.loadout2[4] = 99
 	assert_int(cursor.completed(record).earned.loadout2[4]).is_equal(3)
+
+
+func test_approved_network_rule_uses_both_cash_counters_instead_of_local_score() -> void:
+	var config := _config()
+	var cursor := Cursor.new(Game.data_dir)
+	assert_bool(cursor.begin(config)).is_true()
+	var proposal := cursor.completed(_record(config, {}, [31250, 31250]))
+	assert_int(proposal.local_difficulty).is_equal(3)
+	assert_int(proposal.network_difficulty).is_equal(4)
+	assert_bool(proposal.difficulty_rule_review_required).is_false()
+	assert_bool(proposal.requires_loader_adaptation).is_true()
 
 
 func test_normal_death_proposes_retry_without_success_adjustment_and_bonus_exit_continues() -> void:

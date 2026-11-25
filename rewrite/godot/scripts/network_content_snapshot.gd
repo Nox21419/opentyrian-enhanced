@@ -3,6 +3,7 @@
 extends RefCounted
 
 const Config := preload("res://scripts/network_configuration.gd")
+const Next := preload("res://scripts/network_next_level.gd")
 
 var error := ""
 var digest := ""
@@ -65,13 +66,23 @@ func attach(sim: Node) -> bool:
 ## Checks actual parsed assets and resolved definitions, without creating or
 ## stepping a simulation. Initial/progression rule validation is also required.
 func validate_level(config: Dictionary) -> bool:
-	if not Config.valid(config) or config.episode != _episode:
+	return _validate_level(config, false)
+
+
+func validate_continuation_level(config: Dictionary) -> bool:
+	return _validate_level(config, true)
+
+
+func _validate_level(config: Dictionary, continuation: bool) -> bool:
+	if not (Next.valid_configuration(config) if continuation else Config.valid(config)) or config.episode != _episode:
 		return false
 	if not verify_current():
 		return false
-	if not _api.has_method("network_validate_level"):
+	var method := "network_validate_continuation_level" if continuation else "network_validate_level"
+	if not _api.has_method(method):
 		return _fail("native_rebuild_required")
-	var result: Dictionary = _api.network_validate_level(
+	var result: Dictionary = _api.call(
+		method,
 		_episode,
 		config.level_file,
 		config.difficulty,

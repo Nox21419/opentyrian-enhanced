@@ -494,6 +494,25 @@ impl TyrianCampaign {
         adjust_difficulty(difficulty.clamp(0, 10) as u8, initial_difficulty.clamp(0, 10) as u8, score.max(0) as u64)
             as i32
     }
+
+    /// Approved network continuation rule: original two-player cash thresholds,
+    /// with exact u64 bit patterns. The ordinary local bridge above is unchanged.
+    #[func]
+    fn adjust_network_two_player_difficulty(
+        difficulty: i32,
+        initial_difficulty: i32,
+        cash1: GString,
+        cash2: GString,
+    ) -> i32 {
+        crate::network_load::continuation_difficulty(
+            difficulty,
+            initial_difficulty,
+            &cash1.to_string(),
+            &cash2.to_string(),
+        )
+        .map(i32::from)
+        .unwrap_or(-1)
+    }
 }
 
 impl TyrianCampaign {
