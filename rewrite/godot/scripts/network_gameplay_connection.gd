@@ -9,6 +9,8 @@ const Config := preload("res://scripts/network_configuration.gd")
 const PauseController := preload("res://scripts/network_pause.gd")
 const Completion := preload("res://scripts/network_completion.gd")
 const LevelResult := preload("res://scripts/network_level_result.gd")
+const Continuation := preload("res://scripts/network_continuation.gd")
+const CampaignCursor := preload("res://scripts/network_campaign_cursor.gd")
 var _runner := Runner.new()
 var _activated := false
 var _view_local := false
@@ -16,6 +18,9 @@ var _view_remote := false
 var _pause := PauseController.new()
 var _completion := Completion.new()
 var _level_result := LevelResult.new()
+var _continuation := Continuation.new()
+var _campaign_cursor: RefCounted
+var _continuation_candidates := {}
 
 
 func _ready() -> void:
@@ -24,6 +29,9 @@ func _ready() -> void:
 
 
 func stop() -> void:
+	_continuation = Continuation.new()
+	_campaign_cursor = null
+	_continuation_candidates.clear()
 	_completion = Completion.new()
 	_level_result = LevelResult.new()
 	_pause = PauseController.new()
@@ -200,6 +208,112 @@ func _process(_delta: float) -> void:
 			_pause.poll(Time.get_ticks_msec())
 			if not _pause.error.is_empty():
 				_fail(_pause.error)
+	if running():
+		_continuation.poll(Time.get_ticks_msec())
+		if not _continuation.error.is_empty():
+			_fail(_continuation.error)
+
+
+## Explicit read-only post-fade proposals; never called by the prototype's live
+## lobby exit. Native loading/adoption remains a separate approved operation.
+func prepare_continuation(sequence := 1) -> bool:
+	if not _verify_continuation_state() or sequence not in [1, 2] or not _continuation_context():
+		return false
+	if _campaign_cursor == null:
+		_campaign_cursor = CampaignCursor.new(_preparation.get("_data_dir"))
+		if not _campaign_cursor.begin(configuration()):
+			return _fail(_campaign_cursor.error)
+	var candidate: Dictionary
+	if sequence == 1:
+		candidate = _campaign_cursor.completed(_level_result.record())
+	else:
+		var parent: String = _continuation.committed_digest(1)
+		if parent.is_empty():
+			return false
+		candidate = _campaign_cursor.preview_arcade_start(parent)
+	if candidate.is_empty():
+		return _fail(_campaign_cursor.error)
+	if not _valid_continuation_candidate(candidate, sequence):
+		return _fail("invalid_continuation_candidate")
+	if not _verify_continuation_state():
+		return false
+	if not _continuation.prepare(sequence, candidate.digest, Time.get_ticks_msec()):
+		return _fail(_continuation.error)
+	_continuation_candidates[sequence] = candidate.duplicate(true)
+	return _settle_continuation()
+
+
+func propose_continuation(sequence := 1) -> bool:
+	if player_for_view() != 1 or not prepare_continuation(sequence):
+		return false
+	if not _continuation.propose(sequence, Time.get_ticks_msec()):
+		return _fail(_continuation.error)
+	return _settle_continuation()
+
+
+func continuation_sequence() -> int:
+	return _continuation.committed_sequence() if running() else 0
+
+
+func _valid_continuation_candidate(candidate: Dictionary, sequence: int) -> bool:
+	var record := _level_result.record()
+	if candidate.get("sequence") != sequence or candidate.get("source_result") != record.digest:
+		return false
+	if candidate.get("source_configuration") != record.config:
+		return false
+	if not candidate.get("requires_loader_adaptation") is bool or not candidate.requires_loader_adaptation:
+		return false
+	if not candidate.get("difficulty_rule_review_required") is bool:
+		return false
+	if (
+		sequence == 2
+		and (candidate.get("parent") != _continuation.committed_digest(1) or candidate.get("action") != "arcade_start")
+	):
+		return false
+	return (
+		Config.hex_string(candidate.get("digest"), 64) and CampaignCursor.proposal_digest(candidate) == candidate.digest
+	)
+
+
+func committed_continuation(sequence := 1) -> Dictionary:
+	if not running() or not _continuation_candidates.has(sequence):
+		return {}
+	var candidate: Dictionary = _continuation_candidates[sequence]
+	return candidate.duplicate(true) if _continuation.committed_digest(sequence) == candidate.digest else {}
+
+
+func _verify_continuation_state() -> bool:
+	if not completion_agreed() or result_committed_phase() != 3:
+		return false
+	if not _preparation.verify_current():
+		return _fail(_preparation.error)
+	if _level_result.record().digest != _completion.result_digest():
+		return _fail("changed_continuation_result")
+	if diagnostic_digest() != _level_result.record().core:
+		return _fail("changed_continuation_state")
+	return true
+
+
+func _continuation_context() -> bool:
+	if _continuation.epoch == _pause.epoch:
+		return true
+	if _continuation.epoch != 0:
+		return _fail("changed_continuation_epoch")
+	var context: Dictionary = _connection.startup.context()
+	if not _continuation.configure(context.session, _pause.epoch, context.player, ticks_executed()):
+		return _fail(_continuation.error)
+	return true
+
+
+func _settle_continuation() -> bool:
+	_continuation.poll(Time.get_ticks_msec())
+	if not _continuation.error.is_empty():
+		return _fail(_continuation.error)
+	for message in _continuation.take_messages():
+		if _connection.transport.send_packet(Wire.encode(message)) != OK:
+			return _fail("continuation_send_failed")
+	changed.emit()
+	return running()
 
 
 ## Explicit final post-presentation boundary. Never steps/reloads the native node.
@@ -325,6 +439,12 @@ func _receive_input(packet: PackedByteArray) -> void:
 		return
 	if (
 		packet.size() >= Wire.HEADER_BYTES
+		and int(packet[6]) in [Wire.Kind.CONTINUATION, Wire.Kind.CONTINUATION_ACK, Wire.Kind.CONTINUATION_COMMIT]
+	):
+		_receive_continuation(packet)
+		return
+	if (
+		packet.size() >= Wire.HEADER_BYTES
 		and int(packet[6]) in [Wire.Kind.LEVEL_RESULT, Wire.Kind.LEVEL_READY, Wire.Kind.LEVEL_ADVANCE]
 	):
 		_receive_completion(packet)
@@ -380,7 +500,43 @@ func _receive_completion(packet: PackedByteArray) -> void:
 	_settle_completion()
 
 
+func _receive_continuation(packet: PackedByteArray) -> void:
+	var context: Dictionary = _connection.startup.context()
+	var message := Wire.decode(packet, packet.slice(8, 24).hex_encode(), packet.decode_u32(24), 3 - context.player)
+	if message.is_empty():
+		_fail("invalid_continuation_message")
+		return
+	if message.session != context.session or message.epoch < _pause.epoch:
+		return
+	if message.epoch != _pause.epoch:
+		_fail("future_continuation_epoch")
+		return
+	if _continuation.has_seen_control(message):
+		if not _continuation.receive(message, Time.get_ticks_msec()):
+			_fail(_continuation.error)
+		else:
+			_settle_continuation()
+		return
+	if not _verify_continuation_state():
+		if running():
+			_fail("continuation_before_completion")
+		return
+	if not _continuation_context() or not _continuation.receive(message, Time.get_ticks_msec()):
+		if not _continuation.error.is_empty():
+			_fail(_continuation.error)
+		return
+	if message.kind == Wire.Kind.CONTINUATION and not _continuation.has_candidate(message.sequence):
+		if not prepare_continuation(message.sequence):
+			if running():
+				_fail("continuation_derivation_failed")
+			return
+	_settle_continuation()
+
+
 func _fail(reason: String) -> bool:
+	_continuation = Continuation.new()
+	_campaign_cursor = null
+	_continuation_candidates.clear()
 	_completion = Completion.new()
 	_level_result = LevelResult.new()
 	_pause = PauseController.new()

@@ -198,6 +198,7 @@ func test_original_arcade_start_keeps_entry_effects_and_uses_last_map_or_next_se
 		assert_dict(preview.entry).is_equal(entry)
 		assert_bool(preview.entry.autosave).is_true()
 		assert_str(preview.parent).is_equal(proposal.digest)
+		assert_int(preview.sequence).is_equal(2)
 		assert_int(reader.calls.back()[1]).is_equal(preview.next_section)
 		assert_dict(cursor.preview_arcade_start(proposal.digest)).is_equal(preview)
 

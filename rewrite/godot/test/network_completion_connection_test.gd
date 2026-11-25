@@ -26,8 +26,12 @@ func _wait(condition: Callable) -> void:
 	assert_bool(condition.call()).is_true()
 
 
+func _new_connection() -> Node:
+	return Connection.new()
+
+
 func _pair() -> Array:
-	var peers := [Connection.new(), Connection.new()]
+	var peers := [_new_connection(), _new_connection()]
 	for peer in peers:
 		add_child(peer)
 		_nodes.append(peer)

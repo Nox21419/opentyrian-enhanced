@@ -2226,3 +2226,86 @@ multi-level player journey. All three changed/new scripts pass formatter/linter
 checks and `git diff --check` passes. No APK/package or exported Linux gate was
 run. The prior live Statistics checkpoint was pushed as `7b293e3`.
 Live co-op remains the first-level prototype.
+
+### Continuation agreement implementation plan (2026-11-25)
+
+Add distinct fixed-size CONTINUATION, CONTINUATION_ACK and CONTINUATION_COMMIT
+messages (68 bytes, existing digest payload). All use a positive final tick and
+decision sequence 1/2: completed-level proposal, then original Arcade Start
+preview. Only the host proposes/commits; only the guest acknowledges. Decision
+2's local candidate must retain the committed proposal-1 digest as its parent.
+No remote proposal object, equipment, script or Variant payload is decoded.
+
+Use a pure session/input-epoch/final-tick-bound coordinator. Each peer derives its
+own candidate before accepting a digest. A proposal may arrive before the guest
+has finished deriving its candidate; retain at most the two bounded decisions,
+acknowledging only after local verification. Require proposal -> acknowledgement
+-> host commit, with idempotent duplicates, conflicting/skipped decisions failing
+closed and a 30-second protocol/preparation timeout after proposal traffic starts.
+Human waits between decisions have no timer. Commitment records agreement on
+data only; it is never a simulation-load authorization.
+
+Expose explicit backend prepare/propose/query APIs after completion's final fade
+barrier. Before and after deriving candidates, verify preparation's frozen
+content/client identity and unchanged final native diagnostic. Construct the
+planner from that verified context. Recheck the context when accepting controls;
+discard valid stale sessions/epochs and reject future epochs, spoofed roles,
+wrong ticks, mismatches and premature acknowledgements/commits. Stop/disconnect
+clears proposals/coordinator without advancing, replacing or reseeding native
+simulation. Preserve the planner's loader/difficulty-review flags.
+
+Test codec fixtures and strict ranges, pure adverse delivery and bounded early
+proposals, both original Arcade decision choices and real ENet agreement after
+final-result/fade synchronization. Verify unchanged native state and copied
+committed data, conflict/context rejection and disconnect cleanup. Re-run relevant
+completion, planner and player tests. Keep these APIs detached from the live
+first-level player's lobby exit until the approved native/cursor adoption is
+implemented. No menu, gameplay, loader or save behavior changes in this step.
+
+### Read-only continuation agreement checkpoint (2026-11-25)
+
+Implemented the three digest-only wire kinds, `network_continuation.gd` and
+explicit post-fade backend preparation/proposal/query APIs. Each peer derives its
+own sealed candidate, verifies configuration/result lineage and review flags,
+and compares the digest. The backend checks the agreed completion digest itself
+as well as the unchanged native diagnostic, so a corrupted local result object
+cannot silently replace the agreed record. Frozen content/client identity is
+verified around candidate derivation and on new controls. Decision 2 is the
+original Arcade preview with sequence 2 and the committed decision-1 parent.
+
+Only the host proposes/commits and only the guest acknowledges. Early proposals
+wait for local derivation; conflicting/skipped/premature controls fail closed.
+The two-entry history handles duplicates without resetting deadlines or repeating
+filesystem hashing. New decisions and explicit preparation still reverify the
+frozen context. Human waits between decisions have no timer; an active exchange
+has a 30-second preparation/protocol deadline. Committed queries return copied
+data, retaining loader/difficulty-review flags. Stop/failure clears all candidate
+and coordinator references without replacing or stepping the native node.
+
+Validation:
+
+- The final continuation/pure/ENet/planner/codec run passed 23 cases with actual
+  process exit 0. Its inherited native completion cases are included in that
+  count. Real ENet verifies retry proposals after pause/resume at epoch 2,
+  unchanged native identity/diagnostics, copied data, stale-epoch rejection,
+  detection of a corrupted agreed result, mismatched candidates and cleanup.
+- A controlled shop/Arcade routing fixture exercises both decision exchanges
+  and parent retention over real ENet. It does not claim a naturally won level
+  or a live campaign journey. Real script/routing behavior is covered separately
+  by the planner tests. Four duplicate commit packets leave the instrumented
+  filesystem-verification count unchanged.
+- The separate player/lobby/Pause/result regression run passed 16 cases with
+  actual process exit 0. The two final runs therefore cover 39 distinct cases.
+  All nine changed/new GDScript files pass formatter/linter checks and
+  `git diff --check` passes.
+- An earlier five-case ENet run passed its assertions, then hit the existing
+  Windows native shutdown access violation (-1073741819). Later clean exits do
+  not establish that this intermittent crash is fixed.
+
+These APIs remain detached from the live first-level player's lobby exit. A
+digest commit is agreement on read-only data, not permission to load a simulation
+or apply the unresolved difficulty reference. Live host Arcade binding,
+cursor/native adoption, retry/ending routes and multi-level journeys remain next.
+The scoped mechanics approval is still pending. No APK/package, phone execution
+or exported Linux gate is claimed. The preceding planner checkpoint was pushed
+as `24de5d4`.

@@ -57,6 +57,10 @@ func elapsed_seconds() -> int:
 	return _elapsed if agreed() else -1
 
 
+func result_digest() -> String:
+	return _digest if agreed() else ""
+
+
 func committed_phase() -> int:
 	return _committed if error.is_empty() else 0
 

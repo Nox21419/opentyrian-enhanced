@@ -2,7 +2,20 @@
 ## Fixed-size little-endian packets: no object/Variant/JSON deserialization.
 extends RefCounted
 
-enum Kind { INPUT = 1, STATE, READY, START, PAUSE, LEAVE, LEVEL_RESULT, LEVEL_READY, LEVEL_ADVANCE }
+enum Kind {
+	INPUT = 1,
+	STATE,
+	READY,
+	START,
+	PAUSE,
+	LEAVE,
+	LEVEL_RESULT,
+	LEVEL_READY,
+	LEVEL_ADVANCE,
+	CONTINUATION,
+	CONTINUATION_ACK,
+	CONTINUATION_COMMIT
+}
 enum Pause { REQUEST_PAUSE, COMMIT_PAUSE, REQUEST_RESUME, COMMIT_RESUME }
 enum Leave { QUIT, TIMEOUT, DESYNC, INCOMPATIBLE, PROTOCOL_ERROR }
 
@@ -39,7 +52,7 @@ static func valid_frame(frame: Variant) -> bool:
 
 
 static func valid_message(message: Variant) -> bool:
-	if not message is Dictionary or not _integer(message.get("kind"), Kind.INPUT, Kind.LEVEL_ADVANCE):
+	if not message is Dictionary or not _integer(message.get("kind"), Kind.INPUT, Kind.CONTINUATION_COMMIT):
 		return false
 	var extra := "frame" if message.kind == Kind.INPUT else "digest"
 	if message.kind in [Kind.PAUSE, Kind.LEAVE]:
@@ -53,7 +66,7 @@ static func valid_message(message: Variant) -> bool:
 		return false
 	if not _integer(message.player, 1, 2) or not _integer(message.tick, 0, MAX_TICK):
 		return false
-	if message.kind in [Kind.LEVEL_RESULT, Kind.LEVEL_READY, Kind.LEVEL_ADVANCE] and message.tick == 0:
+	if message.kind >= Kind.LEVEL_RESULT and message.tick == 0:
 		return false
 	if message.kind in [Kind.INPUT, Kind.STATE, Kind.LEVEL_RESULT]:
 		if not _integer(message.sequence, 0, 0):
@@ -78,6 +91,12 @@ static func valid_message(message: Variant) -> bool:
 				_hex(message.digest, 64)
 				and message.sequence in [1, 2, 3]
 				and (message.kind == Kind.LEVEL_READY or message.player == 1)
+			)
+		Kind.CONTINUATION, Kind.CONTINUATION_ACK, Kind.CONTINUATION_COMMIT:
+			return (
+				_hex(message.digest, 64)
+				and message.sequence in [1, 2]
+				and message.player == (2 if message.kind == Kind.CONTINUATION_ACK else 1)
 			)
 		Kind.PAUSE:
 			if not _integer(message.action, Pause.REQUEST_PAUSE, Pause.COMMIT_RESUME):
@@ -110,16 +129,16 @@ static func encode(message: Dictionary) -> PackedByteArray:
 			packet[39] = int(message.frame.new_key)
 			for i in 4:
 				packet.encode_s32(40 + i * 4, message.frame[FRAME_FIELDS[2 + i]])
-		Kind.STATE, Kind.READY, Kind.START, Kind.LEVEL_RESULT, Kind.LEVEL_READY, Kind.LEVEL_ADVANCE:
+		Kind.PAUSE:
+			packet[HEADER_BYTES] = message.action
+		Kind.LEAVE:
+			packet[HEADER_BYTES] = message.reason
+		_:  # Every other validated kind has a fixed digest payload.
 			var digest: PackedByteArray = message.digest.hex_decode()
 			for i in 32:
 				packet[HEADER_BYTES + i] = digest[i]
 			if message.kind == Kind.LEVEL_RESULT:
 				packet.encode_u32(68, message.elapsed)
-		Kind.PAUSE:
-			packet[HEADER_BYTES] = message.action
-		Kind.LEAVE:
-			packet[HEADER_BYTES] = message.reason
 	return packet
 
 
@@ -154,14 +173,14 @@ static func decode(packet: PackedByteArray, session: String, epoch: int, sender:
 			for i in 4:
 				frame[FRAME_FIELDS[2 + i]] = packet.decode_s32(40 + i * 4)
 			message.frame = frame
-		Kind.STATE, Kind.READY, Kind.START, Kind.LEVEL_RESULT, Kind.LEVEL_READY, Kind.LEVEL_ADVANCE:
-			message.digest = packet.slice(HEADER_BYTES, 68).hex_encode()
-			if kind == Kind.LEVEL_RESULT:
-				message.elapsed = packet.decode_u32(68)
 		Kind.PAUSE:
 			message.action = int(packet[HEADER_BYTES])
 		Kind.LEAVE:
 			message.reason = int(packet[HEADER_BYTES])
+		_:  # Exact packet size has already rejected unknown kinds.
+			message.digest = packet.slice(HEADER_BYTES, 68).hex_encode()
+			if kind == Kind.LEVEL_RESULT:
+				message.elapsed = packet.decode_u32(68)
 	return message if valid_message(message) else {}
 
 
@@ -169,13 +188,11 @@ static func _packet_size(kind: int) -> int:
 	match kind:
 		Kind.INPUT:
 			return 56
-		Kind.STATE, Kind.READY, Kind.START, Kind.LEVEL_READY, Kind.LEVEL_ADVANCE:
-			return 68
 		Kind.LEVEL_RESULT:
 			return 72
 		Kind.PAUSE, Kind.LEAVE:
 			return 37
-	return 0
+	return 68 if kind >= Kind.STATE and kind <= Kind.CONTINUATION_COMMIT else 0
 
 
 static func _fields(value: Variant, fields: Array) -> bool:

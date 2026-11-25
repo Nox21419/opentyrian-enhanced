@@ -111,6 +111,7 @@ func preview_arcade_start(expected_digest: String) -> Dictionary:
 	proposal.erase("digest")
 	proposal["parent"] = expected_digest
 	proposal["action"] = "arcade_start"
+	proposal.sequence = 2
 	proposal["entry"] = _proposal.script.duplicate(true)
 	proposal.script = script
 	proposal.kind = script.stop
@@ -189,6 +190,12 @@ func _seal(proposal: Dictionary) -> Dictionary:
 		return {}
 	proposal["digest"] = digest
 	return proposal
+
+
+static func proposal_digest(proposal: Dictionary) -> String:
+	var body := proposal.duplicate(true)
+	body.erase("digest")
+	return _hash(body)
 
 
 static func _hash(value: Dictionary) -> String:
