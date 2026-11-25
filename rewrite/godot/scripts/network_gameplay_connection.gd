@@ -11,6 +11,7 @@ const Completion := preload("res://scripts/network_completion.gd")
 const LevelResult := preload("res://scripts/network_level_result.gd")
 const Continuation := preload("res://scripts/network_continuation.gd")
 const CampaignCursor := preload("res://scripts/network_campaign_cursor.gd")
+const LevelLoad := preload("res://scripts/network_level_load.gd")
 var _runner := Runner.new()
 var _activated := false
 var _view_local := false
@@ -21,6 +22,9 @@ var _level_result := LevelResult.new()
 var _continuation := Continuation.new()
 var _campaign_cursor: RefCounted
 var _continuation_candidates := {}
+var _level_load := LevelLoad.new()
+var _pending_preparation: RefCounted
+var _load_sequence := 0
 
 
 func _ready() -> void:
@@ -29,6 +33,7 @@ func _ready() -> void:
 
 
 func stop() -> void:
+	_clear_pending_load()
 	_continuation = Continuation.new()
 	_campaign_cursor = null
 	_continuation_candidates.clear()
@@ -212,6 +217,95 @@ func _process(_delta: float) -> void:
 		_continuation.poll(Time.get_ticks_msec())
 		if not _continuation.error.is_empty():
 			_fail(_continuation.error)
+	if running() and not _level_load.poll(Time.get_ticks_msec()):
+		_fail(_level_load.error)
+
+
+## Explicit backend-only load offer. Does not replace the runner or its owner.
+func prepare_next_level(sequence: int, seed: String) -> bool:
+	if player_for_view() != 1 or not _load_context(sequence):
+		return false
+	if not _level_load.offer(seed, Time.get_ticks_msec()):
+		return _fail(_level_load.error) if not _level_load.error.is_empty() else false
+	if not _settle_load() or not _prepare_pending_load():
+		return false
+	return _settle_load()
+
+
+func next_level_loaded() -> bool:
+	return running() and _level_load.ready()
+
+
+func next_level_load_committed() -> bool:
+	return running() and _level_load.committed()
+
+
+func next_level_request() -> Dictionary:
+	return _pending_preparation.continuation_request() if running() and _pending_preparation != null else {}
+
+
+## Activation permission only. Scene detachment and runner adoption are separate.
+func commit_next_level_load() -> bool:
+	if player_for_view() != 1 or not _verify_continuation_state() or _pending_preparation == null:
+		return false
+	if not _pending_preparation.verify_preview():
+		return _fail(_pending_preparation.error)
+	if not _level_load.activate(Time.get_ticks_msec()):
+		return _fail(_level_load.error) if not _level_load.error.is_empty() else false
+	return _settle_load()
+
+
+func _load_context(sequence: int) -> bool:
+	if not _verify_continuation_state():
+		return false
+	var candidate := committed_continuation(sequence)
+	if candidate.is_empty() or candidate.get("kind") != "level":
+		return false
+	if _load_sequence != 0:
+		return true if _load_sequence == sequence else _fail("changed_load_decision")
+	var context: Dictionary = _connection.startup.context()
+	if not _level_load.configure(
+		context.session, _pause.epoch, context.player, ticks_executed(), sequence, candidate.digest
+	):
+		return _fail(_level_load.error)
+	_load_sequence = sequence
+	return true
+
+
+func _prepare_pending_load() -> bool:
+	if _pending_preparation != null:
+		return true if _pending_preparation.verify_preview() else _fail(_pending_preparation.error)
+	_pending_preparation = _preparation.fork_continuation(committed_continuation(_load_sequence), _level_load.seed)
+	if _pending_preparation == null:
+		return _fail("next_level_preparation_failed")
+	if not _verify_continuation_state():
+		return false
+	return (
+		_level_load.loaded(
+			_pending_preparation.continuation_request().digest,
+			_pending_preparation.preview_digest(),
+			Time.get_ticks_msec()
+		)
+		or _fail(_level_load.error)
+	)
+
+
+func _settle_load() -> bool:
+	if not _level_load.poll(Time.get_ticks_msec()):
+		return _fail(_level_load.error)
+	for message in _level_load.take_messages():
+		if _connection.transport.send_packet(Wire.encode(message)) != OK:
+			return _fail("load_send_failed")
+	changed.emit()
+	return running()
+
+
+func _clear_pending_load() -> void:
+	if _pending_preparation != null:
+		_pending_preparation.clear()
+	_pending_preparation = null
+	_level_load = LevelLoad.new()
+	_load_sequence = 0
 
 
 ## Explicit read-only post-fade proposals; never called by the prototype's live
@@ -439,6 +533,12 @@ func _receive_input(packet: PackedByteArray) -> void:
 		return
 	if (
 		packet.size() >= Wire.HEADER_BYTES
+		and int(packet[6]) in [Wire.Kind.LOAD_SEED, Wire.Kind.LOAD_READY, Wire.Kind.LOAD_ACTIVATE]
+	):
+		_receive_load(packet)
+		return
+	if (
+		packet.size() >= Wire.HEADER_BYTES
 		and int(packet[6]) in [Wire.Kind.CONTINUATION, Wire.Kind.CONTINUATION_ACK, Wire.Kind.CONTINUATION_COMMIT]
 	):
 		_receive_continuation(packet)
@@ -533,7 +633,38 @@ func _receive_continuation(packet: PackedByteArray) -> void:
 	_settle_continuation()
 
 
+func _receive_load(packet: PackedByteArray) -> void:
+	var context: Dictionary = _connection.startup.context()
+	var message := Wire.decode(packet, packet.slice(8, 24).hex_encode(), packet.decode_u32(24), 3 - context.player)
+	if message.is_empty():
+		_fail("invalid_load_message")
+		return
+	if message.session != context.session or message.epoch < _pause.epoch:
+		return
+	if message.epoch != _pause.epoch:
+		_fail("future_load_epoch")
+		return
+	if _level_load.has_seen_control(message):
+		if not _level_load.receive(message, Time.get_ticks_msec()):
+			_fail(_level_load.error)
+		return
+	if not _load_context(message.sequence):
+		if running():
+			_fail("load_before_committed_continuation")
+		return
+	if _pending_preparation != null and not _pending_preparation.verify_preview():
+		_fail(_pending_preparation.error)
+		return
+	if not _level_load.receive(message, Time.get_ticks_msec()):
+		_fail(_level_load.error)
+		return
+	if message.kind == Wire.Kind.LOAD_SEED and not _prepare_pending_load():
+		return
+	_settle_load()
+
+
 func _fail(reason: String) -> bool:
+	_clear_pending_load()
 	_continuation = Continuation.new()
 	_campaign_cursor = null
 	_continuation_candidates.clear()

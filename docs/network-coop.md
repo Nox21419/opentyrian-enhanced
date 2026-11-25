@@ -2453,3 +2453,79 @@ validation. Pause/resume epochs and delayed old-level packets must remain distin
 from the new tick-zero epoch. NetworkSession's current scene-exit hook stops the
 backend, so planned replacement needs a guarded detach/adopt path before its old
 view exits. The detached fork does not bypass any of these existing checks.
+
+### Next-level load agreement implementation plan (2026-11-25)
+
+Before scene replacement, add a pure bounded load coordinator and explicit
+backend APIs. Bind one load attempt to the committed continuation decision,
+session, current post-pause input epoch and final presented tick. Reserve exactly
+epoch+1 for the next tick-zero runner; reject overflow. The host offers an exact
+u64 seed, both peers fork their own locally derived committed proposal, and each
+announces a digest covering proposal, seed, next epoch, copied request and native
+tick-zero diagnostic. Only matching loaded announcements permit a host activation
+control. Guest activation requires its own successful preparation and both loaded
+announcements. No native node is stepped, adopted, freed or exposed to a new view
+by this coordinator. Stop/failure releases only the pending owned preparation.
+
+Use three new fixed-size gameplay controls: seed (44 bytes), loaded digest (68)
+and host activation digest (68), retaining the existing 72-byte cap. Bind sender
+roles and decision sequence 1/2, reject malformed/conflicting/premature controls,
+ignore stale sessions/epochs, and preserve idempotence without resetting the
+30-second active-exchange deadline. No deadline runs before the explicit host
+offer or after commitment. Independently reverify frozen content, agreed final
+result/native state and pending preview before load/activation operations. Reuse
+the existing transport with no remote object deserialization. Test pure protocol
+ordering, duplicates, timeout and context rejection, then real ENet with native
+forks, mismatch cleanup, old-node lifetime and no change to the ended runner.
+Live flow/cursor/view ownership migration remains the subsequent operation.
+
+### Backend load barrier checkpoint (2026-11-25)
+
+The preceding detached loader checkpoint was committed and pushed as `3cdcbba`.
+The next source change adds `network_level_load.gd`, plus gameplay controls
+LOAD_SEED (13, 44 bytes), LOAD_READY (14, 68 bytes) and LOAD_ACTIVATE (15, 68
+bytes). Header version and maximum size remain unchanged; the existing complete
+client-source identity prevents mixing this client with an older implementation.
+The seed payload is its exact eight hexadecimal-decoded bytes. Loaded/activation
+digests cover the independently derived proposal, exact seed, reserved next epoch,
+full canonical request digest and tick-zero native diagnostic.
+
+`prepare_next_level(sequence, seed)` is host-only and requires a locally committed
+level continuation after phase-3 fades. The guest independently derives and
+prepares the same committed candidate when the offer arrives. `next_level_loaded`
+requires matching local and remote diagnostics; `commit_next_level_load` is an
+explicit host operation that rechecks the ended result/core/content and pending
+preview. `next_level_load_committed` records authorization only. The copied
+`next_level_request` accessor does not transfer ownership or expose a borrowed
+native node to a view. Epoch+1 is reserved in the coordinator, not installed into
+the old runner. Neither ticks nor original view ownership change at this stage.
+
+Controls bind the old final tick/current input epoch and decision sequence.
+Wrong/future contexts, changed seeds/digests, premature activation and timeout
+fail closed. Duplicate history is bounded to this single load and checks conflicts
+without repeating filesystem verification or extending the deadline. Either
+backend stop/failure releases its pending preparation. The original ended node
+remains alive during healthy agreement, and normal session failure releases it
+through the existing owner/view cleanup path.
+
+Pure load/codec/continuation suites passed 17 test cases; that process
+then reproduced the existing native shutdown access violation (-1073741819).
+An initial test-discovery error from method calls in GDScript constant initializers
+was corrected to literal fixture strings before this run. The new native ENet
+case uses a controlled level-stop proposal after a natural all-dead terminal
+result, so it does not claim a successful campaign journey. Live progression,
+cursor/view/runner adoption and later-level UI remain unconnected.
+
+The final ENet run passed six cases (the new load case plus five inherited
+continuation/completion regressions), with no errors, failures, skips or orphans
+and actual process exit 0. The load case verifies host-only offer/activation,
+post-pause epoch 3 reservation, identical independently prepared native requests,
+untouched old ticks/nodes/views during agreement, copied request data, duplicate
+activation without extra filesystem checks, stale-seed rejection and changed
+pending-preview detection with cleanup on both peers. The pure suites verify
+request/state/proposal mismatches, premature controls, codec roles/sizes/types,
+context/epoch overflow and deadlines that duplicate packets cannot extend.
+All five changed/new GDScript files pass formatter/linter checks and
+`git diff --check` passes. These clean ENet exits do not resolve the intermittent
+shutdown failure seen in the pure run. No native rebuild was needed for this
+GDScript-only checkpoint; no APK, phone play or exported Linux gate is claimed.

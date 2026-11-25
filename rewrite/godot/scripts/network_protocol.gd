@@ -14,7 +14,10 @@ enum Kind {
 	LEVEL_ADVANCE,
 	CONTINUATION,
 	CONTINUATION_ACK,
-	CONTINUATION_COMMIT
+	CONTINUATION_COMMIT,
+	LOAD_SEED,
+	LOAD_READY,
+	LOAD_ACTIVATE
 }
 enum Pause { REQUEST_PAUSE, COMMIT_PAUSE, REQUEST_RESUME, COMMIT_RESUME }
 enum Leave { QUIT, TIMEOUT, DESYNC, INCOMPATIBLE, PROTOCOL_ERROR }
@@ -52,9 +55,11 @@ static func valid_frame(frame: Variant) -> bool:
 
 
 static func valid_message(message: Variant) -> bool:
-	if not message is Dictionary or not _integer(message.get("kind"), Kind.INPUT, Kind.CONTINUATION_COMMIT):
+	if not message is Dictionary or not _integer(message.get("kind"), Kind.INPUT, Kind.LOAD_ACTIVATE):
 		return false
 	var extra := "frame" if message.kind == Kind.INPUT else "digest"
+	if message.kind == Kind.LOAD_SEED:
+		extra = "seed"
 	if message.kind in [Kind.PAUSE, Kind.LEAVE]:
 		extra = "action" if message.kind == Kind.PAUSE else "reason"
 	var fields := BASE_FIELDS + [extra]
@@ -98,6 +103,14 @@ static func valid_message(message: Variant) -> bool:
 				and message.sequence in [1, 2]
 				and message.player == (2 if message.kind == Kind.CONTINUATION_ACK else 1)
 			)
+		Kind.LOAD_SEED:
+			return message.player == 1 and message.sequence in [1, 2] and _hex(message.seed, 16)
+		Kind.LOAD_READY, Kind.LOAD_ACTIVATE:
+			return (
+				_hex(message.digest, 64)
+				and message.sequence in [1, 2]
+				and (message.kind == Kind.LOAD_READY or message.player == 1)
+			)
 		Kind.PAUSE:
 			if not _integer(message.action, Pause.REQUEST_PAUSE, Pause.COMMIT_RESUME):
 				return false
@@ -133,6 +146,10 @@ static func encode(message: Dictionary) -> PackedByteArray:
 			packet[HEADER_BYTES] = message.action
 		Kind.LEAVE:
 			packet[HEADER_BYTES] = message.reason
+		Kind.LOAD_SEED:
+			var seed: PackedByteArray = message.seed.hex_decode()
+			for i in 8:
+				packet[HEADER_BYTES + i] = seed[i]
 		_:  # Every other validated kind has a fixed digest payload.
 			var digest: PackedByteArray = message.digest.hex_decode()
 			for i in 32:
@@ -177,6 +194,8 @@ static func decode(packet: PackedByteArray, session: String, epoch: int, sender:
 			message.action = int(packet[HEADER_BYTES])
 		Kind.LEAVE:
 			message.reason = int(packet[HEADER_BYTES])
+		Kind.LOAD_SEED:
+			message.seed = packet.slice(HEADER_BYTES, 44).hex_encode()
 		_:  # Exact packet size has already rejected unknown kinds.
 			message.digest = packet.slice(HEADER_BYTES, 68).hex_encode()
 			if kind == Kind.LEVEL_RESULT:
@@ -190,9 +209,11 @@ static func _packet_size(kind: int) -> int:
 			return 56
 		Kind.LEVEL_RESULT:
 			return 72
+		Kind.LOAD_SEED:
+			return 44
 		Kind.PAUSE, Kind.LEAVE:
 			return 37
-	return 68 if kind >= Kind.STATE and kind <= Kind.CONTINUATION_COMMIT else 0
+	return 68 if kind >= Kind.STATE and kind <= Kind.LOAD_ACTIVATE else 0
 
 
 static func _fields(value: Variant, fields: Array) -> bool:
