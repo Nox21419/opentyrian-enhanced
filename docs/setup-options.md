@@ -28,8 +28,10 @@ now leads to the original Difficulty screen, then the host-operated original
 Arcade Game Menu. Those screens are approved. Its original Options screen now
 enables host-local Music/Sound volume and Done, with unsupported save/load/device
 rows dimmed; this Options screen is approved. Arcade Start returns to a shared
-lobby Ready check (awaiting review), followed by host-only Start. This prepares
-the backend at tick zero; player-view/input handoff and playable co-op remain pending.
+lobby Ready check (approved), followed by host-only Start. This prepares
+the backend at tick zero. The approved player-view direction retains the full
+original two-player HUD on both phones; the detached presentation checkpoint is
+implemented and awaits review. Player-menu/input handoff and playable co-op remain pending.
 See [network co-op](network-coop.md).
 
 ## Option behavior and persistence

@@ -1365,3 +1365,87 @@ guest's distinct episode and disabled Ready after acknowledgement. These are
 source desktop captures, not Android phone validation or an exported build.
 Review this one shared Ready screen before a new frontend step. The exported
 Linux gate and two-phone/internet play have not run; no build was handed over.
+
+### Approved player-view implementation plan
+
+The maintainer approved the original full two-player HUD on both phones, with
+each phone controlling its assigned ship. Keep the existing framebuffer,
+playfield, fonts and dashboard; do not introduce an enlarged own-player HUD.
+Implement this in the following order, preserving the existing local level path:
+
+1. Separate level presentation initialization and post-step presentation from
+   native simulation creation/stepping. The ordinary level calls the same
+   operations in the same order. Add presentation accessors for level identity,
+   title, loadout and processor type so a network view does not overwrite Game's
+   local campaign fields to render another session.
+2. Expose a borrowed simulation and assigned role only after backend RUNNING.
+   The preparation owner remains responsible for freeing its unparented native
+   node. A view must never add it as a child, reload it, seed it, fast-forward it
+   or free it. Check the borrow before every presentation update. Disconnect
+   must detach presentation before any further native method call.
+3. Build and verify the shared player view first, without automatically leaving
+   the lobby. Use the agreed configuration and freshly read campaign level name.
+   Skip local achievements, recording, assists and local effect reconfiguration.
+   Start audio locally without writing local volume into simulation state.
+   HUD/audio/filter queues are observers and may be consumed only after startup
+   comparison. Their consumption means the conservative diagnostic is no longer
+   comparable to an untouched preview. Test tick-zero preservation, ownership,
+   campaign isolation, both roles and original dashboard rendering.
+4. Bind the view to a 35 Hz session clock only after its presentation checkpoint.
+   Sample hardware only when a future frame is needed; preserve the frozen frame
+   while waiting. Capture the assigned ship's touch/tilt delta with the existing
+   movement helpers and existing action ownership. Route guest manual sidekick/
+   rear-mode controls from player 2 state; never expose player 1's special to the
+   guest. Advance through the backend only and present each executed tick once.
+   Audit hitstop/slow-motion scheduling separately from simulation tick rules.
+5. Add the explicit lobby-to-view handoff on both peers after Start, guarding
+   against unequal scene-loading times and queued inputs. Escape, focus loss,
+   transport loss and scene exit must stop or synchronize the session rather
+   than opening an unsynchronized local pause/save flow. Specify the original
+   pause-screen direction before implementing that separate frontend screen.
+6. Verify real ENet peers with rendered views, independent process lifecycles,
+   stalls, disconnects and both input roles. Then implement level endings and
+   host-controlled Arcade progression through fresh epochs. Do not hand over a
+   playable build before the exported-package gate and actual two-phone checks.
+   Internet signaling/NAT traversal remains a later documented transport phase.
+
+The first view checkpoint is deliberately detached from the player-menu clock:
+it must establish safe reuse of the prepared simulation before live input,
+pause, progression or an internet-play claim is introduced.
+
+### Detached original two-player presentation checkpoint
+
+`level.gd` now shares presentation initialization and post-step observation
+without creating a second simulation path. Ordinary local loading/stepping keeps
+its operations and order. Presentation accessors let `network_level.gd` use the
+negotiated level, title and loadout without changing local Game campaign fields.
+The network view binds once, only to a running tick-zero backend. It borrows the
+unparented prepared node; disposing the view does not dispose that node. Backend
+stop detaches/hides the view, and backend tree exit also clears its references.
+
+Both roles reuse HudRenderer and picture 6, including both players' status bars
+and the original level name. Local achievements, recording, assists, effect
+reconfiguration, direct stepping, fast-forward, hardware polling and automatic
+physics processing are disabled in this detached view. Local audio volume is
+applied to output without writing it into the simulation. A successful backend
+tick may be presented exactly once; repeated or skipped tick presentation is
+rejected. Observer consumption starts only after startup comparison.
+
+Twenty cases across gameplay connections, local level entry and Android touch
+weapons pass with zero errors/failures/orphans and actual process exit 0. New
+coverage verifies both roles at tick zero, unchanged local campaign fields,
+disabled direct stepping/clock, single binding, ownership and disconnect cleanup.
+Two real ENet peers also match conservative diagnostic hashes after each of 12
+backend ticks with the same HUD/audio/filter observation boundary. The unchanged
+60-tick ENet case continues to pass. This is same-build rewrite evidence, not
+independent C parity or two-phone testing. The earlier intermittent Windows
+shutdown issue remains unresolved; this run exited cleanly.
+
+Both original dashboard images were saved under build/network-hud-1.png and
+build/network-hud-2.png, inspected and have identical SHA-256 hashes. These are
+dashboard framebuffer captures with a black playfield, not live phone captures.
+GDScript format/lint and diff whitespace checks pass. The view is not selected
+by the player lobby: live clock, assigned touch controls, synchronized entry,
+pause, progression and internet transport remain pending. Review this detached
+original-HUD checkpoint before the clock/input handoff. No APK or exported build
+was handed over and the unavailable WSL/Linux package gate was not run.

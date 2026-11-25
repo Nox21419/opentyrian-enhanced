@@ -75,6 +75,19 @@ func ticks_executed() -> int:
 	return _runner.ticks_executed
 
 
+## Borrow only: preparation retains ownership. Never parent/free this node.
+## A view must recheck this accessor before using a previously borrowed node.
+func simulation_for_view() -> Node:
+	if not running():
+		return null
+	var native: Node = _preparation.get("_preview")
+	return native if is_instance_valid(native) else null
+
+
+func player_for_view() -> int:
+	return int(_connection.startup.context().get("player", 0)) if running() else 0
+
+
 ## Diagnostic valid only at the same untouched observer-consumption boundary.
 func diagnostic_digest() -> String:
 	if not running():
