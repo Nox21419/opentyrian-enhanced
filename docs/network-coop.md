@@ -2134,3 +2134,95 @@ The approved host Arcade continuation, campaign cursor,
 retry/bonus/episode paths, later-level native loading and full multi-level
 journeys remain next; the scoped loader approval is still pending. No APK/package
 was handed over and the unavailable WSL/Linux exported-package gate was not run.
+
+### Detached campaign-continuation proposal plan (2026-11-25)
+
+Next prepare a session-owned, read-only continuation planner. Begin only from an
+initial configuration accepted by the existing Arcade rules. Keep a private
+campaign-script reader and copies of the initial level/entry/checkpoint metadata.
+Validate the final result's canonical digest and source-configuration digest
+before deriving any proposal. Cache one accepted result; identical repeated
+requests are idempotent, while a conflicting result fails closed.
+
+Derive the next script section from the current script's next_level, overridden
+only by the existing collected-warp rule. Use the local campaign's native
+adjust_difficulty and run_script calls with the original initial difficulty,
+player-1 ending ship, all-player survival, cube count and two-player flag. Keep
+the initial choice separate from the current two-player difficulty (+1 at New
+Game). Any local difficulty-reference value remains explicitly subject to rule
+review before native adoption; it is not an approved network gameplay rule.
+Preserve the complete earned record, including both loadouts, 64-bit cash, carry,
+lives and survivor flags; do not guess a new native setup or silently project
+player-2 equipment into a future loader. Preserve all returned story/map/song/
+autosave/mini-game/ending directives as data. Do not skip them or execute writes.
+
+Normal all-dead results produce an explicit retry-required checkpoint proposal
+without applying success rewards or difficulty adjustment. Bonus exits follow
+the existing survival rule. If the script stops at a shop, expose a separate
+preview for the already approved original Arcade Start choice: use the original
+last map destination, or shop section + 1 when the map is empty. Keep shop entry
+effects attached. No purchase system, menu transition, native load, save write or
+live proposal adoption is introduced at this checkpoint.
+
+Test canonical/context rejection and duplicate/conflicting results, all-player
+versus any-player survival, ordinary and warp destinations, retry checkpoints,
+both players' exact state retention and the Arcade map choice. Compare real
+episode/difficulty proposals against the existing native campaign reader and
+verify Game/local saves are untouched. Document unsupported or unresolved native
+carry behavior instead of treating the pending loader approval as granted.
+
+### Detached continuation planner and rule audit (2026-11-25)
+
+Implemented `network_campaign_cursor.gd` as a read-only initial-level continuation
+planner. It shares the initial validator's parsed campaign reader, avoiding a
+second script-file read. Results must have the correct configuration context,
+canonical hash and native-shaped fields. Proposals retain the whole earned
+record, checkpoint and original script effects. Repeated identical results and
+Arcade previews return copied cached data; conflicts, malformed state, unknown
+stops and wrong parent digests fail closed. Native story/hint PackedStringArrays
+are now supported by the bounded local canonical encoder; existing scalar and
+integer-array encodings are unchanged.
+
+The original native cube counter wraps as a u8, while the campaign reader clamps
+its input to 0..4. The planner preserves the raw 0..255 value and passes it through
+that existing API rather than introducing another clamp. A normal all-dead result
+produces retry-required data with the original checkpoint/configuration, without
+success adjustment. Bonus exit, any-player versus all-player survival, warp
+destinations, Arcade's last-map/empty-map choice and ending directives are
+preserved as data. No story/autosave directive is executed or silently removed.
+
+The difficulty audit found two important boundaries:
+
+- `new_game.gd::_start_game` sets two-player Arcade's current difficulty to the
+  chosen initial difficulty + 1. Continuation's reference floor must use that
+  current value, not the unraised menu choice; this was corrected before commit.
+- `Game.campaign_level_finished` calls `TyrianCampaign.adjust_difficulty` using
+  player 1's equipment-inclusive `total_score`. That bridge calls the one-player
+  helper. `tyrian-sim::campaign::adjust_difficulty_mode` separately documents
+  two-player thresholds and combined player cash. The existing local call is
+  therefore a reference path requiring review, not independent proof of the
+  original two-player behavior. The proposal labels its value `local_difficulty`,
+  marks successful results `difficulty_rule_review_required`, and marks every
+  proposal `requires_loader_adaptation`. No native setup adopts this value.
+
+The native carry/equipment projection and difficulty discrepancy must be resolved
+before live adoption; the prior scoped loader approval has not been assumed.
+The raw earned record is not a serialized simulation or proof that the bridge's
+carry fields cover every original transition. Future integration must also build
+the planner from the same verified frozen content context as preparation, agree
+proposal lineage on both peers and retain all original menu/story barriers.
+
+Validation: all 15 assertions passed across seven new planner tests, four initial
+configuration tests and four result tests. The final combined process then hit
+the known Windows shutdown access violation (-1073741819), despite gdUnit's
+successful summary. The isolated seven-case planner suite passed with actual
+process exit 0. A separate seven-case real ENet/controller regression run also
+passed with process exit 0. The planner tests compare all five episodes at six
+difficulties (30 route combinations) to the existing native script reader, find
+and preserve endings in all five episodes, verify wide cash/carry/player-2 state,
+and check both selected Game fields and save-directory file hashes are unchanged.
+This is script/reference-call coverage, not new independent C parity or a
+multi-level player journey. All three changed/new scripts pass formatter/linter
+checks and `git diff --check` passes. No APK/package or exported Linux gate was
+run. The prior live Statistics checkpoint was pushed as `7b293e3`.
+Live co-op remains the first-level prototype.

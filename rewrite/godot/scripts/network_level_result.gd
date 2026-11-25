@@ -82,7 +82,7 @@ static func canonical_bytes(value: Variant, depth := 0) -> PackedByteArray:
 			bytes.append_array(item)
 			if bytes.size() > 65536:
 				return PackedByteArray()
-	elif value is Array or value is PackedInt32Array or value is PackedInt64Array:
+	elif value is Array or value is PackedInt32Array or value is PackedInt64Array or value is PackedStringArray:
 		if value.size() > 128:
 			return PackedByteArray()
 		bytes = _header(5, value.size())
