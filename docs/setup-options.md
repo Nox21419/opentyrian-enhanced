@@ -30,8 +30,10 @@ enables host-local Music/Sound volume and Done, with unsupported save/load/devic
 rows dimmed; this Options screen is approved. Arcade Start returns to a shared
 lobby Ready check (approved), followed by host-only Start. This prepares
 the backend at tick zero. The approved player-view direction retains the full
-original two-player HUD on both phones; the detached presentation checkpoint is
-implemented and awaits review. Player-menu/input handoff and playable co-op remain pending.
+original two-player HUD on both phones; its presentation checkpoint is approved
+and assigned touch capture is tested. The approved session-effect/pacing
+adaptation and explicit network clock are implemented/tested. Player-menu
+handoff and playable co-op remain pending.
 See [network co-op](network-coop.md).
 
 ## Option behavior and persistence

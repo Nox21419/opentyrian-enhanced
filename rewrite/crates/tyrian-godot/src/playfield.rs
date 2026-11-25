@@ -430,6 +430,7 @@ impl TyrianSim {
     /// 2 = after the explosions, left to the Godot nodes).
     #[func]
     fn playfield_has_layer2(&self) -> bool {
+        let _scope = crate::fx_render::FxScope::enter(self.network_fx.as_ref());
         self.sim.as_ref().is_some_and(|s| parts(View::bottom(s)) & PART_LAYER2 != 0)
     }
 
@@ -439,6 +440,7 @@ impl TyrianSim {
     /// (AI) scenery, which has no palette indices to blend.
     #[func]
     fn layer2_blended(&self) -> bool {
+        let _scope = crate::fx_render::FxScope::enter(self.network_fx.as_ref());
         self.sim.as_ref().is_some_and(|s| {
             let b = &View::top(s).world().background;
             b.background2over != 3
@@ -453,6 +455,7 @@ impl TyrianSim {
     /// limit, ice blue falls on other hues: dark blotches).
     #[func]
     fn layer2_hue_rows(&self, data_dir: GString) -> i32 {
+        let _scope = crate::fx_render::FxScope::enter(self.network_fx.as_ref());
         let Some(sim) = self.sim.as_ref() else { return 0xffff };
         let level = &sim.setup().level;
         let name = level.events.header.shapes_file_name();
@@ -471,6 +474,7 @@ impl TyrianSim {
     /// 64 enemy shots and explosions (order of tyrian2.c:JE_main).
     #[func]
     fn playfield_parts(&self) -> i32 {
+        let _scope = crate::fx_render::FxScope::enter(self.network_fx.as_ref());
         self.sim.as_ref().map_or(0, |s| parts(View::bottom(s)))
     }
 
@@ -515,6 +519,7 @@ impl TyrianSim {
     /// of the next tick blends with the new image (tyrian2.c, one frame per tick).
     #[func]
     fn playfield_filters_tick(&self, data_dir: GString) {
+        let _scope = crate::fx_render::FxScope::enter(self.network_fx.as_ref());
         let Some(full) = self.sim.as_ref() else { return };
         if View::top(full).world().background.smoothies[..5].iter().any(|&b| b) {
             let before = GAME_SCREEN.with(|g| g.borrow().clone());
@@ -546,6 +551,7 @@ impl TyrianSim {
     /// image filters is not modified. Empty array if nothing is loaded.
     #[func]
     fn playfield_indices(&self, data_dir: GString) -> PackedByteArray {
+        let _scope = crate::fx_render::FxScope::enter(self.network_fx.as_ref());
         let Some(full) = self.sim.as_ref() else {
             return PackedByteArray::new();
         };
@@ -577,6 +583,7 @@ impl TyrianSim {
     /// `TyrianVga.palette_bytes`). 264x184 RGBA8 image, or null.
     #[func]
     fn playfield_background(&self, data_dir: GString, palette: PackedByteArray) -> Option<Gd<Image>> {
+        let _scope = crate::fx_render::FxScope::enter(self.network_fx.as_ref());
         let full = self.sim.as_ref()?;
         let bottom = View::bottom(full);
         let pal = palette.as_slice();
@@ -615,6 +622,7 @@ impl TyrianSim {
     /// layer 2, or null.
     #[func]
     fn playfield_stars(&self, data_dir: GString, palette: PackedByteArray) -> Option<Gd<Image>> {
+        let _scope = crate::fx_render::FxScope::enter(self.network_fx.as_ref());
         let sim = View::top(self.sim.as_ref()?);
         let pal = palette.as_slice();
         if pal.len() < 768 {
@@ -672,6 +680,7 @@ impl TyrianSim {
     /// space). 264x184 RGBA8 image, above the whole game, or null.
     #[func]
     fn playfield_hd_overlay(&self, palette: PackedByteArray) -> Option<Gd<Image>> {
+        let _scope = crate::fx_render::FxScope::enter(self.network_fx.as_ref());
         let bottom = View::bottom(self.sim.as_ref()?);
         let pal = palette.as_slice();
         if pal.len() < 768 {
@@ -734,6 +743,7 @@ impl TyrianSim {
     /// to the low-armor blink clock.
     #[func]
     fn set_render_clock_offset(&mut self, ms: i64) {
+        let _scope = crate::fx_render::FxScope::enter(self.network_fx.as_ref());
         if let Some(sim) = self.sim.as_mut() {
             sim.set_render_clock_offset(ms.clamp(0, u32::MAX as i64) as u32);
         }
@@ -743,6 +753,7 @@ impl TyrianSim {
     /// in pairs center x (game_screen), half-width.
     #[func]
     fn hd_zinglon(&self) -> PackedInt32Array {
+        let _scope = crate::fx_render::FxScope::enter(self.network_fx.as_ref());
         let Some(full) = self.sim.as_ref() else {
             return PackedInt32Array::new();
         };
@@ -756,6 +767,7 @@ impl TyrianSim {
     /// (0 normal, 1 blend, 2 darkened).
     #[func]
     fn hd_player_sprites(&self) -> PackedInt32Array {
+        let _scope = crate::fx_render::FxScope::enter(self.network_fx.as_ref());
         let Some(full) = self.sim.as_ref() else {
             return PackedInt32Array::new();
         };
@@ -791,6 +803,7 @@ impl TyrianSim {
     /// in the upscaled image.
     #[func]
     fn hd_layer_cells(&self, layer: i32) -> PackedInt32Array {
+        let _scope = crate::fx_render::FxScope::enter(self.network_fx.as_ref());
         let Some(full) = self.sim.as_ref() else {
             return PackedInt32Array::new();
         };
@@ -851,6 +864,7 @@ impl TyrianSim {
     /// (0 normal, 1 blend, 2 darkened).
     #[func]
     fn hd_shot_sprites(&self) -> PackedInt32Array {
+        let _scope = crate::fx_render::FxScope::enter(self.network_fx.as_ref());
         let Some(full) = self.sim.as_ref() else {
             return PackedInt32Array::new();
         };
@@ -884,6 +898,7 @@ impl TyrianSim {
     /// 2 darkened, 4 filter), filter (tint << 4).
     #[func]
     fn hd_enemy_sprites(&self) -> PackedInt32Array {
+        let _scope = crate::fx_render::FxScope::enter(self.network_fx.as_ref());
         let Some(full) = self.sim.as_ref() else {
             return PackedInt32Array::new();
         };
@@ -908,6 +923,7 @@ impl TyrianSim {
     /// [tint, brightness, code, lightx, lighty].
     #[func]
     fn hd_screen_effects(&self) -> PackedInt32Array {
+        let _scope = crate::fx_render::FxScope::enter(self.network_fx.as_ref());
         let Some(full) = self.sim.as_ref() else {
             return PackedInt32Array::new();
         };
@@ -1143,6 +1159,7 @@ impl TyrianSim {
     /// (golden_master.c: particles_enabled = false), hence absent here.
     #[func]
     fn playfield_glow(&self, palette: PackedByteArray) -> Option<Gd<Image>> {
+        let _scope = crate::fx_render::FxScope::enter(self.network_fx.as_ref());
         let sim = View::bottom(self.sim.as_ref()?);
         let pal = palette.as_slice();
         if pal.len() < 768 {

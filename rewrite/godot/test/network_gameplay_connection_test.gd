@@ -77,6 +77,9 @@ func test_original_two_player_views_borrow_tick_zero_without_changing_campaign()
 	var views: Array[Node] = []
 	for i in 2:
 		var native: Node = peers[i].simulation_for_view()
+		var before_presentation: String = native.network_diagnostic_digest()
+		assert_bool(native.start_network_presentation()).is_true()
+		assert_str(native.network_diagnostic_digest()).is_equal(before_presentation)
 		var view := View.new()
 		assert_bool(view.bind(peers[i])).is_true()
 		assert_bool(view.bind(peers[i])).is_false()
@@ -126,6 +129,13 @@ func test_rendered_peers_present_each_backend_tick_once_and_keep_matching_state(
 		var view := View.new()
 		assert_bool(view.bind(peer)).is_true()
 		add_child(view)
+		view.set("_touch_pause", true)
+		assert_bool(view.enable_network_input()).is_true()
+		var touch := InputEventScreenTouch.new()
+		touch.index = 0
+		touch.pressed = true
+		touch.position = Vector2(50 if view.player == 1 else 220, 90)
+		view._input(touch)
 		views.append(view)
 	var digests: Array[Dictionary] = [{}, {}]
 	for _clock in 1000:
@@ -133,7 +143,7 @@ func test_rendered_peers_present_each_backend_tick_once_and_keep_matching_state(
 			if peers[i].ticks_executed() >= 12:
 				continue
 			if peers[i].needs_local_input():
-				assert_bool(peers[i].capture_local(Wire.neutral_frame())).is_true()
+				assert_bool(views[i].capture_network_input()).is_true()
 			if peers[i].advance():
 				assert_bool(views[i].present_network_tick()).is_true()
 				assert_bool(views[i].present_network_tick()).is_false()
@@ -145,6 +155,60 @@ func test_rendered_peers_present_each_backend_tick_once_and_keep_matching_state(
 	assert_dict(digests[0]).is_equal(digests[1])
 	for view in views:
 		view.free()
+
+
+func _record_clock_tick(tick: int, peer: Node, view: Node, digests: Dictionary) -> void:
+	digests[tick] = peer.diagnostic_digest()
+	if tick == 24:
+		view.disable_network_clock()
+
+
+func test_explicit_live_clocks_wait_without_resampling_and_resume_matching_peers() -> void:
+	var peers := await _pair()
+	var views: Array[Node] = []
+	var digests: Array[Dictionary] = [{}, {}]
+	for i in 2:
+		var view := View.new()
+		assert_bool(view.bind(peers[i])).is_true()
+		view.set("_touch_pause", true)
+		add_child(view)
+		assert_bool(view.enable_network_clock()).is_false()
+		assert_bool(view.enable_network_input()).is_true()
+		var touch := InputEventScreenTouch.new()
+		touch.index = 0
+		touch.pressed = true
+		touch.position = Vector2(50 if i == 0 else 220, 90)
+		view._input(touch)
+		view.network_tick_presented.connect(_record_clock_tick.bind(peers[i], view, digests[i]))
+		assert_bool(view.enable_network_clock()).is_true()
+		views.append(view)
+	# Delay one phone's scene clock. The other can execute only neutral prefill.
+	views[1].set_physics_process(false)
+	for _frame in 10:
+		await get_tree().physics_frame
+	assert_int(peers[0].ticks_executed()).is_equal(3)
+	assert_int(peers[1].ticks_executed()).is_equal(0)
+	assert_bool(views[0].get("_tick_due")).is_true()
+	var runner: RefCounted = peers[0].get("_runner")
+	var frozen: PackedByteArray = runner.capture_local({})
+	var release := InputEventScreenTouch.new()
+	release.index = 0
+	release.pressed = false
+	release.position = Vector2(50, 90)
+	views[0]._input(release)
+	for _frame in 10:
+		await get_tree().physics_frame
+	assert_int(peers[0].ticks_executed()).is_equal(3)
+	assert_bool(runner.capture_local({}) == frozen).is_true()
+	views[1].set_physics_process(true)
+	await _wait(func(): return digests[0].size() == 24 and digests[1].size() == 24)
+	assert_dict(digests[0]).is_equal(digests[1])
+	for i in 2:
+		assert_int(peers[i].ticks_executed()).is_equal(24)
+		assert_str(peers[i].error).is_empty()
+		assert_bool(views[i].is_physics_processing()).is_false()
+		assert_bool(views[i].enable_network_clock()).is_false()
+		views[i].free()
 
 
 func test_real_enet_inputs_advance_identical_native_simulations_after_explicit_start() -> void:

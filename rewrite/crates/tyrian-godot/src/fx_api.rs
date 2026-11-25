@@ -13,7 +13,8 @@ use crate::TyrianSim;
 impl TyrianSim {
     /// After each player tick: events and per-frame update.
     pub(crate) fn fx_after_step(&mut self) {
-        if !self.fx_on {
+        let _scope = crate::fx_render::FxScope::enter(self.network_fx.as_ref());
+        if !self.fx_on && self.network_fx.is_none() {
             return;
         }
         let Some(sim) = self.sim.as_mut() else { return };
@@ -30,6 +31,9 @@ impl TyrianSim {
     /// goes while recording a `.rep`, so that the game played
     /// is the one the playback will redo.
     pub(crate) fn fx_level_start(&mut self, seed: u64, replay: bool) {
+        self.network_fx = None;
+        self.network_fx_setup = None;
+        let _scope = crate::fx_render::FxScope::enter(None);
         let opts = if self.fx_on { self.fx_opts } else { FxOptions::default() };
         if self.fx_on {
             // Recording a .rep: same simulation as at playback (golden master settings).
@@ -59,6 +63,7 @@ impl TyrianSim {
     /// following ones. No effect on a replay (golden master settings).
     #[func]
     fn set_effects(&mut self, hitstop: bool, explosion_style: i32, damage_numbers: i32, rumble: bool, particles: bool) {
+        let _scope = crate::fx_render::FxScope::enter(self.network_fx.as_ref());
         let style = explosion_style.clamp(0, 2) as u8;
         self.fx_on = true;
         self.fx_cfg = tyrian_sim::fx::FxConfig {
@@ -95,6 +100,7 @@ impl TyrianSim {
     /// the Modern glow stack (`particles.c:glow_stack_active`, `varz.c:modern_fx`).
     #[func]
     fn set_screen_fx(&mut self, shake: bool, processor_type: i32) {
+        let _scope = crate::fx_render::FxScope::enter(self.network_fx.as_ref());
         self.fx_opts.shake = shake;
         self.fx_opts.processor_type = processor_type;
         self.fx_cfg.modern_explosions = self.fx_opts.particles
@@ -115,6 +121,7 @@ impl TyrianSim {
     /// add to the destination rectangle (video.c:449-455).
     #[func]
     fn shake_offset(&self) -> Vector2i {
+        let _scope = crate::fx_render::FxScope::enter(self.network_fx.as_ref());
         FX.with(|f| {
             let (x, y) = f.borrow().shake_offset();
             Vector2i::new(x, y)
@@ -126,6 +133,7 @@ impl TyrianSim {
     /// decays the shake at each presentation. Returns the offset.
     #[func]
     fn shake_present_frame(&mut self) -> Vector2i {
+        let _scope = crate::fx_render::FxScope::enter(self.network_fx.as_ref());
         FX.with(|f| {
             let mut f = f.borrow_mut();
             f.shake_frame();
@@ -137,6 +145,7 @@ impl TyrianSim {
     /// `bullet_time.c:bullet_time_active` (merging of numbers, fireballs).
     #[func]
     fn set_fx_bullet_time(&mut self, on: bool) {
+        let _scope = crate::fx_render::FxScope::enter(self.network_fx.as_ref());
         self.fx_opts.bullet_time = on;
         FX.with(|f| f.borrow_mut().options.bullet_time = on);
     }
@@ -145,6 +154,7 @@ impl TyrianSim {
     /// pairs (intensity 0..1, duration in ms).
     #[func]
     fn take_rumble(&mut self) -> PackedFloat32Array {
+        let _scope = crate::fx_render::FxScope::enter(self.network_fx.as_ref());
         FX.with(|f| {
             let mut f = f.borrow_mut();
             let mut out = PackedFloat32Array::new();
@@ -160,6 +170,7 @@ impl TyrianSim {
     /// a defeated boss, or -1 outside slow motion.
     #[func]
     fn kill_slowmo_speed(&self) -> f32 {
+        let _scope = crate::fx_render::FxScope::enter(self.network_fx.as_ref());
         FX.with(|f| {
             let k = f.borrow().kill_slowmo;
             if k > 0.0 {
@@ -176,6 +187,7 @@ impl TyrianSim {
     /// of the effects].
     #[func]
     fn fx_stats(&self) -> PackedInt64Array {
+        let _scope = crate::fx_render::FxScope::enter(self.network_fx.as_ref());
         let (freeze, frozen) = self.sim.as_ref().map_or((0, 0), |s| s.hitstop_state());
         FX.with(|f| {
             let f = f.borrow();
@@ -195,6 +207,7 @@ impl TyrianSim {
     /// Visible damage numbers, four at a time: x, y (game_screen), value, tint.
     #[func]
     fn damage_numbers(&self) -> PackedInt32Array {
+        let _scope = crate::fx_render::FxScope::enter(self.network_fx.as_ref());
         FX.with(|f| {
             let mut out = PackedInt32Array::new();
             for (x, y, v, h) in f.borrow().numbers() {

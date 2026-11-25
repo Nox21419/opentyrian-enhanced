@@ -155,8 +155,35 @@ impl TyrianSim {
         self.processor_type = sim.setup().processor_type;
         self.fx_cfg = sim.world().fx;
         self.fx_on = false;
+        self.network_fx_setup = Some((
+            hex(&config, "seed").expect("validated seed"),
+            crate::fx_render::FxOptions {
+                particles: boolean(&config, "particles").expect("validated particles"),
+                style: integer(&config, "explosion_style", 0, 2).expect("validated style") as u8,
+                hitstop: boolean(&config, "hitstop").expect("validated hitstop"),
+                shake: boolean(&config, "screenshake").expect("validated shake"),
+                processor_type: self.processor_type as i32,
+                ..Default::default()
+            },
+        ));
         self.sim = Some(sim);
         self.last_error = GString::new();
+        true
+    }
+
+    /// Only after startup comparison: initialize private presentation at tick
+    /// zero. Never resets simulation, core FX options or any shared renderer.
+    #[func]
+    fn start_network_presentation(&mut self) -> bool {
+        if self.sim.as_ref().is_none_or(|s| s.state().tick != 0) {
+            return false;
+        }
+        let Some((seed, options)) = self.network_fx_setup else { return false };
+        if self.network_fx.is_none() {
+            let mut render = crate::fx_render::FxRender::new(seed);
+            render.options = options;
+            self.network_fx = Some(std::rc::Rc::new(std::cell::RefCell::new(render)));
+        }
         true
     }
 }

@@ -21,8 +21,10 @@ volume with unsupported save/load/device rows dimmed; Options is approved.
 The shared lobby now validates the selected configuration and accepts Ready on
 both phones, then host Start; this Ready screen is approved. Start prepares
 the backend at tick zero. The approved player-view direction keeps the full
-original two-player HUD on both phones; the detached presentation checkpoint is
-implemented and awaits review, with player-menu/input handoff still unimplemented.
+original two-player HUD on both phones; its presentation checkpoint is approved
+and assigned touch capture is tested. The approved session-effect/pacing
+adaptation and explicit network clock are implemented/tested; player-menu
+handoff and two-phone validation remain pending.
 Episode Select keeps its original five labels and placement, adds Back and
 wider touch areas, and activates a choice on release. Difficulty Select uses
 the same release-to-select adaptation with Back to Episode or Timed Battle.

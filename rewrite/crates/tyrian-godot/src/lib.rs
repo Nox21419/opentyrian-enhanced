@@ -133,6 +133,8 @@ pub struct TyrianSim {
     fx_on: bool,
     fx_cfg: tyrian_sim::fx::FxConfig,
     fx_opts: fx_render::FxOptions,
+    network_fx_setup: Option<(u64, fx_render::FxOptions)>,
+    network_fx: Option<fx_render::OwnedFx>,
     base: Base<Node>,
 }
 
@@ -164,6 +166,8 @@ impl INode for TyrianSim {
             fx_on: false,
             fx_cfg: Default::default(),
             fx_opts: Default::default(),
+            network_fx_setup: None,
+            network_fx: None,
             base,
         }
     }
@@ -471,6 +475,7 @@ impl TyrianSim {
     /// to the loaded level. Applied automatically at the next `load_level`.
     #[func]
     fn set_processor_type(&mut self, value: i32) {
+        let _scope = crate::fx_render::FxScope::enter(self.network_fx.as_ref());
         let v = value.clamp(1, 6) as u8;
         self.processor_type = v;
         PROCESSOR_TYPE.with(|p| p.set(v));
@@ -962,6 +967,7 @@ impl TyrianSim {
     /// level.gd draws image `sprite + 1`.
     #[func]
     fn explosions_to_draw(&self) -> PackedInt32Array {
+        let _scope = crate::fx_render::FxScope::enter(self.network_fx.as_ref());
         let embers = crate::fx_render::FX.with(|f| f.borrow().modern_explosions_on());
         self.flatten3(|s| {
             s.explosions

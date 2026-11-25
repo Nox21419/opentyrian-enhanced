@@ -19,6 +19,7 @@
 use crate::modern_explosions::ModernExplosions;
 use std::cell::RefCell;
 use std::f32::consts::PI;
+use std::rc::Rc;
 use tyrian_render::Surface;
 use tyrian_sim::fx::FxEvent;
 use tyrian_sim::rng::Xoshiro256;
@@ -27,7 +28,106 @@ use tyrian_sim::world::World;
 thread_local! {
     /// Effects of the current level (only one level plays at a time, like the
     /// globals of particles.c / damagenumbers.c).
-    pub(crate) static FX: RefCell<FxRender> = RefCell::new(FxRender::new(1));
+    static DEFAULT_FX: RefCell<FxRender> = RefCell::new(FxRender::new(1));
+    static SELECTED_FX: RefCell<Option<OwnedFx>> = const { RefCell::new(None) };
+}
+
+pub(crate) type OwnedFx = Rc<RefCell<FxRender>>;
+
+/// Existing drawing helpers use this selector; outside a native network call
+/// it resolves to the unchanged local renderer. No RefCell borrow spans a call.
+pub(crate) struct FxAccess;
+pub(crate) static FX: FxAccess = FxAccess;
+
+impl FxAccess {
+    pub(crate) fn with<R>(&self, f: impl FnOnce(&RefCell<FxRender>) -> R) -> R {
+        let selected = SELECTED_FX.with(|s| s.borrow().clone());
+        match selected {
+            Some(owned) => f(&owned),
+            None => DEFAULT_FX.with(f),
+        }
+    }
+}
+
+/// Thread-bound scoped selection, restored on nested return or panic unwind.
+pub(crate) struct FxScope(Option<OwnedFx>);
+
+impl FxScope {
+    pub(crate) fn enter(owned: Option<&OwnedFx>) -> Self {
+        Self(SELECTED_FX.with(|s| s.replace(owned.cloned())))
+    }
+}
+
+impl Drop for FxScope {
+    fn drop(&mut self) {
+        SELECTED_FX.with(|s| s.replace(self.0.take()));
+    }
+}
+
+#[cfg(test)]
+mod network_scope_tests {
+    use super::*;
+
+    #[test]
+    fn nested_selection_and_unwind_restore_the_previous_renderer() {
+        let a = Rc::new(RefCell::new(FxRender::new(101)));
+        let b = Rc::new(RefCell::new(FxRender::new(102)));
+        let _local = FxScope::enter(None);
+        FX.with(|f| f.borrow_mut().kill_slowmo = 0.1);
+        {
+            let _a = FxScope::enter(Some(&a));
+            FX.with(|f| f.borrow_mut().kill_slowmo = 0.2);
+            let result = std::panic::catch_unwind(std::panic::AssertUnwindSafe(|| {
+                let _b = FxScope::enter(Some(&b));
+                FX.with(|f| f.borrow_mut().kill_slowmo = 0.3);
+                panic!("exercise renderer-selection unwind");
+            }));
+            assert!(result.is_err());
+            assert_eq!(FX.with(|f| f.borrow().kill_slowmo), 0.2);
+        }
+        assert_eq!(FX.with(|f| f.borrow().kill_slowmo), 0.1);
+        assert_eq!(a.borrow().kill_slowmo, 0.2);
+        assert_eq!(b.borrow().kill_slowmo, 0.3);
+    }
+
+    #[test]
+    fn owned_boss_effects_match_the_local_path_through_full_recovery() {
+        let data = std::path::Path::new(env!("CARGO_MANIFEST_DIR")).join("../../../data");
+        let setup = tyrian_sim::setup::load_level(&data, 1, 0, 9, 3, crate::default_loadout(), 401).unwrap();
+        let sim = tyrian_sim::Sim::new(setup);
+        let original = sim.network_diagnostic_bytes().unwrap();
+        let a = Rc::new(RefCell::new(FxRender::new(401)));
+        let b = Rc::new(RefCell::new(FxRender::new(999)));
+        let options = FxOptions { particles: true, hitstop: true, ..Default::default() };
+        a.borrow_mut().options = options;
+        b.borrow_mut().options = options;
+        let _local = FxScope::enter(None);
+        FX.with(|f| {
+            *f.borrow_mut() = FxRender::new(401);
+            f.borrow_mut().options = options;
+        });
+        let frame = |selected: Option<&OwnedFx>, boss: bool, clock: u32| {
+            let _scope = FxScope::enter(selected);
+            FX.with(|f| {
+                let mut f = f.borrow_mut();
+                let events = if boss {
+                    vec![(0, FxEvent::BossDefeated { x: 120, y: 80, value: 5000, frame: 1 })]
+                } else {
+                    Vec::new()
+                };
+                f.frame(events, sim.world(), 0, clock);
+                (f.kill_slowmo.to_bits(), f.rng_draws, f.particle_count(), f.flash_frames(), f.shake_offset())
+            })
+        };
+        for tick in 0..220 {
+            let expected = frame(None, tick == 0, tick * 1000 / 35);
+            // Different peers/previous local histories cannot alter a's ramp/RNG.
+            frame(Some(&b), tick % 11 == 0, tick * 1000 / 35);
+            assert_eq!(frame(Some(&a), tick == 0, tick * 1000 / 35), expected, "tick {tick}");
+        }
+        assert_eq!(a.borrow().kill_slowmo, 0.0);
+        assert_eq!(sim.network_diagnostic_bytes().unwrap(), original);
+    }
 }
 
 /// `particles.h:EXPLOSION_STYLE_*`.

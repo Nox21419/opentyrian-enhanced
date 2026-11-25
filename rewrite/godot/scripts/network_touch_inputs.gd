@@ -6,6 +6,22 @@ const Config := preload("res://scripts/network_configuration.gd")
 const MAX_DELTA := 30
 
 
+## The original two-player HUD publishes player 2's sidekicks/rear mode and
+## player 1's special. Project only the controls; keep the full HUD unchanged.
+static func controls_hud(hud: PackedInt32Array, player: int, dedicated_special: bool) -> PackedInt32Array:
+	if player not in [1, 2] or hud.size() < 33:
+		return PackedInt32Array()
+	var controls := hud.duplicate()
+	if player == 1:
+		controls[28] = 0
+		controls[29] = 0
+		controls[32] = 0
+	if player == 2 or not dedicated_special:
+		controls[30] = 0
+		controls[31] = 0
+	return controls
+
+
 static func supports(config: Dictionary) -> bool:
 	return Config.valid(config) and config.devices == [0, 0]
 

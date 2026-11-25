@@ -1,6 +1,6 @@
 # Two-phone co-op: connection screen and implementation stages
 
-## Current status (2026-11-24)
+## Current status (2026-11-25)
 
 **Network gameplay is not available from the player menus yet.** New Game > Modem/Network Game
 now opens a LAN setup lobby. It has Host Game, Join Game and Back,
@@ -17,12 +17,15 @@ shown. It does not launch gameplay. Back preserves the host connection;
 leaving the lobby stops it and clears both choices. No campaign save is written;
 the host's original Options screen may save local audio preferences. Options
 is approved along with the preceding host screens. The shared lobby Ready check
-is now implemented for review: both confirm the agreed configuration and only
-the host can Start the detached session at tick zero. The player view is still
-pending and the menu explicitly says gameplay is unavailable. The detached backend now
-executes matching native simulations over ENet, but player-scene input, rendering,
-progression and internet integration remain unfinished. See the verification
-ledger below; this is not yet playable phone co-op.
+is also approved: both confirm the agreed configuration and only the host can
+Start the detached session at tick zero. The menu still explicitly says gameplay
+is unavailable. A detached player view now renders the original two-player HUD,
+captures assigned Android touch/tilt input and can explicitly run a network
+clock with isolated effects/pacing. Real ENet peers match through stalls and
+recovery in tests. Player-menu handoff, pause, progression, independent-process
+lifecycle validation and internet integration remain unfinished. See the ledger;
+this is not yet playable phone co-op. The previously observed intermittent
+Windows native shutdown access violation remains unresolved.
 
 The maintainer approved this first screen on 2026-11-24 ("looks good, continue")
 and required the entire implementation plan to be documented before more code.
@@ -53,9 +56,11 @@ with an APK built from this checkout. An older APK does not contain this screen.
 For the host Episode checkpoint, Host Game first, then Choose Episode. Choose
 an available episode, then Difficulty, or Back; the connection remains open.
 Reopening the screens restores selected rows. The host may make this preparation
-choice before a guest connects. The choice is local preparation, not a broadcast
-configuration or a guest Ready acknowledgement. Both screens were approved;
-Ready and level integration are still pending.
+choice before a guest connects. Arcade Start requests a configuration proposal
+once a compatible guest is present. Both peers then validate/freeze content,
+compare prepared simulations and explicitly confirm Ready. Host Start activates
+the backend at tick zero and stays in this lobby; it does not launch the player
+view yet. Accepted choices require cancelling the session to change them.
 
 The LAN transport uses UDP port **26635**, one guest, and a reliable ENet hello
 containing a lobby protocol version and application version. Socket creation,
@@ -1449,3 +1454,163 @@ by the player lobby: live clock, assigned touch controls, synchronized entry,
 pause, progression and internet transport remain pending. Review this detached
 original-HUD checkpoint before the clock/input handoff. No APK or exported build
 was handed over and the unavailable WSL/Linux package gate was not run.
+
+### Assigned touch-input checkpoint plan
+
+After approving the detached HUD checkpoint, the maintainer requested commit,
+push and continuation. Keep the chosen original full HUD and reuse the existing
+TouchFlight, TiltFlight and TouchWeapons implementations. Add an explicit
+Android-only input enable to the detached network view; do not enable input or a
+clock merely by binding/rendering the view. Feed only real screen touch/drag
+events, with weapon-finger ownership before flight-finger ownership, as locally.
+
+Project the existing HUD state into the assigned phone's controls only: the
+native HUD already describes player 2's sidekicks/rear mode in two-player play.
+Hide those controls for player 1; hide Special for player 2 and when the agreed
+dedicated-special option is off. Do not change the full dashboard itself or the
+local TouchWeapons path. Steer relative to native player index role-minus-one,
+using the existing destination/tilt calculations without new acceleration,
+prediction, analog or mouse conversion. Normal fire remains held flight touch.
+
+Capture only when the backend requests a new future input. While stalled, keep
+the transmitted frame frozen and retain later touch/button events for the next
+capture. Presentation alone must not consume a queued button press. Reset fingers
+and pending actions on input disable, disconnect and focus loss; an active input
+session losing focus closes rather than opening a local unsynchronized pause.
+Test both roles against the existing helpers, delayed capture, button ownership,
+tilt, cancellation, invalid lifecycle calls and real native ENet delivery.
+
+Clock audit finding: local boss slow motion comes from thread-local FxRender,
+read by Level._fx_tick and Effects.consume_tick. The prepared network simulation
+deliberately leaves fx_on false to preserve isolation; enabling the current
+global effects path would mix sessions and depend on prior local play. Therefore
+do not connect a live clock using that global path. Finish assigned input first;
+then isolate/audit session effects and negotiated speed pacing before enabling
+the player-menu clock, synchronized entry and pause. No gameplay mechanics change
+or presumed equivalence of a replacement timing path is authorized by this plan.
+
+### Assigned touch-input checkpoint results and next timing decision
+
+`network_level.gd` now exposes explicit enable/disable/capture calls for Android
+touch. Binding a view still does not enable input or physics. Screen touch/drag
+uses the existing flight and weapon-finger helpers. Captures use native player
+index role-minus-one and the existing touch/tilt movement calculations; analog
+and new-key stay neutral, and normal fire requires a held flight finger. The
+view does not read desktop/gamepad bindings or the global auto-fire preference.
+
+`network_touch_inputs.gd` projects the existing HUD into role-specific controls
+without modifying the dashboard or native state: player 1 receives Special only
+when negotiated; player 2 receives the existing sidekick/rear-mode controls.
+Presentation does not consume their queued releases. Capture checks the backend's
+need before reading sensors or consuming an action, preserving frozen future
+frames and later pending gestures through stalls. Disable/disconnect clears
+fingers, pending buttons and tilt calibration. Focus loss while input is enabled
+also stops the backend, without entering the local pause/save flow.
+
+Seven focused input cases pass, including comparisons against existing flight
+and tilt helpers, per-role control ownership, release-only actions, queued
+actions during stalls, explicit Android enable, cancellation, disconnect and
+focus loss. Another 29 cases pass across actual gameplay connections, runner,
+TouchWeapons, local Android level controls and the native mice bridge. Both
+processes exit 0 with zero errors/failures/orphans. The rendered real-ENet case
+now samples each view's held touch through capture_network_input and matches
+diagnostics after every one of 12 backend-driven ticks. The independent direct
+runner/reference and 60-tick ENet cases also pass. Format/lint and whitespace
+checks pass. No new phone, package, internet, boss-pacing or C parity claim is
+made. The player lobby still does not enable this view or a live clock.
+
+Next proposed timing work (requires express mechanics approval before coding):
+give each network simulation its own existing FxRender instance, initialized
+from the agreed settings/seed after startup comparison, without rewriting core
+FX configuration or RNG. Route its rendering/event consumption and slow-motion
+readout to that instance; leave the ordinary local global path intact. Reuse the
+existing FxRender frame/update logic and the existing credit-based pacing rule,
+using negotiated game speed rather than a phone-local speed/override. Tests must
+compare the isolated path with the existing local path for boss events and
+slow-motion recovery, demonstrate that interleaved peers and prior local play
+cannot change it, and verify no changes to core state/RNG beyond the existing
+observer queue consumption. Only then connect a clock and synchronized entry.
+
+Remaining uncertainty: effects state currently owns the boss slowdown ramp and
+is shared across simulations. Moving that ownership may affect the real-time
+spacing of gameplay ticks if event consumption, frame order or recovery credits
+change. The existing detached tests do not cover a defeated boss with a live
+clock; the absent c-final reference checkout prevents new independent C timing
+evidence here. This falls under AGENTS.md's requirement for express approval of
+an uncertain mechanics-affecting adaptation. The proposal preserves the current
+algorithms; it does not authorize omitting boss slowdown or changing movement,
+damage, collision, balance or gameplay RNG rules.
+
+The maintainer expressly approved scoped effect isolation and pacing adaptation.
+Implementation will select an owned renderer only within a network native call,
+restoring the previous renderer selection on return (including nested calls and
+unwinding). Existing rendering helpers keep their algorithms and local default
+renderer; a scoped selector also covers their deeper compositing helpers.
+Preparation stores validated presentation settings without activating effects.
+An explicit tick-zero presentation start after RUNNING creates the owned
+renderer without changing the core diagnostic. Each subsequent native step
+consumes FX events into that renderer using the existing frame function/order.
+Verify owned/global equivalence through a boss event and full recovery before
+adding a clock. Network pacing will keep its own fractional credit, never use
+Effects' shared credit or the phone's local bullet-time shortcuts. Normal speed
+remains 35 ticks/s; other negotiated original speed presets change calling pace,
+not the contents of a simulation step. The hidden display-rate-dependent speed
+must remain unavailable to the live network clock until its rate is negotiated.
+
+### Scoped effects and explicit network clock checkpoint
+
+The native preview stores validated presentation settings without activating
+effects. `start_network_presentation` initializes an owned renderer only at tick
+zero; repeated starts there are idempotent and leave the conservative core
+diagnostic unchanged. The network view calls it after RUNNING, before display
+initialization. Each native step then uses the existing FX event/frame function
+with the existing presented-iteration/time boundaries. No core FX settings,
+processor/starfield globals, movement or gameplay RNG are reset by activation.
+
+`FxScope` selects an owned renderer for native instance effects/render calls,
+including their deeper compositing helpers, and restores the previous selection
+on return, nested calls and panic unwind. Ordinary local loading clears the
+network presentation state and retains its default renderer and algorithms.
+Damage-number/rumble options remain off in the network renderer because they
+are not part of this initial negotiated configuration; no unnegotiated local
+options change its effects. Pending FX events remain presentation state, outside
+the core diagnostic, and are not a network desync detector.
+
+`network_tick_clock.gd` copies the existing fractional-credit pacing rule with
+session-owned credit. The network view requires explicit input and clock enable;
+the clock can start once at tick zero and only when physics callbacks use the
+negotiated preset rate (14/23/28/35/49 ticks/s). The owner must select that rate;
+the detached view never changes global physics settings or honors local CLI
+speed overrides. Hidden refresh-dependent speed 6 cannot enable this clock.
+Boss slowdown comes from the owned native renderer, without using shared
+Effects credit or phone-local bullet-time shortcuts.
+
+A due tick remains due while inputs are missing. Hardware is sampled once for
+the future frame; later gestures remain pending and no catch-up credit builds
+during a stall. A complete pair advances through the backend once and presents
+once. Focus loss/disconnect clears input and clock. An ended level or changed
+physics rate disables input/clock, without invoking local campaign progression.
+This is an explicit prototype driver, not a lobby-to-player handoff or a pause
+protocol. Rendering filters and other presentation globals still need a separate
+ownership audit before claiming independent rendered sessions in one process.
+
+Verification on Windows: all 62 active Rust bridge tests pass (3 existing
+ignored), including original image-reference cases. New Rust cases compare the
+owned/default renderer through a boss event and full recovery with another
+renderer interleaved; they also test nested selection/unwind and unchanged core
+diagnostic bytes. Three Godot clock cases verify negotiated speed selection and
+credit equivalence with the existing Effects rule. Forty Godot network/control
+cases report zero errors/failures/orphans, including two real ENet views running
+their own physics clocks: one stalls at neutral prefill, preserves its frozen
+frame while a finger releases, then resumes with all 24 diagnostic hashes
+matching. The process subsequently exits with the previously observed Windows
+access violation (-1073741819); this is not a clean lifecycle gate. Another 22
+local effects/bullet-time/entry cases pass with an actual clean exit 0.
+
+Rust/GDScript format and GDScript lint pass. Clippy passes with the two previously
+documented baseline allowances (`needless_range_loop`,
+`mem_replace_with_default`); an unfiltered clean lint is not claimed. The rebuilt
+Windows native library is internal test output. No APK/build was handed over,
+no two-phone or internet tests ran, and the unavailable WSL exported-package
+gate remains unrun. Next: guarded player-menu handoff, entry/exit ownership and
+pause/progression, then independent-process/device/internet verification.
