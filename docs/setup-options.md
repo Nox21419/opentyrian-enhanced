@@ -27,8 +27,9 @@ connection-only LAN test, visually approved. The original host Episode screen
 now leads to the original Difficulty screen, then the host-operated original
 Arcade Game Menu. Those screens are approved. Its original Options screen now
 enables host-local Music/Sound volume and Done, with unsupported save/load/device
-rows dimmed; this Options screen is approved. Start records intent and returns
-to the lobby; playable co-op remains pending.
+rows dimmed; this Options screen is approved. Arcade Start returns to a shared
+lobby Ready check (awaiting review), followed by host-only Start. This prepares
+the backend at tick zero; player-view/input handoff and playable co-op remain pending.
 See [network co-op](network-coop.md).
 
 ## Option behavior and persistence

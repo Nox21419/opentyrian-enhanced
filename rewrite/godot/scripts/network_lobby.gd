@@ -24,6 +24,7 @@ func _ready() -> void:
 	NetworkSession.enter_lobby()
 	session = NetworkSession.lobby
 	session.changed.connect(_refresh)
+	NetworkSession.changed.connect(_refresh)
 	_run.call_deferred()
 
 
@@ -57,6 +58,13 @@ func _run() -> void:
 
 
 func _row_label(row: int) -> String:
+	if NetworkSession.ready_screen():
+		if row == 0:
+			return TyrianText.L("net_start" if session.hosting and NetworkSession.local_ready() else "net_ready")
+		if row == 1:
+			return TyrianText.L(
+				"net_choose_episode" if session.hosting and not NetworkSession.configuration_locked else "net_cancel"
+			)
 	match row:
 		0:
 			return TyrianText.L("net_stop_host" if session.hosting else "net_host")
@@ -68,8 +76,20 @@ func _row_label(row: int) -> String:
 
 
 func _draw_row(_item: Dictionary, _x: int, y: int, selected: bool, row: int) -> void:
+	var available := (
+		row != 0 or not NetworkSession.ready_screen() or NetworkSession.can_ready() or NetworkSession.can_start()
+	)
 	TyrianText.draw_font_hv_shadow(
-		self, 160, y, _row_label(row), NORMAL_FONT, CENTERED, 15, -2 if selected and not _typing else -4, false, 2
+		self,
+		160,
+		y,
+		_row_label(row),
+		NORMAL_FONT,
+		CENTERED,
+		15 if available else 10,
+		-2 if selected and not _typing and available else -4,
+		false,
+		2
 	)
 
 
@@ -99,7 +119,7 @@ func _draw_details() -> void:
 		vga.bar_shade(VGA_SCREEN, cursor_x + 2, 56, cursor_x + 6, 61)
 		vga.fill_rectangle_xy(VGA_SCREEN, cursor_x + 1, 55, cursor_x + 5, 60, 8 * 16 + 10)
 	TyrianText.draw_font_hv_shadow(
-		self, 160, 150, TyrianText.L(session.status_key), SMALL_FONT, CENTERED, 15, 4, false, 1
+		self, 160, 150, TyrianText.L(NetworkSession.status_key()), SMALL_FONT, CENTERED, 15, 4, false, 1
 	)
 	var footer := TyrianText.L("net_connection_test")
 	TyrianText.draw_font_hv_shadow(self, 160, 184, footer, SMALL_FONT, CENTERED, 15, 4, false, 1)
@@ -133,6 +153,17 @@ func _hit(p: Vector2i) -> int:
 
 func _activate(row: int) -> void:
 	Sfx.play(Sfx.SELECT)
+	if NetworkSession.ready_screen() and row == 0:
+		if NetworkSession.can_ready():
+			NetworkSession.confirm_ready()
+		elif NetworkSession.can_start():
+			NetworkSession.start_game()
+		_refresh()
+		return
+	if NetworkSession.ready_screen() and row == 1 and (not session.hosting or NetworkSession.configuration_locked):
+		NetworkSession.stop()
+		_refresh()
+		return
 	match row:
 		0:
 			if session.hosting:

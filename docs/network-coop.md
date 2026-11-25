@@ -3,7 +3,7 @@
 ## Current status (2026-11-24)
 
 **Network gameplay is not available from the player menus yet.** New Game > Modem/Network Game
-now opens a connection-only LAN lobby. It has Host Game, Join Game and Back,
+now opens a LAN setup lobby. It has Host Game, Join Game and Back,
 using the original picture-2 backdrop, bitmap fonts, palette and menu engine.
 Android activates the wider invisible row targets on release; dragging off
 cancels. Desktop mouse, keyboard and controller navigation remain available.
@@ -16,7 +16,10 @@ Start records host intent and returns to the same live lobby with both choices
 shown. It does not launch gameplay. Back preserves the host connection;
 leaving the lobby stops it and clears both choices. No campaign save is written;
 the host's original Options screen may save local audio preferences. Options
-is approved along with the preceding host screens. The detached backend now
+is approved along with the preceding host screens. The shared lobby Ready check
+is now implemented for review: both confirm the agreed configuration and only
+the host can Start the detached session at tick zero. The player view is still
+pending and the menu explicitly says gameplay is unavailable. The detached backend now
 executes matching native simulations over ENet, but player-scene input, rendering,
 progression and internet integration remain unfinished. See the verification
 ledger below; this is not yet playable phone co-op.
@@ -1295,3 +1298,70 @@ The player-facing menu therefore still records preparation intent and does not
 launch network gameplay. No build handover or Linux exported-package gate is
 claimed; WSL remains unavailable. New/changed GDScript lint/format and whitespace
 checks pass. No Rust gameplay or arithmetic implementation changed here.
+
+Next player-flow integration plan: the maintainer chose a shared original-style
+lobby Ready check, with episode/difficulty shown on both phones and host-only
+Start after both Ready. First support adopting the persistent LAN node without
+reparenting/recreating its live ENet peer. Keep its ownership with NetworkSession
+and opt startup packet handling into that same connection. Adopt before allowing
+normal polling of startup packets on a join, to avoid a protocol-listener race.
+
+Initial compatibility still fingerprints all runtime bytes. On the first valid
+configuration only, preparation may recapture the host's chosen episode with the
+same copied mod selection. The new identity must equal the hello identity; after
+acceptance the configuration stays immutable. This lets the guest wait while
+host chooses an episode, without silently changing content or using stale tables.
+No player scene is launched by adopting/recapturing a connection.
+
+### Persistent transport adoption and shared lobby Ready checkpoint
+
+The startup adapter can now adopt a fresh persistent LanLobby without
+reparenting or recreating its peer. Its discarded default transport is freed;
+the adopted node stays with NetworkSession, while stop closes the socket.
+Preparation can recapture a later episode on the first configuration only,
+using the same copied mod selection and requiring the full identity to remain
+unchanged. Accepted configurations remain immutable. Twelve adoption/preparation
+cases pass with process exit 0, including exact peer/parent preservation and a
+guest initially captured for Episode 1 accepting a later Episode 3 proposal.
+
+NetworkSession now binds the gameplay backend to its persistent menu transport
+before host/join polling. The original host Episode/Difficulty/Arcade path is
+retained. Arcade Start records intent; when a guest is compatible, the host
+builds the initial configuration from the original loadouts/rules and selected
+settings. Crypto-generated seed/session bytes do not draw from gameplay RNG.
+Both sides validate the proposal, prepare matching native previews and expose
+Ready only after comparison. Guest display receives the actual episode and
+initial difficulty. Unaccepted host choices remain editable; once proposed,
+they require session cancellation to change.
+
+The chosen shared lobby design reuses the original picture-2 layout, fonts,
+palette and touch-release behavior. Ready is explicit on each phone. Only the
+host sees an enabled Start after both acknowledgements; guest Ready stays dimmed.
+Cancel/Back releases the session. Status/compatibility/content errors and actions
+are localized in six languages. Host setup captures effective mod preferences
+without changing them. Original campaign fields are not used as session storage.
+
+Start currently activates the detached backend at tick zero; it does not open
+the player level, poll hardware or advance simulation. The screen explicitly
+says the player view is pending/gameplay unavailable. This staged frontend
+checkpoint is not a playable co-op claim. Role-specific live rendering/input/
+audio, clock handoff, pause and progression remain next. Do not infer completed
+player gameplay from the backend's RUNNING protocol phase.
+
+Verification: 19 cases pass across the new shared lobby, existing lobby,
+Episode, Arcade and Options suites, with no errors/failures/orphans and explicit
+process exit 0. The new host/guest cases verify later episode synchronization,
+locked proposal, release-only Ready, blocked early/guest Start, host Start,
+unchanged local campaign fields, tick-zero backend activation and cancellation.
+Translated normal/tiny-font widths are checked for all new labels/statuses.
+Formatting/lint, strict locale consistency, glyph/width and hard-coded-text
+checks and diff whitespace pass. The earlier Windows shutdown issue remains
+unresolved despite this run exiting cleanly.
+
+Real native-peer tests saved and visually verified the original-framebuffer
+`build/network-lobby-ready.png`, `network-lobby-start.png` and
+`network-lobby-guest.png` captures. They show the host Ready/Start states and the
+guest's distinct episode and disabled Ready after acknowledgement. These are
+source desktop captures, not Android phone validation or an exported build.
+Review this one shared Ready screen before a new frontend step. The exported
+Linux gate and two-phone/internet play have not run; no build was handed over.

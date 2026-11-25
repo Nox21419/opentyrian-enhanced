@@ -48,6 +48,15 @@ func _capture(data_dir: String, dirs: PackedStringArray, enabled: Dictionary, ep
 	return true
 
 
+func adopt_lobby(lobby: Node, data_dir: String, dirs: PackedStringArray, enabled: Dictionary, episode := 1) -> Error:
+	if not _capture(data_dir, dirs, enabled, episode):
+		return ERR_INVALID_PARAMETER
+	var result := _connection.adopt_transport(lobby, _preparation.identity(), _preparation.validate)
+	if result != OK:
+		_fail("adoption_failed")
+	return result
+
+
 func stop() -> void:
 	_stopping = true
 	_connection.stop()
@@ -89,6 +98,14 @@ func compare_preview() -> bool:
 
 func preview_digest() -> String:
 	return _preparation.preview_digest() if _healthy() else ""
+
+
+func configuration() -> Dictionary:
+	return _preparation.configuration() if error.is_empty() else {}
+
+
+func readiness() -> Dictionary:
+	return _connection.startup.readiness() if _healthy() else {"local": false, "remote": false}
 
 
 func entry() -> Dictionary:

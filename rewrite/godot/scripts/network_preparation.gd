@@ -17,11 +17,17 @@ var _digest := ""
 var _preview: Node
 var _preview_digest := ""
 var _data_dir := ""
+var _dirs := PackedStringArray()
+var _enabled := {}
+var _episode := 0
 
 
 func capture(data_dir: String, dirs: PackedStringArray, enabled: Dictionary, episode: int) -> bool:
 	clear()
 	_data_dir = data_dir
+	_dirs = dirs.duplicate()
+	_enabled = enabled.duplicate()
+	_episode = episode
 	_content = Content.new()
 	if not _content.capture(data_dir, dirs, enabled, episode):
 		return _fail(_content.error)
@@ -36,6 +42,9 @@ func capture(data_dir: String, dirs: PackedStringArray, enabled: Dictionary, epi
 func clear() -> void:
 	_release_preview()
 	_data_dir = ""
+	_dirs.clear()
+	_enabled.clear()
+	_episode = 0
 	error = ""
 	_content = null
 	_rules = null
@@ -110,11 +119,25 @@ func entry() -> Dictionary:
 func validate(config: Dictionary) -> bool:
 	if _rules == null or not error.is_empty():
 		return false
-	if not _rules.valid(config):
+	if not Config.valid(config):
 		return _fail("invalid_initial_rules")
 	var digest := Config.digest(config)
 	if not _digest.is_empty() and digest != _digest:
 		return _fail("configuration_changed")
+	if config.episode != _episode:
+		# Episode was chosen after hello; raw content/build identity must remain
+		# the same, and recapture must precede any accepted configuration.
+		var content := Content.new()
+		if not content.capture(_data_dir, _dirs, _enabled, config.episode):
+			return _fail(content.error)
+		var identity := Identity.from_content(content.digest)
+		if not identity.has("identity") or identity.identity != _identity:
+			return _fail("identity_changed")
+		_content = content
+		_rules = Rules.new(_data_dir)
+		_episode = config.episode
+	if not _rules.valid(config):
+		return _fail("invalid_initial_rules")
 	if not _content.validate_level(config):
 		return _fail(_content.error if not _content.error.is_empty() else "invalid_level_configuration")
 	var preview: Dictionary = _rules.first_level(config.episode, config.initial_difficulty)

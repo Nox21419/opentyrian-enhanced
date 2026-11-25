@@ -18,7 +18,9 @@ Game Menu screens. Start records host intent and returns to the same live lobby;
 it does not launch gameplay. Episode/Difficulty and the host-operated Arcade
 menu are approved. Its original Options screen now enables host-local audio
 volume with unsupported save/load/device rows dimmed; Options is approved.
-Synchronized player startup is not implemented.
+The shared lobby now validates the selected configuration and accepts Ready on
+both phones, then host Start; this Ready screen awaits review. Start prepares
+the backend at tick zero, with player-view/input handoff still unimplemented.
 Episode Select keeps its original five labels and placement, adds Back and
 wider touch areas, and activates a choice on release. Difficulty Select uses
 the same release-to-select adaptation with Back to Episode or Timed Battle.

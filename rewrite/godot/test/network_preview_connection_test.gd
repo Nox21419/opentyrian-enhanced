@@ -3,12 +3,13 @@ extends GdUnitTestSuite
 const Preview := preload("res://scripts/network_preview_connection.gd")
 const Fixture := preload("res://test/fixtures/network_setup.gd")
 const Rules := preload("res://scripts/network_initial_configuration.gd")
+const Lobby := preload("res://scripts/lan_lobby.gd")
 var _nodes: Array[Node] = []
 
 
 func after_test() -> void:
-	for node in _nodes:
-		node.free()
+	for index in range(_nodes.size() - 1, -1, -1):
+		_nodes[index].free()
 	_nodes.clear()
 	await get_tree().process_frame
 	await get_tree().process_frame
@@ -113,3 +114,35 @@ func test_cancel_from_state_callback_cannot_report_a_successful_proposal() -> vo
 	)
 	assert_bool(peers[0].propose(_config(), "40".repeat(16), 1)).is_false()
 	assert_bool(peers[0].get("_connection").transport.peer == null).is_true()
+
+
+func test_persistent_lobby_peer_is_adopted_and_guest_accepts_later_episode_choice() -> void:
+	var host_lobby := Lobby.new()
+	var guest_lobby := Lobby.new()
+	add_child(host_lobby)
+	add_child(guest_lobby)
+	_nodes.append_array([host_lobby, guest_lobby])
+	assert_int(host_lobby.host(27736)).is_equal(OK)
+	var peer: ENetMultiplayerPeer = host_lobby.peer
+	var parent: Node = host_lobby.get_parent()
+	var host := _node()
+	var guest := _node()
+	assert_int(host.adopt_lobby(host_lobby, Game.data_dir, PackedStringArray(), {}, 1)).is_equal(OK)
+	assert_object(host_lobby.peer).is_same(peer)
+	assert_object(host_lobby.get_parent()).is_same(parent)
+	assert_int(guest.adopt_lobby(guest_lobby, Game.data_dir, PackedStringArray(), {}, 1)).is_equal(OK)
+	assert_int(guest_lobby.join("127.0.0.1", 27736)).is_equal(OK)
+	await _wait(func(): return host.compatible() and guest.compatible())
+	var config := _config()
+	config.episode = 3
+	config.level_file = Rules.new(Game.data_dir).first_level(3, 2).lvl_file_num
+	assert_bool(host.propose(config, "41".repeat(16), 1)).is_true()
+	await _wait(func(): return host.agreed() and guest.agreed())
+	assert_int(guest.get("_preparation").configuration().episode).is_equal(3)
+	assert_bool(host.compare_preview()).is_true()
+	assert_bool(guest.compare_preview()).is_true()
+	await _wait(func(): return host.preview_matched() and guest.preview_matched())
+	assert_str(host.preview_digest()).is_equal(guest.preview_digest())
+	host.stop()
+	assert_bool(is_instance_valid(host_lobby)).is_true()
+	assert_bool(host_lobby.peer == null).is_true()

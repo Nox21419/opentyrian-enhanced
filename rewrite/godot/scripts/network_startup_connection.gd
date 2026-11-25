@@ -21,6 +21,7 @@ var running: bool:
 var _identity := {}
 var _validator: Callable
 var _closing := false
+var _borrowed := false
 
 
 func _ready() -> void:
@@ -39,6 +40,26 @@ func join(address: String, identity: Dictionary, validator: Callable, port := Lo
 	if not _prepare(identity, validator):
 		return ERR_INVALID_PARAMETER
 	return transport.join(address, port)
+
+
+## Borrow the persistent menu transport. Never reparent it: its exit hook closes
+## the native peer. A fresh connection adapter may adopt only once.
+func adopt_transport(lobby: Node, identity: Dictionary, validator: Callable) -> Error:
+	if _borrowed or not lobby is Lobby or lobby == transport:
+		return ERR_INVALID_PARAMETER
+	if not _prepare(identity, validator):
+		return ERR_INVALID_PARAMETER
+	var previous := transport
+	previous.changed.disconnect(_connection_changed)
+	previous.packet_received.disconnect(_receive_packet)
+	transport = lobby
+	_borrowed = true
+	transport.changed.connect(_connection_changed)
+	transport.packet_received.connect(_receive_packet)
+	if previous.get_parent() == self:
+		previous.free()
+	_connection_changed()
+	return OK
 
 
 func _prepare(identity: Dictionary, validator: Callable) -> bool:
