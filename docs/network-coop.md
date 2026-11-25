@@ -41,6 +41,65 @@ That is visual approval, not a two-phone gameplay test. Do not interpret a succe
 simulation synchronization, matching mods, or Android device validation.
 The screen now labels this as a first-level LAN test.
 
+## Remaining work after synchronized Pause (2026-11-25)
+
+The following work remains in addition to physical-device testing, in this order:
+
+1. **Level completion and progression (started).** Both phones show the original
+   two-player debrief/Statistics; the host advances and the guest waits (chosen
+   by the maintainer on 2026-11-25). Follow with the already approved host-operated
+   original Arcade menu. Preserve both players' money, earned equipment, lives,
+   survivor state, difficulty adjustment and campaign-script routing. Cover
+   ordinary/bonus/secret levels, game over/retry and episode endings. Two-player
+   Arcade has no purchases. Each next level requires a fresh agreed input epoch
+   and load/view-ready barrier. Work on one frontend screen per review.
+2. **Internet bootstrap.** Implement the documented peer connection flow beyond
+   literal LAN addresses, including signaling/NAT traversal and relay fallback
+   where direct mobile-network connections fail. No dedicated game simulation
+   server is required. Do not label the current LAN prototype internet-ready.
+3. **Failure handling and lifecycle.** Complete timeouts, disconnects and clean
+   exits at every transition; investigate the intermittent Windows native
+   shutdown access violation and prove repeated independent-process cleanup.
+4. **Automated network verification.** Add separate-process, extended-session,
+   multi-level and adverse-network journeys. Check resulting state and files,
+   including no accidental local campaign/profile writes. Matching pictures
+   alone do not prove progression or preserved equipment.
+5. **Packaging.** Run the exported Linux package journeys and smoke gate when
+   WSL/Linux is available; verify Android identity/native-library/assets packaging
+   before handing over an APK. Internal source tests are not package validation.
+
+### Level-completion implementation plan
+
+1. Audit the original local completion path and native carry/load APIs before
+   changing network behavior. Extract a detached, read-only result record at the
+   final fully presented tick, including both players and the existing carry
+   payload. Verify extraction does not change core diagnostics/RNG or Game.
+2. Add bounded, role/epoch-bound result agreement separate from pause controls.
+   Stop capture/stepping at natural completion; compare the exact final tick,
+   complete diagnostic and canonical result digest before showing debrief.
+   Tolerate valid duplicates/stale epochs and fail closed on conflicts/timeouts.
+3. Reuse the original debrief and detailed Statistics renderer with explicit
+   session inputs instead of assigning Game's local campaign globals. Both show
+   the agreed result; host continuation controls the shared transition. Keep the
+   original fonts, animation, two-player cash rows, artwork and touch footer.
+   Define presentation-only elapsed time consistently without changing ticks.
+4. Audit and implement a session-owned campaign cursor using existing script,
+   difficulty and carried-state rules. Preserve secret/bonus branches and
+   survivor/game-over behavior. Never loosen initial-start validation to accept
+   arbitrary client-proposed progression or write local saves as a side effect.
+   If carry/loading equivalence remains uncertain, explain the evidence and
+   obtain express mechanics approval before implementing that adaptation.
+5. Bind the original host Arcade menu to the agreed continuation, keep the guest
+   waiting, validate the resulting next-level configuration/carry on both peers,
+   prepare fresh owned simulations and cross the load/view barriers. Dispose old
+   views before freeing their borrowed native nodes. Do not reset an active
+   simulation or reuse old input packets across levels.
+6. Test natural completions, duplicate/reordered controls, mismatched results,
+   disconnect during debrief/loading, host-only advance, preserved carry/cash,
+   special routes, retry/episode end and repeated level transitions. Compare to
+   existing local rules and verify ordinary local debrief/campaign behavior.
+   Record screen captures, process exit codes and unavailable checks explicitly.
+
 ## Check the first screen
 
 Use two instances of the current source project on the same LAN, or two phones
@@ -1832,3 +1891,71 @@ disconnect and first-level completion still close the session. Original level-en
 statistics/progression, independent-process shutdown, two-phone execution and
 internet bootstrap remain next. No APK/package was handed over; the unavailable
 WSL/Linux exported-package gate was not run.
+
+### Progression audit and detached Statistics checkpoint (2026-11-25)
+
+The remaining-work checklist and ordered level-completion plan above were
+documented before implementation. The maintainer selected the original
+two-player debrief/Statistics on both phones, with host-only advance and the
+guest waiting. The already approved host-operated Arcade menu follows later;
+this checkpoint changes no live level handoff or Arcade menu.
+
+The local path is `level.gd::_finished_level_stats` and
+`Game.campaign_level_finished`: it preserves carry and player-2 cash, tests
+any-player survival separately from all-player survival, applies collected warp
+routes, adjusts difficulty and retains earned loadout before debrief. Afterward
+`campaign_after_debrief` runs the campaign script, whose shop/story/bonus/episode
+branches cannot be replaced with a level-file increment. Normal all-dead endings
+use the existing retry path instead of the successful debrief.
+
+Native loading is currently intentionally initial-only: `network_load.rs`
+requires zero cash and difficulty = initial + 1; `network_initial_configuration`
+requires the initial equipment and first destination. Local `load_level` instead
+accepts campaign initial difficulty, `LevelCarry`, mode/cash setup and bonus
+status. The existing seven-value bridge carry includes both players' friction,
+held special fire and player-2 sidekick level/series. Adapting this setup for
+later detached network levels could affect mechanics if ordering or field
+coverage differs. Express approval was requested under AGENTS.md before that
+adaptation; equivalence is not assumed. No native loader or simulation mechanics
+have been changed in this checkpoint.
+
+Implemented safe preparation:
+
+- `network_level_result.gd` captures a copied final result only for an ended
+  simulation at the caller's fully presented tick. It retains both loadouts,
+  exact signed 64-bit cash representations, original carry and route/survival
+  flags. Reads are bracketed by unchanged native diagnostics. Canonical local
+  hashing sorts dictionary keys and uses tagged, length-prefixed values with
+  exact integer bits and bounded sizes. No remote Variant decoding is added.
+- `debrief.gd` now has explicit data, mode, elapsed-time, background, wait and
+  completion hooks. Defaults retain the original local campaign/Endless paths.
+  `network_debrief.gd` reuses that renderer with copied session inputs, original
+  two-player cash rows, animations, Statistics artwork and touch footer. Only
+  host input emits advancement requests; an external coordinator must commit
+  each phase after both screens are ready. Future phase commits are rejected;
+  duplicate commits are idempotent. The guest uses the existing localized
+  host-wait text in the original footer position. No new strings were added.
+- The owner may freeze the final frame with the original frozen-level renderer
+  without assigning `Game.debrief_frozen`. Detached previews use the existing
+  black fallback for the summary; the detailed Statistics uses original pic 2.
+  Elapsed seconds are an explicit presentation input; agreement on the host's
+  measured value still belongs in the future coordinator, not simulation ticks.
+
+These are detached components, not playable multi-level support. The current
+network player still closes on level end. Result/control agreement, live scene
+handoff, session-owned campaign cursor, retry/ending routes, next-level native
+preparation and new epoch/load/view barriers remain to be implemented and tested.
+Do not interpret directly committed view phases in unit tests as wire agreement.
+
+Validation: the combined Windows source run passed 20 cases across six suites
+with actual process exit 0: seven new result/view cases and 13 existing local
+debrief/Statistics/touch/exit regressions. This covers natural native completion
+and repeated read-only capture, copied two-player results, exact 64-bit values,
+route/carry preservation, canonical hashing, host-only requests, release-based
+footer input, duplicate/future phase commits and unchanged local campaign fields.
+The guest footer fits both original font sizes in all six languages. The frozen
+live-level handoff is not yet tested; the inspected captures
+`build/network-statistics-1.png` and `build/network-statistics-2.png` show detached
+Statistics with fixture values. All five changed/new GDScript files pass formatter
+and linter checks, and `git diff --check` passes. No new APK/package or Linux gate
+is claimed.

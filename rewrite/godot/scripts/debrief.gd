@@ -125,21 +125,20 @@ func draw_cube(x: int, y: int, filter: int, brightness: int) -> void:
 
 
 func _run() -> void:
-	var d: Dictionary = Game.debrief
+	var d: Dictionary = _debrief_data()
 	_frame_count_max = 4
 	# The C draws over the last game frame (frozen VGAScreen): the
 	# level scene left it in the shared VGA. Without it (extension
 	# absent, capture tool), fall back to a black screen with the game palette.
-	if not Game.debrief_frozen:
+	if not _consume_frozen_background():
 		vga.clear(VGA_SCREEN, 0)
 		vga.load_palette(0)
 		vga.set_palette(0, 255)
-	Game.debrief_frozen = false
 	vga.set_colors(Color8(255, 255, 255), 254, 254)
 	# mainint.c:2199-2202: the "Level completed" voice, except in episode 4 when
 	# the level timer reached 0 (TIME WAR and timed levels):
 	# play_song(21) instead.
-	if debrief_plays_song(d, Game.episode):
+	if debrief_plays_song(d, _debrief_episode()):
 		Music.play_song(DEBRIEF_TIMED_SONG)
 	else:
 		Sfx.play(V_LEVEL_END)
@@ -153,9 +152,7 @@ func _run() -> void:
 		await out_text_glow_centered(20, "%s %s" % [TyrianText.L("misc_exiting"), level_name])
 
 	# mainint.c:2218-2223: two players, one money row per player (miscText 40 and 41).
-	var two_player := (
-		Game.two_player_game() or Game.side_mode_flag(0) != 0 or (EndlessSession.active() and EndlessSession.two_player)
-	)
+	var two_player := _debrief_two_players()
 	if two_player:
 		await out_text_glow_centered(50, "%s %d" % [TyrianText.L("miscText_40"), int(d.get("cash", 0))])
 		await out_text_glow_centered(70, "%s %d" % [TyrianText.L("miscText_41"), int(d.get("cash2", 0))])
@@ -163,7 +160,7 @@ func _run() -> void:
 		await out_text_glow_centered(50, "%s %d" % [TyrianText.L("miscText_27"), int(d.get("cash", 0))])
 
 	# Timed Battle: "Time Bonus" = (levelTimerCountdown / 10) * 100, added to the money (B-06).
-	var timed: bool = Game.time_battle_selection > 0 or Game.side_mode_flag(5) > 0
+	var timed := _debrief_timed()
 	var bonus_cash := 0
 	if timed:
 		var time_bonus := (int(d.get("timer_countdown", 0)) / 10) * 100
@@ -202,13 +199,7 @@ func _run() -> void:
 		# mainint.c:2425-2429: "Credits" of the statistics screen = cash
 		# (bonus included) - credits_start.
 		d["cash"] = int(d.get("cash", 0)) + bonus_cash
-	elif not (
-		Game.two_player_game()
-		or Game._two_player_or_action()
-		or Game.side_mode_flag(0) != 0
-		or Game.side_mode_flag(2) != 0
-		or EndlessSession.active()
-	):
+	elif _debrief_show_cubes():
 		# mainint.c: "else if (!onePlayerAction && !twoPlayerMode)": Cubes block.
 		await out_text_glow_centered(120, TyrianText.L("miscText_3"))
 		var cube_max := mini(int(d.get("cube_max", 0)), 4)
@@ -240,30 +231,21 @@ func _run() -> void:
 	if was_animating:
 		_frame_count_max = 6
 	# mainint.c:2336: "Press a key" moves up 10 px in two-player mode.
-	await out_text_glow_centered(150 if two_player else 160, TyrianText.L("misc_press_key"))
+	await out_text_glow_centered(150 if two_player else 160, _continue_prompt(true))
 
 	idle = true
 	# Capture tool: --hold keeps the first screen displayed for the screenshot.
 	while Capture.active and Capture.has_option("hold") and is_inside_tree():
 		await wait_units(1)
 	if not Capture.active:
-		_input_seen = false
-		# is_inside_tree: wait_units returns immediately when the screen has
-		# left the tree (level exited, scene replaced); without this exit the
-		# loop would spin forever, never yielding to the engine.
-		while is_inside_tree() and not _any_button() and not (_frame_count_max == 0 and was_animating):
-			await wait_units(1)
+		await _wait_summary(was_animating)
 	idle = false
 	await _level_statistics(d)
 	# tyrian2.c:320: fade_song() after JE_endLevelAni (the end-of-level
 	# song plays throughout the summary).
 	Music.fade_song()
 	await fade_black(15)
-	# Endless (endless.c:endless_on_level_end): next wave after JE_endLevelAni.
-	if EndlessSession.active():
-		EndlessSession.after_debrief()
-		return
-	Game.campaign_after_debrief()
+	_finish_debrief()
 
 
 ## Confirm / Back during the statistics screen (TyrianScreen._unhandled_input:
@@ -344,10 +326,10 @@ func _level_statistics(d: Dictionary) -> void:
 	var earned := int(d.get("cash", 0)) - int(d.get("credits_start", d.get("cash", 0)))
 	y = _stat_line("ls_credits", "%s%d" % ["+" if earned >= 0 else "", earned], y)
 	# SDL_GetTicks() - level_stats.start_ticks: real time since the start of the level.
-	var secs := maxi(Time.get_ticks_msec() - Game.level_start_ms, 0) / 1000
+	var secs := _debrief_elapsed_seconds()
 	y = _stat_line("ls_time", "%d:%02d" % [secs / 60, secs % 60], y)
 	# Exit prompt centered at the bottom, like the debriefing.
-	var press_key := TyrianText.L("ls_continue" if _touch_stats else "misc_press_key")
+	var press_key := _continue_prompt(false)
 	TyrianText.text_shade(
 		self, TyrianText.font_center(press_key, SMALL_FONT), 182, press_key, 14, 4, TyrianText.FULL_SHADE
 	)
@@ -356,7 +338,70 @@ func _level_statistics(d: Dictionary) -> void:
 	stats_shown = true
 	_stats_action = &""
 	if not Capture.active:
-		while is_inside_tree() and _stats_action == &"":
-			await wait_units(1)
+		await _wait_statistics()
 	stats_shown = false
 	_touch_release.cancel()
+
+
+## Explicit presentation inputs let network views avoid local campaign globals.
+## Defaults retain the ordinary campaign/side-mode/Endless behavior.
+func _debrief_data() -> Dictionary:
+	return Game.debrief
+
+
+func _debrief_episode() -> int:
+	return Game.episode
+
+
+func _consume_frozen_background() -> bool:
+	var frozen := Game.debrief_frozen
+	Game.debrief_frozen = false
+	return frozen
+
+
+func _debrief_two_players() -> bool:
+	return (
+		Game.two_player_game() or Game.side_mode_flag(0) != 0 or (EndlessSession.active() and EndlessSession.two_player)
+	)
+
+
+func _debrief_timed() -> bool:
+	return Game.time_battle_selection > 0 or Game.side_mode_flag(5) > 0
+
+
+func _debrief_show_cubes() -> bool:
+	return not (
+		Game.two_player_game()
+		or Game._two_player_or_action()
+		or Game.side_mode_flag(0) != 0
+		or Game.side_mode_flag(2) != 0
+		or EndlessSession.active()
+	)
+
+
+func _debrief_elapsed_seconds() -> int:
+	return maxi(Time.get_ticks_msec() - Game.level_start_ms, 0) / 1000
+
+
+func _continue_prompt(summary: bool) -> String:
+	return TyrianText.L("misc_press_key" if summary or not _touch_stats else "ls_continue")
+
+
+func _wait_summary(was_animating: bool) -> void:
+	_input_seen = false
+	# Exiting the tree must break the loop: wait_units then returns immediately.
+	while is_inside_tree() and not _any_button() and not (_frame_count_max == 0 and was_animating):
+		await wait_units(1)
+
+
+func _wait_statistics() -> void:
+	while is_inside_tree() and _stats_action == &"":
+		await wait_units(1)
+
+
+func _finish_debrief() -> void:
+	# Endless (endless.c:endless_on_level_end): next wave after JE_endLevelAni.
+	if EndlessSession.active():
+		EndlessSession.after_debrief()
+		return
+	Game.campaign_after_debrief()

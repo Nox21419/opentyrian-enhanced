@@ -31,6 +31,9 @@ returns to the lobby; later levels and internet bootstrap remain pending.
 Both roles and Normal/Turbo pacing pass desktop source tests with an injected
 Android platform check. Actual two-phone validation and a new APK handover
 remain pending; a successful cross-compile is not a device-play result.
+The next approved network screen shows original two-player Statistics on both
+phones with host-only advance. Its detached result/rendering components are
+source-tested; the live prototype still ends the session after its first level.
 Episode Select keeps its original five labels and placement, adds Back and
 wider touch areas, and activates a choice on release. Difficulty Select uses
 the same release-to-select adaptation with Back to Episode or Timed Battle.
