@@ -1959,3 +1959,83 @@ live-level handoff is not yet tested; the inspected captures
 Statistics with fixture values. All five changed/new GDScript files pass formatter
 and linter checks, and `git diff --check` passes. No new APK/package or Linux gate
 is claimed.
+
+### Completion agreement implementation plan (2026-11-25)
+
+Next implement and test result agreement and screen-phase controls independently
+of later-level loading. Extend the fixed OT2N codec with distinct LEVEL_RESULT,
+LEVEL_READY and LEVEL_ADVANCE kinds, leaving existing input/pause fixtures intact.
+RESULT adds a four-byte elapsed-seconds field (72 bytes total); the other two
+retain the 68-byte digest payload and use sequence 1/2 for summary/Statistics.
+Only the host sends ADVANCE. RESULT sequence is zero, tick is positive, guest
+elapsed is zero and all values/lengths/roles remain strict. Existing source
+identity checks reject clients lacking this additive protocol extension.
+
+Use a pure per-level coordinator bound to session, active input epoch and role.
+Each peer captures its own final fully presented result and compares the same
+tick/digest; the host supplies presentation-only elapsed seconds. Permit one
+bounded early remote result while the other peer finishes the outstanding input
+ticks. Continue only those ticks, then stop; disagreement or a ten-second
+agreement timeout fails closed. No result payload is deserialized from the peer.
+For each of two original screens, both announce readiness, the host requests
+advance and only a host commit releases the phase. Preserve an early host request
+until the guest is ready. Duplicates are idempotent; conflicting digests, skipped
+phases and guest commits fail. No human-wait timeout applies after agreement.
+
+Wire explicit backend APIs and ENet dispatch/gates to this coordinator, keeping
+pause controls separate and respecting pause's current input epoch. Do not
+activate a partially wired player-menu transition: the current live player still
+closes on level end until final-frame/debrief ownership and continuation policy
+are integrated together. Test pure adverse delivery, exact codec fixtures and
+real ENet result/phase agreement, including a naturally ended native pair and a
+pair that resumed into a new input epoch. No native loader change is authorized
+by this plan; its existing scoped mechanics approval remains pending.
+
+### Completion coordinator checkpoint (2026-11-25)
+
+Implemented the additive fixed-size kinds and `network_completion.gd` pure
+coordinator. Existing INPUT/STATE/READY/START/PAUSE/LEAVE fixtures retain their
+version, sizes and semantics. LEVEL_RESULT is 72 bytes with an exact digest and
+host-only elapsed-seconds value; LEVEL_READY/LEVEL_ADVANCE are 68 bytes with
+summary/Statistics phases 1/2. The guest cannot send a commit or nonzero elapsed
+time. Result comparison covers the canonical record's configuration, final tick,
+complete native diagnostic and copied two-player results, without decoding peer
+result objects. Valid stale epochs are discarded; future epochs fail.
+
+The backend exposes explicit final-result capture, agreed snapshots/elapsed time,
+screen readiness and host advancement. It freezes native advancement at the
+local final boundary, or at the early remote result's bounded target while the
+other peer catches up. Completion uses pause's current input epoch rather than
+startup's original epoch. A natural end supersedes a pending later pause target;
+agreement/host-request preparation has a ten-second timeout, while deliberate
+human waits after agreement have none. Disconnect/failure clears the owned
+result/coordinator and invalidates borrowed views. No simulation setters, native
+loading, campaign globals or local save writes are introduced.
+
+The final completion/codec/ENet run passed all 13 cases with actual process exit
+0. It includes unchanged original packet fixtures, strict new packet fixtures,
+bounded early results, stale/future contexts, duplicate/conflicting controls,
+phase ordering, host-only commits and timeouts. Real ENet peers stepped and
+presented native ticks through ordinary game over, acknowledged it through the
+normal delayed new-key input, and compared final results. One peer was held a
+tick behind to verify receiving an early result still permits that final tick.
+The same run verified a prior pause/resume moved completion to epoch 2, preserved
+final diagnostics through both phase commits, rejected a different level-name
+record and cleaned up on disconnect. The initial ENet harness omitted the
+original game-over key acknowledgement and timed out; adding that scripted input
+resolved it without changing game rules or forcing level end.
+
+The separate gameplay/Pause/debrief/result regression run passed all 20 cases
+with actual process exit 0. Together the two final runs cover 33 cases without
+errors, failures or orphans. All five changed/new GDScript files pass formatter
+and linter checks; `git diff --check` passes. Clean exits in these runs do not
+establish that the previously intermittent Windows native shutdown crash is fixed.
+
+These are backend tests. The live player still closes on first-level end; it does
+not yet open debrief/Statistics or advance a campaign. The terminal game-over
+fixture exercises phase controls directly and does not authorize showing a
+successful debrief after death. The final-frame handoff, survivor/retry routing
+and host Arcade continuation remain next, with later-level loading still subject
+to the pending scoped approval. No new frontend direction, APK/package handover,
+physical-device test or exported Linux gate is claimed. The preceding
+result/Statistics checkpoint was pushed as `b5e639b`.

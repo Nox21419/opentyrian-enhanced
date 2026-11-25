@@ -1,15 +1,15 @@
-## Transport-independent gameplay messages. Not yet connected to the LAN lobby.
+## Transport-independent gameplay messages. The adapter binds session and sender.
 ## Fixed-size little-endian packets: no object/Variant/JSON deserialization.
 extends RefCounted
 
-enum Kind { INPUT = 1, STATE, READY, START, PAUSE, LEAVE }
+enum Kind { INPUT = 1, STATE, READY, START, PAUSE, LEAVE, LEVEL_RESULT, LEVEL_READY, LEVEL_ADVANCE }
 enum Pause { REQUEST_PAUSE, COMMIT_PAUSE, REQUEST_RESUME, COMMIT_RESUME }
 enum Leave { QUIT, TIMEOUT, DESYNC, INCOMPATIBLE, PROTOCOL_ERROR }
 
 const VERSION := 1
 const MAGIC := 0x4e32544f  # OT2N, little-endian.
 const HEADER_BYTES := 36
-const MAX_PACKET_BYTES := 68
+const MAX_PACKET_BYTES := 72
 const MAX_TICK := 0xffffffff
 const MAX_I32 := 0x7fffffff
 const MIN_I32 := -0x80000000
@@ -39,18 +39,23 @@ static func valid_frame(frame: Variant) -> bool:
 
 
 static func valid_message(message: Variant) -> bool:
-	if not message is Dictionary or not _integer(message.get("kind"), Kind.INPUT, Kind.LEAVE):
+	if not message is Dictionary or not _integer(message.get("kind"), Kind.INPUT, Kind.LEVEL_ADVANCE):
 		return false
 	var extra := "frame" if message.kind == Kind.INPUT else "digest"
 	if message.kind in [Kind.PAUSE, Kind.LEAVE]:
 		extra = "action" if message.kind == Kind.PAUSE else "reason"
-	if not _fields(message, BASE_FIELDS + [extra]):
+	var fields := BASE_FIELDS + [extra]
+	if message.kind == Kind.LEVEL_RESULT:
+		fields.append("elapsed")
+	if not _fields(message, fields):
 		return false
 	if not valid_session(message.session) or not _integer(message.epoch, 1, MAX_TICK):
 		return false
 	if not _integer(message.player, 1, 2) or not _integer(message.tick, 0, MAX_TICK):
 		return false
-	if message.kind in [Kind.INPUT, Kind.STATE]:
+	if message.kind in [Kind.LEVEL_RESULT, Kind.LEVEL_READY, Kind.LEVEL_ADVANCE] and message.tick == 0:
+		return false
+	if message.kind in [Kind.INPUT, Kind.STATE, Kind.LEVEL_RESULT]:
 		if not _integer(message.sequence, 0, 0):
 			return false
 	elif not _integer(message.sequence, 1, MAX_TICK):
@@ -62,6 +67,18 @@ static func valid_message(message: Variant) -> bool:
 			return message.player == 1 and _hex(message.digest, 64)
 		Kind.STATE, Kind.READY:
 			return _hex(message.digest, 64)
+		Kind.LEVEL_RESULT:
+			return (
+				_hex(message.digest, 64)
+				and _integer(message.elapsed, 0, MAX_TICK)
+				and (message.player == 1 or message.elapsed == 0)
+			)
+		Kind.LEVEL_READY, Kind.LEVEL_ADVANCE:
+			return (
+				_hex(message.digest, 64)
+				and message.sequence in [1, 2]
+				and (message.kind == Kind.LEVEL_READY or message.player == 1)
+			)
 		Kind.PAUSE:
 			if not _integer(message.action, Pause.REQUEST_PAUSE, Pause.COMMIT_RESUME):
 				return false
@@ -93,10 +110,12 @@ static func encode(message: Dictionary) -> PackedByteArray:
 			packet[39] = int(message.frame.new_key)
 			for i in 4:
 				packet.encode_s32(40 + i * 4, message.frame[FRAME_FIELDS[2 + i]])
-		Kind.STATE, Kind.READY, Kind.START:
+		Kind.STATE, Kind.READY, Kind.START, Kind.LEVEL_RESULT, Kind.LEVEL_READY, Kind.LEVEL_ADVANCE:
 			var digest: PackedByteArray = message.digest.hex_decode()
 			for i in 32:
 				packet[HEADER_BYTES + i] = digest[i]
+			if message.kind == Kind.LEVEL_RESULT:
+				packet.encode_u32(68, message.elapsed)
 		Kind.PAUSE:
 			packet[HEADER_BYTES] = message.action
 		Kind.LEAVE:
@@ -135,8 +154,10 @@ static func decode(packet: PackedByteArray, session: String, epoch: int, sender:
 			for i in 4:
 				frame[FRAME_FIELDS[2 + i]] = packet.decode_s32(40 + i * 4)
 			message.frame = frame
-		Kind.STATE, Kind.READY, Kind.START:
-			message.digest = packet.slice(HEADER_BYTES).hex_encode()
+		Kind.STATE, Kind.READY, Kind.START, Kind.LEVEL_RESULT, Kind.LEVEL_READY, Kind.LEVEL_ADVANCE:
+			message.digest = packet.slice(HEADER_BYTES, 68).hex_encode()
+			if kind == Kind.LEVEL_RESULT:
+				message.elapsed = packet.decode_u32(68)
 		Kind.PAUSE:
 			message.action = int(packet[HEADER_BYTES])
 		Kind.LEAVE:
@@ -148,8 +169,10 @@ static func _packet_size(kind: int) -> int:
 	match kind:
 		Kind.INPUT:
 			return 56
-		Kind.STATE, Kind.READY, Kind.START:
+		Kind.STATE, Kind.READY, Kind.START, Kind.LEVEL_READY, Kind.LEVEL_ADVANCE:
 			return 68
+		Kind.LEVEL_RESULT:
+			return 72
 		Kind.PAUSE, Kind.LEAVE:
 			return 37
 	return 0

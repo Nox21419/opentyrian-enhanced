@@ -7,11 +7,15 @@ const Buffer := preload("res://scripts/network_input_buffer.gd")
 const Wire := preload("res://scripts/network_protocol.gd")
 const Config := preload("res://scripts/network_configuration.gd")
 const PauseController := preload("res://scripts/network_pause.gd")
+const Completion := preload("res://scripts/network_completion.gd")
+const LevelResult := preload("res://scripts/network_level_result.gd")
 var _runner := Runner.new()
 var _activated := false
 var _view_local := false
 var _view_remote := false
 var _pause := PauseController.new()
+var _completion := Completion.new()
+var _level_result := LevelResult.new()
 
 
 func _ready() -> void:
@@ -20,6 +24,8 @@ func _ready() -> void:
 
 
 func stop() -> void:
+	_completion = Completion.new()
+	_level_result = LevelResult.new()
 	_pause = PauseController.new()
 	_view_local = false
 	_view_remote = false
@@ -55,11 +61,16 @@ func running() -> bool:
 
 
 func needs_local_input() -> bool:
-	return running() and _pause.may_advance(ticks_executed()) and _runner.needs_local_input()
+	return (
+		running()
+		and _pause.may_advance(ticks_executed())
+		and _completion.may_advance(ticks_executed())
+		and _runner.needs_local_input()
+	)
 
 
 func capture_local(frame: Dictionary) -> bool:
-	if not running() or not _pause.may_advance(ticks_executed()):
+	if not running() or not _pause.may_advance(ticks_executed()) or not _completion.may_advance(ticks_executed()):
 		return false
 	var packet: PackedByteArray = _runner.capture_local(frame)
 	if not _runner.error.is_empty():
@@ -72,7 +83,7 @@ func capture_local(frame: Dictionary) -> bool:
 
 
 func advance() -> bool:
-	if not running() or not _pause.may_advance(ticks_executed()):
+	if not running() or not _pause.may_advance(ticks_executed()) or not _completion.may_advance(ticks_executed()):
 		return false
 	var advanced: bool = _runner.advance()
 	if not _runner.error.is_empty():
@@ -129,19 +140,19 @@ func views_ready() -> bool:
 
 
 func request_pause() -> bool:
-	if not views_ready() or not _pause.request_pause(ticks_executed(), Time.get_ticks_msec()):
+	if not views_ready() or _completion.active() or not _pause.request_pause(ticks_executed(), Time.get_ticks_msec()):
 		return false
 	return _settle_pause()
 
 
 func request_resume() -> bool:
-	if not views_ready() or not _pause.request_resume(Time.get_ticks_msec()):
+	if not views_ready() or _completion.active() or not _pause.request_resume(Time.get_ticks_msec()):
 		return false
 	return _settle_pause()
 
 
 func inputs_quiesced() -> bool:
-	return running() and _pause.quiesced()
+	return running() and (_pause.quiesced() or _completion.local_reached())
 
 
 func pause_boundary_reached() -> bool:
@@ -181,9 +192,77 @@ func _settle_pause() -> bool:
 
 func _process(_delta: float) -> void:
 	if running():
-		_pause.poll(Time.get_ticks_msec())
-		if not _pause.error.is_empty():
-			_fail(_pause.error)
+		if _completion.active():
+			_completion.poll(Time.get_ticks_msec())
+			if not _completion.error.is_empty():
+				_fail(_completion.error)
+		else:
+			_pause.poll(Time.get_ticks_msec())
+			if not _pause.error.is_empty():
+				_fail(_pause.error)
+
+
+## Explicit final post-presentation boundary. Never steps/reloads the native node.
+func note_level_result(presented_tick: int, level_name: String, elapsed_seconds: int) -> bool:
+	if not views_ready() or not _completion_context():
+		return false
+	var native := simulation_for_view()
+	if not _level_result.capture(native, configuration(), level_name, presented_tick):
+		return _fail(_level_result.error)
+	var record := _level_result.record()
+	if not _completion.reached(record.tick, record.digest, elapsed_seconds, Time.get_ticks_msec()):
+		return _fail(_completion.error)
+	return _settle_completion()
+
+
+func completion_agreed() -> bool:
+	return running() and _completion.agreed()
+
+
+func result_for_view() -> RefCounted:
+	return _level_result if completion_agreed() else null
+
+
+func result_elapsed_seconds() -> int:
+	return _completion.elapsed_seconds() if completion_agreed() else -1
+
+
+func mark_result_screen_ready(stage: int) -> bool:
+	if not completion_agreed():
+		return false
+	if not _completion.screen_ready(stage):
+		return _fail(_completion.error) if not _completion.error.is_empty() else false
+	return _settle_completion()
+
+
+func request_result_advance(stage: int) -> bool:
+	return completion_agreed() and _completion.request_advance(stage, Time.get_ticks_msec()) and _settle_completion()
+
+
+func result_committed_phase() -> int:
+	return _completion.committed_phase() if running() else 0
+
+
+func _completion_context() -> bool:
+	if _completion.epoch == _pause.epoch:
+		return true
+	if _completion.active():
+		return _fail("changed_completion_epoch")
+	_completion = Completion.new()
+	var context: Dictionary = _connection.startup.context()
+	if not _completion.configure(context.session, _pause.epoch, context.player, configuration().input_delay):
+		return _fail(_completion.error)
+	return true
+
+
+func _settle_completion() -> bool:
+	if not _completion.error.is_empty():
+		return _fail(_completion.error)
+	for message in _completion.take_messages():
+		if _connection.transport.send_packet(Wire.encode(message)) != OK:
+			return _fail("completion_send_failed")
+	changed.emit()
+	return running()
 
 
 func _receive_view_ready(packet: PackedByteArray) -> void:
@@ -244,6 +323,12 @@ func _receive_input(packet: PackedByteArray) -> void:
 	if not running():
 		_fail("input_before_start")
 		return
+	if (
+		packet.size() >= Wire.HEADER_BYTES
+		and int(packet[6]) in [Wire.Kind.LEVEL_RESULT, Wire.Kind.LEVEL_READY, Wire.Kind.LEVEL_ADVANCE]
+	):
+		_receive_completion(packet)
+		return
 	if packet.size() >= Wire.HEADER_BYTES and int(packet[6]) == Wire.Kind.READY:
 		var initial_epoch: int = _connection.startup.context().epoch
 		if packet.decode_u32(24) == initial_epoch and packet.decode_u32(28) == 0:
@@ -266,13 +351,38 @@ func _receive_pause(packet: PackedByteArray) -> void:
 		_fail("pause_before_views")
 		return
 	var message := Wire.decode(packet, packet.slice(8, 24).hex_encode(), packet.decode_u32(24), 3 - player_for_view())
+	if not message.is_empty() and _completion.local_reached():
+		return  # Natural completion supersedes an in-flight future pause target.
 	if not _pause.receive(message, ticks_executed(), Time.get_ticks_msec()):
 		_fail(_pause.error)
 		return
 	_settle_pause()
 
 
+func _receive_completion(packet: PackedByteArray) -> void:
+	if not views_ready():
+		_fail("completion_before_views")
+		return
+	var context: Dictionary = _connection.startup.context()
+	var message := Wire.decode(packet, packet.slice(8, 24).hex_encode(), packet.decode_u32(24), 3 - context.player)
+	if message.is_empty():
+		_fail("invalid_completion_message")
+		return
+	if message.session != context.session or message.epoch < _pause.epoch:
+		return
+	if message.epoch != _pause.epoch:
+		_fail("future_completion_epoch")
+		return
+	if not _completion_context() or not _completion.receive(message, ticks_executed(), Time.get_ticks_msec()):
+		if not _completion.error.is_empty():
+			_fail(_completion.error)
+		return
+	_settle_completion()
+
+
 func _fail(reason: String) -> bool:
+	_completion = Completion.new()
+	_level_result = LevelResult.new()
 	_pause = PauseController.new()
 	_view_local = false
 	_view_remote = false
