@@ -4,6 +4,7 @@ const Connection := preload("res://scripts/network_gameplay_connection.gd")
 const Fixture := preload("res://test/fixtures/network_setup.gd")
 const Wire := preload("res://scripts/network_protocol.gd")
 const View := preload("res://scripts/network_level.gd")
+const Config := preload("res://scripts/network_configuration.gd")
 var _nodes: Array[Node] = []
 
 
@@ -265,3 +266,35 @@ func test_malformed_gameplay_input_closes_and_frees_both_session_simulations() -
 	assert_str(peers[0].error).is_equal("invalid_remote_input")
 	assert_bool(is_instance_valid(native)).is_false()
 	assert_bool(peers[0].get("_connection").transport.peer == null).is_true()
+
+
+func test_view_barrier_requires_both_roles_and_rejects_conflicting_digest() -> void:
+	var peers := await _pair()
+	assert_bool(peers[0].views_ready()).is_false()
+	assert_bool(peers[0].mark_view_ready()).is_true()
+	assert_bool(peers[0].mark_view_ready()).is_true()
+	await _wait(func(): return bool(peers[1].get("_view_remote")))
+	assert_bool(peers[0].views_ready()).is_false()
+	assert_bool(peers[1].views_ready()).is_false()
+	assert_bool(peers[1].mark_view_ready()).is_true()
+	await _wait(func(): return peers[0].views_ready() and peers[1].views_ready())
+	var message := {
+		"kind": Wire.Kind.READY,
+		"session": "62".repeat(16),
+		"epoch": 1,
+		"player": 2,
+		"tick": 0,
+		"sequence": 1,
+		"digest": Config.digest(peers[0].configuration())
+	}
+	var transport: Node = peers[1].get("_connection").transport
+	assert_int(transport.send_packet(Wire.encode(message))).is_equal(OK)
+	for _frame in 3:
+		await get_tree().process_frame
+	assert_bool(peers[0].views_ready()).is_true()
+	assert_int(peers[0].ticks_executed()).is_equal(0)
+	message.session = "61".repeat(16)
+	message.digest = "00".repeat(32)
+	assert_int(transport.send_packet(Wire.encode(message))).is_equal(OK)
+	await _wait(func(): return not peers[0].running())
+	assert_str(peers[0].error).is_equal("invalid_view_ready")

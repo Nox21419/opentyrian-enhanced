@@ -2,8 +2,9 @@
 
 ## Current status (2026-11-25)
 
-**Network gameplay is not available from the player menus yet.** New Game > Modem/Network Game
-now opens a LAN setup lobby. It has Host Game, Join Game and Back,
+**The source now includes an Android-only first-level LAN co-op prototype. It has
+not been verified on two phones.** New Game > Modem/Network Game opens a LAN
+setup lobby. It has Host Game, Join Game and Back,
 using the original picture-2 backdrop, bitmap fonts, palette and menu engine.
 Android activates the wider invisible row targets on release; dragging off
 cancels. Desktop mouse, keyboard and controller navigation remain available.
@@ -18,20 +19,23 @@ leaving the lobby stops it and clears both choices. No campaign save is written;
 the host's original Options screen may save local audio preferences. Options
 is approved along with the preceding host screens. The shared lobby Ready check
 is also approved: both confirm the agreed configuration and only the host can
-Start the detached session at tick zero. The menu still explicitly says gameplay
-is unavailable. A detached player view now renders the original two-player HUD,
-captures assigned Android touch/tilt input and can explicitly run a network
-clock with isolated effects/pacing. Real ENet peers match through stalls and
-recovery in tests. Player-menu handoff, pause, progression, independent-process
-lifecycle validation and internet integration remain unfinished. See the ledger;
-this is not yet playable phone co-op. The previously observed intermittent
-Windows native shutdown access violation remains unresolved.
+Start. The player-menu handoff now opens the original full two-player view,
+finishes the original entry fade and waits for both views before advancing.
+Assigned Android touch/tilt input and session-owned effects/pacing drive the
+prototype clock. Source tests cover both roles at Normal/Turbo, matching 60
+per-tick diagnostics, Back/focus exit and clock restoration. Back, focus loss,
+disconnect or first-level end closes this prototype session and returns to the
+lobby. Synchronized pause, later levels, independent-process lifecycle validation
+and internet integration remain unfinished. Desktop networking remains a
+diagnostic transport/backend profile, not a shipped desktop input profile.
+The previously observed intermittent Windows shutdown access violation remains
+unresolved. No new APK or playable build has been handed over.
 
 The maintainer approved this first screen on 2026-11-24 ("looks good, continue")
 and required the entire implementation plan to be documented before more code.
 That is visual approval, not a two-phone gameplay test. Do not interpret a successful connection as playable co-op,
 simulation synchronization, matching mods, or Android device validation.
-The screen explicitly labels itself as a connection test.
+The screen now labels this as a first-level LAN test.
 
 ## Check the first screen
 
@@ -49,7 +53,7 @@ with an APK built from this checkout. An older APK does not contain this screen.
    the top of the original screen. Tapping the address opens the keyboard again.
    Escape/controller Back cancels editing; tapping outside the address also
    cancels. Addresses are literal IPv4/IPv6, without a port or hostname.
-5. Both screens should report connected, with gameplay explicitly unavailable.
+5. Both screens should report connected.
    Disconnect, Stop Hosting or Back releases the connection. Back returns to
    Players. Suspending the Android application also closes the connection.
 
@@ -59,8 +63,13 @@ Reopening the screens restores selected rows. The host may make this preparation
 choice before a guest connects. Arcade Start requests a configuration proposal
 once a compatible guest is present. Both peers then validate/freeze content,
 compare prepared simulations and explicitly confirm Ready. Host Start activates
-the backend at tick zero and stays in this lobby; it does not launch the player
-view yet. Accepted choices require cancelling the session to change them.
+the backend at tick zero, then opens the first-level player view on Android.
+Both entry fades must finish and both views must acknowledge readiness before
+either simulation advances. Hold a playfield finger to steer/fire (or use the
+saved tilt option). Back closes the prototype session; synchronized pause and
+later-level progression are not available yet. Accepted choices require
+cancelling the session to change them. These are source-flow instructions,
+not a claim of completed two-phone verification or an available new APK.
 
 The LAN transport uses UDP port **26635**, one guest, and a reliable ENet hello
 containing a lobby protocol version and application version. Socket creation,
@@ -1614,3 +1623,101 @@ Windows native library is internal test output. No APK/build was handed over,
 no two-phone or internet tests ran, and the unavailable WSL exported-package
 gate remains unrun. Next: guarded player-menu handoff, entry/exit ownership and
 pause/progression, then independent-process/device/internet verification.
+
+### Player-menu handoff implementation plan
+
+The maintainer approved the input/effects/clock checkpoint and requested commit,
+push and continuation. Reuse the approved full two-player player view and the
+original entry fade. Do not create a new pause/menu design in this step.
+
+1. Add an optional pre-tree scene preparation callable to the existing scene
+   replacement path. Rejected preparation frees the new node and preserves the
+   old screen. Default callers retain their existing behavior. Bind the session's
+   borrowed native node before the player scene enters the tree.
+2. Defer the RUNNING-to-player handoff from NetworkSession, checking the expected
+   backend identity and current lobby to reject stale callbacks. Mark that lobby
+   as handing off so its exit does not close the persistent transport. The owner
+   selects the negotiated physics rate and restores the prior rate on all exits.
+   Android owns the initial supported input profile; desktop tests may inject a
+   platform-name callable, without adding a shipped desktop control profile.
+3. Finish the original local entry fade without simulation/input capture, then
+   exchange bounded binary READY messages for the current session/epoch/role and
+   immutable configuration digest. Only after both views report ready may the
+   production player scene enable its clock. Reuse the existing wire READY kind;
+   reject malformed/conflicting current messages, discard valid old contexts and
+   make duplicates idempotent. Detached backend/clock probes remain explicit.
+4. The player scene owns presentation only. Back/Escape and focus loss close the
+   prototype session, then return to the existing lobby. Disconnect and first
+   level end do the same; do not write saves, abandon a local campaign, open a
+   local pause, select the next level or claim synchronized pause/progression.
+   Unexpected scene replacement must also release the session. Restore clock
+   settings and detach borrowed references before further drawing/stepping.
+5. Test host and guest player-menu handoffs with real ENet, delayed view readiness,
+   cancellation/stale callbacks, original fade holding tick zero, platform/rate
+   gating, input delivery and exit cleanup. Preserve local Game fields and prior
+   scene behavior. Update lobby wording to describe a first-level LAN prototype,
+   with translated original-font text and no internet or device-validation claim.
+
+This step does not hand over an APK/package. Pause design, later levels,
+independent-process shutdown, two-phone checks and internet bootstrap remain
+required work in the complete plan.
+
+### First-level player-menu handoff checkpoint
+
+NetworkSession defers handoff only for its expected running backend and current
+lobby. The optional scene-preparation callable binds the borrowed native node
+before tree entry; rejection preserves the old screen and frees the new node.
+Ordinary scene callers keep the default path. The existing lobby marks its exit
+as handoff so its transport survives. The owner selects the agreed clock rate
+and restores the previous rate on session exit, including unexpected scene
+replacement. Production handoff requires Android; a platform-name callable
+allows source tests to exercise that route without claiming device validation.
+
+`network_player.gd` reuses the full two-player view, original entry fade and
+touch helpers. Once its fade finishes, it sends a binary READY with the current
+session/epoch/role, tick zero, control sequence 1 and immutable configuration
+digest. Both views must acknowledge before the production scene enables its
+clock. This barrier is distinct from the human lobby Ready check. It uses the
+existing bounded wire grammar and reliable transport. Duplicate readiness is
+idempotent, valid old contexts are discarded, and malformed/current conflicting
+readiness closes the session. Detached backend/clock tools retain explicit APIs.
+
+Back/Escape, focus loss, transport failure and first-level end close this
+prototype session and return to the existing lobby. No local pause/save flow,
+campaign abandonment, achievements or next-level transition is invoked. The
+owner retains a diagnostic exit code; stale deferred callbacks cannot reopen a
+cancelled session. Normal desktop local play and its scene replacement calls
+keep their previous defaults. The six translated lobby footers now describe a
+first-level LAN test rather than saying gameplay is unavailable.
+
+Fourteen cases pass across player-menu handoff, existing gameplay connections
+and scene-load failure handling, with zero logged errors/failures/orphans and
+actual process exit 0. Host and guest source flows use an injected Android check,
+hold tick zero through fade/remote-view delay, preserve local Game fields,
+deliver held-touch input over real ENet and match all 60 per-tick diagnostics.
+The guest case uses negotiated Turbo despite different local settings, and both
+exits restore the previous physics rate. Back and focus loss return to the lobby
+and release the peer; stale handoff and rejected-scene preparation are covered.
+The barrier test covers both roles, duplicates, old context and a conflicting
+digest. Natural level completion and synchronized progression were not tested.
+
+Another 26 cases across lobby/Episode/Arcade/Options, touch projection and pacing
+report zero errors/failures/orphans, followed by the previously observed Windows
+shutdown access violation (-1073741819). Do not count that run as a clean process
+gate. The clean handoff run does not resolve this intermittent lifecycle issue.
+GDScript format/lint, strict six-language key/format checks, glyph/width checks,
+new lobby text widths and whitespace checks pass.
+
+The release native library also cross-compiles successfully for
+aarch64-linux-android with the documented NDK and explicit 16 KiB ELF flags;
+llvm-readelf reports 0x4000 alignment on every LOAD segment. This is internal
+compile/alignment evidence, not an APK, a two-phone run or an exported-package
+gate. The native Windows code was unchanged in this handoff checkpoint.
+Source dashboard/playfield captures at tick 60 were saved and inspected as
+build/network-player-1.png (Episode 3) and build/network-player-2.png (Episode 4).
+They are framebuffer composites, not screenshots from phones. No APK/build was
+handed over and the unavailable WSL/Linux package gate was not run.
+
+Next required steps remain synchronized pause/exit design, original level-end
+statistics and host-controlled Arcade progression through new epochs,
+independent-process shutdown, two-phone execution and internet bootstrap.

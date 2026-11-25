@@ -9,6 +9,7 @@ const Clock := preload("res://scripts/network_tick_clock.gd")
 signal network_tick_presented(tick: int)
 var backend: Node
 var player := 0
+var use_entry_fade := false
 var _config := {}
 var _network_level_name := ""
 var _presented_tick := 0
@@ -250,7 +251,8 @@ func _sync_touch_weapons() -> void:
 	if _hud_vga != null:
 		_hud_vga.touch_layout = true
 	_touch_weapons.update_state(
-		TouchPolicy.controls_hud(sim.hud_state(), player, _config.dedicated_special), not sim.level_ended()
+		TouchPolicy.controls_hud(sim.hud_state(), player, _config.dedicated_special),
+		not sim.level_ended() and not entry_pending()
 	)
 
 
@@ -267,8 +269,12 @@ func _endless_intro_elapsed_ms() -> int:
 
 
 func _start_entry_fade() -> void:
-	# A synchronized scene-start barrier must precede the live entry transition.
-	pass
+	if use_entry_fade:
+		super._start_entry_fade()
+
+
+func entry_pending() -> bool:
+	return use_entry_fade and _entry_fade_active()
 
 
 func _presentation_level_id() -> String:

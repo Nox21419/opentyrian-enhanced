@@ -12,19 +12,22 @@ an Android-only two-column layout of the original gold menu text, including
 a visible Side Modes entry with the same lettering.
 The Players screen keeps its original single-column text, adds Back and wider
 touch areas, and greys out/disables its local two-player entries. The network
-entry opens the [connection-only LAN lobby](network-coop.md); while hosting,
+entry opens the [prototype LAN lobby](network-coop.md); while hosting,
 Choose Episode reuses the original Episode, Difficulty and two-player Arcade
 Game Menu screens. Start records host intent and returns to the same live lobby;
 it does not launch gameplay. Episode/Difficulty and the host-operated Arcade
 menu are approved. Its original Options screen now enables host-local audio
 volume with unsupported save/load/device rows dimmed; Options is approved.
 The shared lobby now validates the selected configuration and accepts Ready on
-both phones, then host Start; this Ready screen is approved. Start prepares
-the backend at tick zero. The approved player-view direction keeps the full
-original two-player HUD on both phones; its presentation checkpoint is approved
-and assigned touch capture is tested. The approved session-effect/pacing
-adaptation and explicit network clock are implemented/tested; player-menu
-handoff and two-phone validation remain pending.
+both phones, then host Start; this Ready screen is approved. The source now
+hands off to the original full two-player HUD and assigned touch/tilt input.
+The original entry fade and a two-view readiness barrier hold simulation at
+tick zero until both views are ready. This is a first-level LAN prototype:
+Back/focus loss/disconnect closes the session and returns to the lobby;
+synchronized pause, later levels and internet bootstrap remain pending.
+Both roles and Normal/Turbo pacing pass desktop source tests with an injected
+Android platform check. Actual two-phone validation and a new APK handover
+remain pending; a successful cross-compile is not a device-play result.
 Episode Select keeps its original five labels and placement, adds Back and
 wider touch areas, and activates a choice on release. Difficulty Select uses
 the same release-to-select adaptation with Back to Episode or Timed Battle.
@@ -88,8 +91,9 @@ approval for other gameplay changes.
 
 The maintainer separately approved network-only per-player touch/mouse input
 routing on 2026-11-24, preserving existing movement/linking rules and co-op
-weapon ownership. The opt-in Rust/bridge API is being validated; it is not yet
-connected to Android gameplay. Local play keeps the shared input path. See the
+weapon ownership. The opt-in Rust/bridge API and first-level player-menu handoff
+are implemented and tested in source; actual two-phone play remains unverified.
+Local play keeps the shared input path. See the
 [full co-op plan and input audit](network-coop.md#approved-player-input-adaptation-and-audit-stage-3).
 
 On Android, permanent Auto-fire is locked off: normal fire comes from the
@@ -158,7 +162,8 @@ ZIPReader seeks. A regression test covers asset storage and stale-signature remo
 The default artifact is `build/android/OpenTyrian2000-Enhanced.apk`.
 The enabled network-identity export plugin stamps the current client sources
 inside the APK export; the runtime bundle also includes the hashing dependency
-notices. These support later compatibility negotiation, not playable co-op yet.
+notices. These support the prototype's startup compatibility checks; they do not
+prove successful two-phone play.
 Debug signing is for personal testing; release signing/distribution is separate.
 
 `Game._ready()` extracts the bundle before its first native campaign/profile

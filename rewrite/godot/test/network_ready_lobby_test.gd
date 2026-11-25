@@ -3,18 +3,30 @@ extends GdUnitTestSuite
 const Gameplay := preload("res://scripts/network_gameplay_connection.gd")
 const Fixture := preload("res://test/fixtures/network_setup.gd")
 const Rules := preload("res://scripts/network_initial_configuration.gd")
+const View := preload("res://scripts/network_level.gd")
+const Clock := preload("res://scripts/network_tick_clock.gd")
 const LOBBY := "res://scenes/network_lobby.tscn"
+const PLAYER := "res://scenes/network_player.tscn"
 var _guest: Node
 var _game := {}
+var _platform: Callable
+var _rate: int
 
 
 func before_test() -> void:
-	_game = {"episode": Game.episode, "campaign_active": Game.campaign_active, "loadout": Game.loadout.duplicate()}
+	_game = {}
+	for key in ["episode", "lvl_file_num", "level_name", "campaign_active", "loadout", "modes", "level_start_ms"]:
+		_game[key] = Game.get(key)
 	NetworkSession.stop()
+	_platform = NetworkSession.platform_name
+	NetworkSession.platform_name = func(): return "Android"
+	_rate = Engine.physics_ticks_per_second
 
 
 func after_test() -> void:
 	NetworkSession.stop()
+	NetworkSession.platform_name = _platform
+	Engine.physics_ticks_per_second = _rate
 	if is_instance_valid(_guest):
 		_guest.free()
 	_guest = null
@@ -51,7 +63,7 @@ func _shot(lobby: Node, name: String) -> void:
 			assert_int(img.save_png(dir.path_join(name + ".png"))).is_equal(OK)
 
 
-func test_host_menu_intent_negotiates_later_episode_and_explicit_ready_without_starting_local_game() -> void:
+func test_host_menu_intent_negotiates_ready_then_hands_off_without_changing_local_campaign() -> void:
 	var lobby: Node = Game.goto_scene(LOBBY)
 	await _wait(func(): return lobby.idle)
 	lobby._activate(0)
@@ -92,15 +104,12 @@ func test_host_menu_intent_negotiates_later_episode_and_explicit_ready_without_s
 	_shot(lobby, "network-lobby-start")
 	lobby._activate(0)
 	await _wait(func(): return NetworkSession.backend.running() and _guest.running())
-	assert_str(NetworkSession.status_key()).is_equal("net_session_prepared")
-	assert_int(NetworkSession.backend.ticks_executed()).is_equal(0)
-	assert_str(Effects.current_game_scene().scene_file_path).is_equal(LOBBY)
+	await _play_player_and_leave(1, false)
 	for key in _game:
 		assert_bool(Game.get(key) == _game[key]).override_failure_message(key).is_true()
-	lobby._activate(1)
 	assert_bool(NetworkSession.lobby.peer == null).is_true()
 	await _wait(func(): return not _guest.running())
-	assert_str(lobby._row_label(0)).is_equal(TyrianText.L("net_host"))
+	assert_str(Effects.current_game_scene()._row_label(0)).is_equal(TyrianText.L("net_host"))
 
 
 func test_guest_lobby_receives_host_choices_and_never_exposes_host_start() -> void:
@@ -113,6 +122,7 @@ func test_guest_lobby_receives_host_choices_and_never_exposes_host_start() -> vo
 	await _wait(func(): return NetworkSession.backend.compatible() and _guest.compatible())
 	var config := Fixture.configuration()
 	config.episode = 4
+	config.game_speed = 5
 	config.level_file = Rules.new(Game.data_dir).first_level(4, 2).lvl_file_num
 	assert_bool(_guest.propose(config, "81".repeat(16), 1)).is_true()
 	await _wait(func(): return _guest.agreed())
@@ -129,7 +139,84 @@ func test_guest_lobby_receives_host_choices_and_never_exposes_host_start() -> vo
 	_shot(lobby, "network-lobby-guest")
 	assert_bool(_guest.start()).is_true()
 	await _wait(func(): return NetworkSession.backend.running())
+	await _play_player_and_leave(2, true)
 	assert_int(Game.episode).is_equal(_game.episode)
+
+
+func _record_tick(tick: int, peer: Node, view: Node, digests: Dictionary) -> void:
+	digests[tick] = peer.diagnostic_digest()
+	if tick == 60:
+		view.set_physics_process(false)
+
+
+func _play_player_and_leave(role: int, focus_loss: bool) -> void:
+	await _wait(func(): return Effects.current_game_scene().scene_file_path == PLAYER)
+	var view := Effects.current_game_scene()
+	assert_int(view.player).is_equal(role)
+	var local: Node = NetworkSession.backend
+	assert_int(Engine.physics_ticks_per_second).is_equal(Clock.ticks_per_second(local.configuration().game_speed))
+	assert_int(local.ticks_executed()).is_equal(0)
+	assert_bool(view.entry_pending()).is_true()
+	await _wait(
+		func(): return not is_instance_valid(NetworkSession.backend) or bool(NetworkSession.backend.get("_view_local"))
+	)
+	assert_bool(is_instance_valid(local)).override_failure_message(NetworkSession.last_player_exit).is_true()
+	if not is_instance_valid(local):
+		return
+	assert_bool(local.views_ready()).is_false()
+	assert_int(local.ticks_executed()).is_equal(0)
+	for _frame in 4:
+		await get_tree().physics_frame
+	assert_int(local.ticks_executed()).is_equal(0)
+	var remote: Node = auto_free(View.new())
+	assert_bool(remote.bind(_guest)).is_true()
+	remote.set("_touch_pause", true)
+	add_child(remote)
+	assert_bool(remote.enable_network_input()).is_true()
+	var digests: Array[Dictionary] = [{}, {}]
+	view.network_tick_presented.connect(_record_tick.bind(local, view, digests[0]))
+	remote.network_tick_presented.connect(_record_tick.bind(_guest, remote, digests[1]))
+	for screen in [view, remote]:
+		var touch := InputEventScreenTouch.new()
+		touch.index = 0
+		touch.position = Vector2(90 if screen.player == 1 else 200, 110)
+		touch.pressed = true
+		screen._input(touch)
+	assert_bool(_guest.mark_view_ready()).is_true()
+	assert_bool(remote.enable_network_clock()).is_true()
+	await _wait(func(): return digests[0].size() == 60 and digests[1].size() == 60)
+	assert_dict(digests[0]).is_equal(digests[1])
+	for arg in OS.get_cmdline_user_args():
+		if arg.begins_with("--network-player-shots="):
+			var dir := arg.trim_prefix("--network-player-shots=")
+			DirAccess.make_dir_recursive_absolute(dir)
+			var hud: HudRenderer = view.get("_hud_vga")
+			var image: Image = hud.vga.image(0)
+			var playfield: Image = view.sim.playfield_background(Game.data_dir, hud.vga.palette_bytes())
+			playfield.convert(image.get_format())
+			image.blit_rect(playfield, Rect2i(0, 0, 264, 184), Vector2i.ZERO)
+			assert_int(image.save_png(dir.path_join("network-player-%d.png" % role))).is_equal(OK)
+	if focus_loss:
+		view._notification(NOTIFICATION_APPLICATION_FOCUS_OUT)
+	else:
+		var back := InputEventAction.new()
+		back.action = "tyrian_level_exit"
+		back.pressed = true
+		view._unhandled_input(back)
+	await _wait(func(): return Effects.current_game_scene().scene_file_path == LOBBY)
+	assert_object(NetworkSession.backend).is_null()
+	assert_int(Engine.physics_ticks_per_second).is_equal(_rate)
+
+
+func test_cancelled_session_cannot_run_a_stale_player_handoff() -> void:
+	var lobby: Node = Game.goto_scene(LOBBY)
+	await _wait(func(): return lobby.idle)
+	assert_int(NetworkSession.host()).is_equal(OK)
+	var old_id: int = NetworkSession.backend.get_instance_id()
+	NetworkSession.stop()
+	NetworkSession._open_player(old_id)
+	assert_object(Effects.current_game_scene()).is_same(lobby)
+	assert_int(Engine.physics_ticks_per_second).is_equal(_rate)
 
 
 func test_ready_labels_and_statuses_fit_original_fonts_in_all_languages() -> void:
@@ -146,6 +233,7 @@ func test_ready_labels_and_statuses_fit_original_fonts_in_all_languages() -> voi
 			"ready_prompt",
 			"wait_start",
 			"session_prepared",
+			"connection_test",
 			"setup_failed",
 			"content_mismatch"
 		]:

@@ -1,4 +1,4 @@
-## Persistent player-menu transport and shared startup. No player level handoff yet.
+## Persistent player-menu transport, startup and first-level prototype handoff.
 extends Node
 
 signal changed
@@ -7,6 +7,9 @@ const Lobby := preload("res://scripts/lan_lobby.gd")
 const Gameplay := preload("res://scripts/network_gameplay_connection.gd")
 const Rules := preload("res://scripts/network_initial_configuration.gd")
 const SETUP := preload("res://scripts/setup.gd")
+const Clock := preload("res://scripts/network_tick_clock.gd")
+const PLAYER_SCENE := "res://scenes/network_player.tscn"
+const LOBBY_SCENE := "res://scenes/network_lobby.tscn"
 
 var lobby := Lobby.new()
 var selected_episode := 0
@@ -18,6 +21,13 @@ var options_row := 2
 var arcade_row := 2
 var start_requested := false
 var backend: Node
+var platform_name := Callable(OS, "get_name")
+var last_player_exit := ""
+var _player_scene: Node
+var _handoff_queued := false
+var _leave_queued := false
+var _owns_rate := false
+var _previous_rate := 35
 var configuration_locked: bool:
 	get:
 		return _proposed
@@ -145,6 +155,14 @@ func finish_options() -> bool:
 
 func stop() -> void:
 	_stopping = true
+	if is_instance_valid(_player_scene):
+		_player_scene.disable_network_input()
+	_player_scene = null
+	_handoff_queued = false
+	_leave_queued = false
+	if _owns_rate:
+		Engine.physics_ticks_per_second = _previous_rate
+		_owns_rate = false
 	if is_instance_valid(backend):
 		backend.stop()
 		backend.free()
@@ -224,6 +242,70 @@ func _backend_changed() -> void:
 		selected_episode = config.episode
 		selected_difficulty = config.initial_difficulty
 	changed.emit()
+	if is_instance_valid(_player_scene):
+		if not backend.running():
+			leave_player(_player_scene, backend.error if not backend.error.is_empty() else "session_closed")
+	elif backend.running() and not _handoff_queued:
+		_handoff_queued = true
+		_open_player.call_deferred(backend.get_instance_id())
+
+
+func _open_player(expected_backend: int) -> void:
+	if not is_instance_valid(backend) or backend.get_instance_id() != expected_backend:
+		return
+	_handoff_queued = false
+	if _stopping or not backend.running() or is_instance_valid(_player_scene):
+		return
+	var previous := Effects.current_game_scene()
+	if previous == null or previous.scene_file_path != LOBBY_SCENE or platform_name.call() != "Android":
+		_setup_error = "unsupported_player_handoff"
+		backend.stop()
+		return
+	previous.set("_handoff", true)
+	var scene := Game.goto_scene(PLAYER_SCENE, _prepare_player)
+	if scene == null:
+		previous.set("_handoff", false)
+		_setup_error = "player_handoff_failed"
+		backend.stop()
+		changed.emit()
+
+
+func _prepare_player(scene: Node) -> bool:
+	var config: Dictionary = backend.configuration()
+	var rate := Clock.ticks_per_second(config.game_speed)
+	if rate == 0 or not scene.bind(backend):
+		return false
+	scene.controller = self
+	scene.use_entry_fade = true
+	scene.set("_touch_pause", true)
+	_previous_rate = Engine.physics_ticks_per_second
+	_owns_rate = true
+	Engine.physics_ticks_per_second = rate
+	_player_scene = scene
+	return true
+
+
+func leave_player(scene: Node, reason := "left") -> void:
+	if _leave_queued or not is_instance_valid(_player_scene) or scene != _player_scene:
+		return
+	_leave_queued = true
+	last_player_exit = reason
+	scene.disable_network_input()
+	_return_to_lobby.call_deferred(scene.get_instance_id())
+
+
+func _return_to_lobby(expected_scene: int) -> void:
+	if not is_instance_valid(_player_scene) or _player_scene.get_instance_id() != expected_scene:
+		return
+	stop()
+	_returning = true
+	Game.goto_scene(LOBBY_SCENE)
+
+
+func player_scene_exited(scene: Node) -> void:
+	if is_instance_valid(_player_scene) and scene == _player_scene:
+		last_player_exit = "scene_replaced"
+		stop()
 
 
 func _process(_delta: float) -> void:

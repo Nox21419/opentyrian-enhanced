@@ -216,9 +216,12 @@ static func instantiate_scene(path: String) -> Node:
 
 ## Replaces the displayed scene (equivalent of change_scene_to_file). Unreadable
 ## scene: the current screen stays displayed and null is returned.
-func show_scene(path: String) -> Node:
+func show_scene(path: String, prepare := Callable()) -> Node:
 	var scene := instantiate_scene(path)
 	if scene == null:
+		return null
+	if prepare.is_valid() and not prepare.call(scene):
+		scene.free()
 		return null
 	previous_scene_path = ""
 	for child in game_viewport.get_children():

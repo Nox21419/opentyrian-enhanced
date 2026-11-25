@@ -457,8 +457,8 @@ func quit_cleanly(code := 0) -> void:
 
 
 ## Scenes live in the game viewport of the Effects autoload.
-func goto_scene(path: String) -> Node:
-	return Effects.show_scene(path)
+func goto_scene(path: String, prepare := Callable()) -> Node:
+	return Effects.show_scene(path, prepare)
 
 
 ## TyrianCampaign (GDExtension) loaded on demand.

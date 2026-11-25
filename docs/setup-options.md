@@ -28,12 +28,12 @@ now leads to the original Difficulty screen, then the host-operated original
 Arcade Game Menu. Those screens are approved. Its original Options screen now
 enables host-local Music/Sound volume and Done, with unsupported save/load/device
 rows dimmed; this Options screen is approved. Arcade Start returns to a shared
-lobby Ready check (approved), followed by host-only Start. This prepares
-the backend at tick zero. The approved player-view direction retains the full
-original two-player HUD on both phones; its presentation checkpoint is approved
-and assigned touch capture is tested. The approved session-effect/pacing
-adaptation and explicit network clock are implemented/tested. Player-menu
-handoff and playable co-op remain pending.
+lobby Ready check (approved), followed by host-only Start. The source now hands
+off to the approved original full two-player view on Android. Both original
+entry fades/readiness acknowledgements precede simulation. Assigned touch/tilt
+and session-owned effects/pacing are tested in source. This first-level LAN
+prototype returns to the lobby on Back/focus loss/disconnect; synchronized pause,
+later levels, two-phone validation and internet bootstrap remain pending.
 See [network co-op](network-coop.md).
 
 ## Option behavior and persistence
