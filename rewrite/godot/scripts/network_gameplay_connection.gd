@@ -17,6 +17,7 @@ const StoryScript := preload("res://scripts/network_story_script.gd")
 const StoryPages := preload("res://scripts/network_story_pages.gd")
 const EpisodeEnd := preload("res://scripts/network_episode_end.gd")
 const EpisodeHint := preload("res://scripts/network_episode_hint.gd")
+const EpisodeScore := preload("res://scripts/network_episode_score.gd")
 var _runner := Runner.new()
 var _activated := false
 var _view_local := false
@@ -361,6 +362,45 @@ func prepare_story(sequence: int, background: String) -> bool:
 	if not _story_order_ready(sequence):
 		return false
 	var descriptor := StoryScript.prepare(candidate.script, candidate.digest, _story_context, background)
+	return _prepare_story_descriptor(sequence, descriptor)
+
+
+## Original ending score/hint only; completion does not apply ending effects.
+func prepare_episode_score(sequence: int, background: String) -> bool:
+	if not Config.hex_string(background, 64) or _load_sequence != 0 or not _verify_continuation_state():
+		return false
+	var candidate := committed_continuation(sequence)
+	var script := _episode_score_script(sequence)
+	if script.is_empty():
+		return false
+	if _story_descriptors.has(sequence):
+		var saved: Dictionary = _story_descriptors[sequence]
+		return (
+			true
+			if saved.source == candidate.digest and saved.background == background and saved.script == script
+			else _fail("changed_story_descriptor")
+		)
+	if not _story_order_ready(sequence):
+		return false
+	var descriptor := StoryScript.prepare(script, candidate.digest, _story_context, background)
+	return _prepare_story_descriptor(sequence, descriptor)
+
+
+func _episode_score_script(sequence: int) -> Dictionary:
+	var candidate := committed_continuation(sequence)
+	if candidate.get("kind") != "episode_end":
+		return {}
+	var initial: Dictionary = _connection.startup.configuration()
+	return EpisodeScore.build(
+		configuration(),
+		_level_result.record(),
+		candidate,
+		{"initial_episode": initial.get("episode"), "repeated": false},
+		_gameplay_context().session
+	)
+
+
+func _prepare_story_descriptor(sequence: int, descriptor: Dictionary) -> bool:
 	if descriptor.is_empty() or descriptor.pages.is_empty():
 		return false
 	var context := _gameplay_context()
@@ -1024,11 +1064,14 @@ func _receive_story(packet: PackedByteArray) -> void:
 			_fail("story_before_completion")
 		return
 	var candidate := committed_continuation(sequence)
+	var display_script: Dictionary = candidate.get("script", {})
+	if candidate.get("kind") == "episode_end":
+		display_script = _episode_score_script(sequence)
 	if (
 		candidate.is_empty()
-		or candidate.get("kind") not in ["level", "shop"]
-		or not StoryScript.valid_script(candidate.get("script", {}))
-		or candidate.script.screens.is_empty()
+		or candidate.get("kind") not in ["level", "shop", "episode_end"]
+		or not StoryScript.valid_script(display_script)
+		or display_script.screens.is_empty()
 		or message.kind != Wire.Kind.STORY_READY
 		or message.sequence & 0xffff != 1
 		or message.tick != ticks_executed()

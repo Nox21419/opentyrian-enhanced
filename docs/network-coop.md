@@ -3130,7 +3130,7 @@ Use native scripts for all five episodes and real ENet peers to compare complete
 descriptors and unchanged ended native state. No frontend or profile/reward writes
 are part of this checkpoint; live original score/hint rendering remains next.
 
-### Shared episode-hint checkpoint (2026-11-26, working tree)
+### Shared episode-hint checkpoint (2026-11-26, `6e09062`)
 
 `network_episode_hint.gd` now derives a stable session hint context and a separate
 ending-specific cosmetic variant from domain-separated SHA-256 inputs. It uses
@@ -3162,3 +3162,85 @@ Next adapt the original two-player ending score/hint page to these copied values
 and bind its descriptor into presentation readiness/host advance/both finishes.
 Keep live profile/high-score writes, rewards, campaign-history adoption and
 next-episode loading explicitly unowned until their later checkpoints.
+
+### Original ending score/hint page plan (2026-11-26)
+
+Build a detached presentation adapter for the already approved original screens
+on both phones with host advance. Preserve the raw pre-ending script, then append
+one bounded presentation marker whose metadata binds the ending plan, shared hint,
+both exact cash values and negotiated mutators. Reuse the original story renderer
+for pre-ending directives, then its `_display_text` at frame-count 4 for the two
+score lines, original mutator notice and selected hint, with the original 14-line
+limit and final black fade of 15. Keep its session-owned red/bank context; do not
+call local `_episode_end`, profile hooks or campaign loading. Format unsigned cash
+without floating point. Keep localized labels view-local; bind raw values/text
+in the shared descriptor so different local labels do not change agreement.
+
+Use the existing bounded story page coordinator and controls for readiness,
+host commits and both finishes, binding the appended marker and all metadata into
+its descriptor/page digests. Add an explicit backend preparation API for an
+episode-score descriptor; ordinary story preparation remains level/shop only.
+Refuse malformed/changed descriptors, overlapping preparation and capacity
+overflow rather than dropping a pre-ending screen. Keep existing startup/load
+APIs and live session unsupported-ending exit unchanged until later owners exist.
+
+Test original/reference frames sequentially (the in-process VGA is shared),
+normal/red context, original line limits and mutator notice, exact unsigned cash,
+host/guest input, final fade cancellation and unchanged Game/save state. Use real
+ENet to bind the new view to independently prepared backend descriptors and verify
+both ready/host advance/both finishes without native changes or ending effects.
+The detached view and protocol checkpoint does not yet add a live campaign route.
+
+### Detached original ending score/hint checkpoint (2026-11-26, working tree)
+
+`network_episode_score.gd` builds a validated presentation envelope containing the
+unchanged pre-ending screens plus a final context-neutral marker. Its shared
+metadata binds the ending and hint digests, full unsigned cash bits and negotiated
+mutators; marker text retains the native hint lines. It refuses pending autosave
+and page-capacity overflow. Localized score labels and the original mutator note
+are formatted only in the view, with exact integer-to-decimal cash conversion and
+the original fourteen-line limit. The original continuation proposal remains an
+episode-end stop and cannot be passed to the ordinary level loader.
+
+`network_episode_score_view.gd` reuses the original story renderer for the raw
+screens and `_display_text` with frame-count 4 for the appended score page,
+preserving session red/bank context and the original final fifteen-step black
+fade. Only host input requests advance; both peers must report readiness, and
+local finish follows the fade. No local Game ending, RNG, save, profile or reward
+hook runs. Binding ordinary non-score scripts to this view is refused.
+
+The explicit backend `prepare_episode_score()` independently builds and binds
+that descriptor through the existing bounded page coordinator. Early first-page
+Ready can wait for local preparation, and repeat preparation retains the original
+descriptor/context even after completion. Changed source/background/script fails
+closed. Ordinary `prepare_story()` remains level/shop-only. The session still
+does not open this view on a live ending: entry ownership, later ending effects
+and next-episode transitions remain subsequent work. Completing these pages is
+presentation agreement only, not permission to apply those effects.
+
+Validation: all 24 score/view/hint/ending/cursor cases passed with process exit 0.
+Reference frames use the existing original `_display_text` renderer sequentially
+and match the network score view in normal and red contexts. Tests cover original
+labels, mutator notice, 14-line limit, full unsigned cash, raw native screens for
+all five episodes, autosave/overflow refusal and cancellation during the final
+fade. The view fixtures accelerate animation waits; this is frame/ownership
+coverage, not independent evidence for wall-clock animation timing.
+
+All three focused real ENet cases passed their assertions: the new original
+score-view case and both existing story regressions. Score coverage includes a
+resumed epoch, staggered preparation/early Ready, host-only advancement of both
+pre-ending and score pages, both post-fade finishes, red-context retention,
+idempotent repeat preparation and unchanged native tick/diagnostic state. It uses
+a controlled ending candidate following native terminal completion and fixture
+animation waits, not a naturally won episode or live session routing. The final
+combined process then hit the known shutdown access violation `0xC0000005` after
+its passing summary; that defect remains unresolved. Initial script-inference,
+fixture wait-time and freed-capture cleanup issues were corrected before final
+runs; final logs report no script/runtime errors before shutdown. All six new/
+changed GDScript files pass format/lint checks and `git diff --check` passes.
+No APK handover, physical-phone run or exported Linux journey/smoke gate is claimed.
+
+Next add session-owned entry/cleanup for this ending view and a guarded live
+handoff that stops at its agreed finish until later ending owners are available.
+Do not use presentation completion to skip high-score/profile handling, credits,
+reward decisions, campaign-history adoption or next-episode loading.
