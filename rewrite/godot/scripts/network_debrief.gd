@@ -18,8 +18,17 @@ var _requested := false
 var _frozen := false
 
 
-func bind(result: RefCounted, config: Dictionary, role: int, elapsed_seconds: int, continuation := false) -> bool:
+func bind(
+	result: RefCounted,
+	config: Dictionary,
+	role: int,
+	elapsed_seconds: int,
+	continuation := false,
+	bonus_completion := false
+) -> bool:
 	if is_inside_tree() or not _snapshot.is_empty() or role not in [1, 2] or elapsed_seconds < 0:
+		return false
+	if bonus_completion and not continuation:
 		return false
 	if (
 		not (LevelConfig.valid(config) if continuation else Config.valid(config))
@@ -29,7 +38,11 @@ func bind(result: RefCounted, config: Dictionary, role: int, elapsed_seconds: in
 		return false
 	var record: Dictionary = result.record()
 	var digest := LevelConfig.digest(config) if continuation else Config.digest(config)
-	if record.is_empty() or record.config != digest or not record.stats.get("any_player_alive", false):
+	if (
+		record.is_empty()
+		or record.config != digest
+		or (not record.stats.get("any_player_alive", false) and not bonus_completion)
+	):
 		return false
 	_snapshot = record.stats.duplicate(true)
 	_episode = config.episode

@@ -150,6 +150,11 @@ func continuation_level_for_view() -> Dictionary:
 	return _active_request.get("script", {}).duplicate(true) if running() else {}
 
 
+## Source-level bonus context, never the result's similarly named warp flag.
+func bonus_completion_for_view() -> bool:
+	return completion_agreed() and bool(_active_request.get("bonus_level", false))
+
+
 func register_view_borrow(view: Node) -> bool:
 	if not running() or not is_instance_valid(view) or simulation_for_view() == null:
 		return false

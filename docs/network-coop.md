@@ -36,7 +36,7 @@ before agreeing a supported shop/direct-level continuation. The host reuses the
 original Arcade menu while the guest waits, then both load/compare and adopt a
 fresh level in a new epoch before their next views become ready. Normal all-dead
 results exit after agreement without a successful debrief. Story/autosave effects,
-retry, bonus-death and episode-ending routes, naturally won multi-level and
+retry and episode-ending routes, naturally won multi-level/bonus-death and
 independent-process lifecycle journeys, physical phone verification and internet
 integration remain unfinished. Unsupported routes exit explicitly. Desktop networking remains a
 diagnostic transport/backend profile, not a shipped desktop input profile.
@@ -2727,3 +2727,116 @@ Next verify an independently running, naturally won multi-level journey and
 complete original story/autosave, retry/bonus-death and ending-route ownership
 before describing this as full campaign co-op. Internet bootstrap remains a
 separate unfinished part of the original plan.
+
+### Bonus-result and story ownership plan (2026-11-26)
+
+The live scene-flow checkpoint was pushed as `7cf7339`. The maintainer selected
+"Original screens on both; host advances" for network story and episode-ending
+presentation. This reuses original screens and host-owned progression; no second
+confirmation step is added. Implement one presentation checkpoint at a time.
+
+First resolve the bonus-result gate. Local level.gd/Game.campaign_level_finished
+and the existing campaign cursor use source-level bonus/normal_bonus context to
+continue after an all-dead bonus result; the network player currently exits before
+that planner can run. Add a backend query sourced only from the adopted, agreed
+request's source-level bonus flag and agreed completion. Do not confuse the
+result's bonus_level warp-pickup flag with source-level bonus context. Permit the
+existing debrief on both phones for this context through an explicit opt-in
+binding flag, requiring the continuation grammar. Keep normal all-dead and strict
+initial bindings unchanged. Test both source bonus types, ordinary game over,
+warp-flag non-equivalence, debrief binding and the same planner continuation.
+No core setters, life-counter restoration or simulation timing changes are part
+of this presentation/routing adaptation.
+
+Then inspect the original story renderer's display/input/global-state boundaries
+and document the first network story checkpoint before editing it. Use locally
+derived agreed script data, original rendering and bounded page readiness/host
+advance controls. Guest input must not advance a page; neither peer may start
+the next native level before both presentation owners finish. Keep story state
+session-owned rather than writing Game's local campaign/profile. Pending autosave,
+retry, score/achievement and episode-finalization effects need explicit owners;
+choosing the story layout is not evidence that those effects are implemented.
+
+### First story presentation checkpoint plan
+
+Implement a detached network story view before transport/live routing. Bind a
+copied, locally agreed script/source digest and role; allow bounded original
+display directives for level/shop stops only. Episode finalization remains a
+separate owner even though its shared presentation direction is approved.
+Expose per-directive ready/digest and host advance-request signals plus strict
+owner commit and finished boundaries. Noninteractive directives request automatic
+advance only after rendering; original text pages accept host input, while the
+guest waits. Early local animation skipping cannot advance a peer's unfinished
+page. An eventual coordinator must wait for both ready signals before committing.
+
+Reuse story_screens.gd rendering through small virtual accessors for its two
+static palette/text-context flags, text prompt and completion wait. Defaults must
+preserve local story behavior; the network subclass owns independent context and
+never calls the local Game story/episode/profile completion hooks. Guard canceled
+coroutines against drawing into a replacement screen. Compare original/network
+rendered frames, verify guest input cannot advance, reject malformed/out-of-order
+commits, and test separate contexts and removal. This view alone does not consume
+the script effects or authorize the next-level request builder to skip them;
+wire agreement and live routing remain later checkpoints.
+
+### Bonus-result and detached story checkpoint (2026-11-26)
+
+The network player now permits the existing original debrief/Statistics handoff
+after all-dead completion of an adopted bonus or normal-bonus source level. The
+backend query requires agreed completion and the adopted request's source bonus
+flag. It does not infer this permission from the result's bonus_level warp flag.
+Debrief binding requires explicit continuation and bonus-completion flags for an
+all-dead result; ordinary all-dead and default initial bindings still reject it.
+No life counters, core state, timing, RNG or difficulty rules changed. A naturally
+played bonus-death continuation remains unverified.
+
+The maintainer approved original story/episode-ending screens on both phones,
+with host-only advance. The first presentation checkpoint is implemented as
+`network_story_view.gd`, a detached subclass of the original story renderer. It
+accepts copied bounded level/shop display scripts and a source digest, publishes
+per-directive readiness/digests and host advance requests, and accepts strict
+owner commits. Guest input cannot advance or skip a page. Noninteractive screens
+request automatic advance; text pages retain host input and original animation,
+but an eventual coordinator must wait for both phones before committing. Palette
+bank/warning context belongs to each view rather than local story static state.
+Guest text uses the existing localized waiting prompt in the original position.
+
+Small virtual providers in story_screens.gd retain the existing local defaults
+for context, prompt and completion wait. Canceled network fades stop changing the
+shared framebuffer/palette, and canceled original screen continuations do not
+clear a replacement frame. No network view calls Game's local story, score or
+episode-finalization hooks. Episode-end, autosave and mini-game scripts are
+refused at this checkpoint. The view grants no network authorization and does
+not mark story effects consumed or relax next-level request validation.
+
+Validation:
+
+- Bonus/debrief/player/planner suites passed 21 assertion cases without errors,
+  failures or orphans, followed by the previously observed Windows shutdown
+  access violation (-1073741819). The process did not exit cleanly. Tests cover
+  both phone roles opening Statistics from explicit bonus context, ordinary
+  all-dead exit, warp-flag non-equivalence, strict binding and planner routing.
+- The final story-view/touch run passed 14 cases and the full existing local
+  story/ending suite passed six cases, both with actual process exit 0. The new
+  cases bind a real native two-player story script, compare the host's indexed
+  frame with the original renderer, keep guest input from advancing, verify
+  context/copy/commit boundaries and preserve replacement pixels/palette after
+  both an interrupted fade and a post-fade continuation. The comparison uses
+  sequential renderers because the original in-process VGA surface is shared;
+  concurrent fixtures verify ownership and page control, not independent GPU
+  surfaces. Local regressions cover warning pages, episode/name/score handling,
+  two-player saves and Timed Battle. Headless virtual-keyboard warnings do not
+  establish physical Android IME behavior.
+- An initial frame comparison incorrectly ran both phone renderers on the same
+  shared VGA surface; it was corrected to compare frames sequentially. No golden
+  reference was regenerated. All eight changed/new GDScript files pass formatter
+  and linter checks and `git diff --check` passes. No native rebuild, APK, physical
+  phone run or exported Linux journey/smoke gate is claimed. Clean story exits do
+  not establish that the intermittent native shutdown issue is fixed.
+
+Next add bounded story readiness/host-advance packet agreement, session-owned
+context and agreed entry backgrounds, then connect the view to live script
+effects without skipping autosave, retry, score/profile or episode-finalization
+owners. The selected presentation direction persists for that work; it need not
+be requested again. Story transport, live story routing and episode-finalization
+effects are not implemented by this detached view.

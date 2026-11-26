@@ -110,7 +110,10 @@ func _sync_completion() -> void:
 		if result.record().core != before:
 			_leave("changed_final_state")
 			return
-		if not bool(result.record().stats.get("any_player_alive", false)):
+		var bonus_completion: bool = (
+			backend.has_method("bonus_completion_for_view") and backend.bonus_completion_for_view()
+		)
+		if not bool(result.record().stats.get("any_player_alive", false)) and not bonus_completion:
 			_leave("game_over")
 			return
 		var screen := Debrief.new()
@@ -118,7 +121,7 @@ func _sync_completion() -> void:
 			backend.has_method("continuation_level_for_view") and not backend.continuation_level_for_view().is_empty()
 		)
 		if (
-			not screen.bind(result, _config, player, backend.result_elapsed_seconds(), continuation)
+			not screen.bind(result, _config, player, backend.result_elapsed_seconds(), continuation, bonus_completion)
 			or not screen.freeze_from(self)
 		):
 			screen.free()

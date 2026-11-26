@@ -73,12 +73,12 @@ func _ready() -> void:
 func _run() -> void:
 	var r: Dictionary = Game.story_script
 	# level_load.c, start of JE_loadMap: useLastBank = false.
-	use_last_bank = false
+	_set_story_bank(false)
 	for e: Dictionary in r.get("screens", []):
-		if not is_inside_tree():
+		if not _story_alive():
 			return
 		await _screen(str(e.get("directive", "")), e.get("text", PackedStringArray()))
-	if not is_inside_tree():
+	if not _story_alive():
 		return
 	match str(r.get("stop", "")):
 		"episode_end":
@@ -103,7 +103,7 @@ func _screen(directive: String, text: PackedStringArray) -> void:
 		"M":
 			Music.play_song(arg - 1)
 		"@":
-			use_last_bank = not use_last_bank
+			_set_story_bank(not _story_bank())
 		"P":
 			if arg > 900:
 				vga.load_palette(PCX_PALETTE[clampi(arg - 1 - 900, 0, PCX_PALETTE.size() - 1)])
@@ -126,6 +126,8 @@ func _screen(directive: String, text: PackedStringArray) -> void:
 			present()
 		"C":
 			await fade_black(10)
+			if not _story_alive():
+				return
 			vga.clear(VGA_SCREEN, 0)
 			vga.load_palette(7)
 			vga.set_palette(0, 255)
@@ -134,7 +136,11 @@ func _screen(directive: String, text: PackedStringArray) -> void:
 			await fade_black(10)
 		"F":
 			await fade_white(100)
+			if not _story_alive():
+				return
 			await fade_black(30)
+			if not _story_alive():
+				return
 			vga.clear(VGA_SCREEN, 0)
 			present()
 		"A":
@@ -148,7 +154,7 @@ func _screen(directive: String, text: PackedStringArray) -> void:
 			_warning_display = directive.length() > 2 and directive[2] == "y"
 			var fcm := _atoi(directive.substr(4))
 			_delay2_end_ms = _now_ms() + _units_ms(6)
-			warning_red = fcm / 10 != 0
+			_set_story_red(fcm / 10 != 0)
 			_frame_count_max = fcm % 10
 			await _display_text(text)
 
@@ -162,12 +168,13 @@ func _wipe_up(n: int) -> void:
 	var old: PackedByteArray = vga.indices(VGA_SCREEN2)
 	_reset_story_input()
 	for z in 200:
-		if _input_seen or not is_inside_tree():
+		if _input_seen or not _story_alive():
 			break
 		vga.set_indices(VGA_SCREEN, pic.slice((199 - z) * 320) + old.slice(0, (199 - z) * 320))
 		present()
 		await wait_units(1)
-	vga.set_indices(VGA_SCREEN, pic)
+	if _story_alive():
+		vga.set_indices(VGA_SCREEN, pic)
 
 
 ## animlib.c:JE_playAnim: black screen, animation palette, one image per
@@ -187,7 +194,7 @@ func _play_anim(file: String, speed: int) -> void:
 	var start_ms := Time.get_ticks_msec()
 	var i := 0
 	for f: PackedByteArray in anim["frames"]:
-		if not is_inside_tree():
+		if not _story_alive():
 			return
 		vga.set_indices(VGA_SCREEN, f)
 		present()
@@ -197,7 +204,7 @@ func _play_anim(file: String, speed: int) -> void:
 		if Capture.active:
 			await get_tree().process_frame
 			continue
-		while Time.get_ticks_msec() < start_ms + i * period_ms and is_inside_tree():
+		while Time.get_ticks_msec() < start_ms + i * period_ms and _story_alive():
 			await get_tree().process_frame
 
 
@@ -207,33 +214,41 @@ func _display_text(lines: PackedStringArray) -> void:
 	# Only keys pressed during this screen count (the C code reads the
 	# new SDL events at each JE_anyButton).
 	_reset_story_input()
-	var y := 2 if warning_red else 55
+	var y := 2 if _story_red() else 55
 	for line in lines:
 		await _out_char_glow(10, y, line)
+		if not _story_alive():
+			return
 		y += 10
 	var finish_on_skip := _frame_count_max != 0
 	if finish_on_skip:
 		_frame_count_max = 6
-	var press := TyrianText.L("misc_press_key")
-	await _out_char_glow(TyrianText.font_center(press, SMALL_FONT), 7 * 16 + 6 if warning_red else 184, press)
+	var press := _story_prompt()
+	await _out_char_glow(TyrianText.font_center(press, SMALL_FONT), 7 * 16 + 6 if _story_red() else 184, press)
+	if not _story_alive():
+		return
 	idle = true
 	_reset_story_input()
+	await _wait_text_completion(finish_on_skip)
+	idle = false
+	_warning_display = false
+
+
+func _wait_text_completion(finish_on_skip: bool) -> void:
 	if not Capture.active:
-		while is_inside_tree():
+		while _story_alive():
 			if _warning_display:
 				_update_warning()
 			await wait_units(1)
 			if _any_button() or (_frame_count_max == 0 and finish_on_skip):
 				break
-	idle = false
-	_warning_display = false
 
 
 ## mainint.c:JE_outCharGlow: each character lights up then falls back, a
 ## wave of 28 characters at a time (TINY_FONT, bank 14, 15 with `]@`, 7 in
 ## red); a key displays the rest at once.
 func _out_char_glow(x: int, y: int, s: String) -> void:
-	var bank := 7 if warning_red else (15 if use_last_bank else 14)
+	var bank := 7 if _story_red() else (15 if _story_bank() else 14)
 	if s.is_empty():
 		return
 	if _frame_count_max == 0:
@@ -255,7 +270,7 @@ func _out_char_glow(x: int, y: int, s: String) -> void:
 		elif ids[z] >= 0:
 			loc += vga.sprite_size(SMALL_FONT, ids[z]).x + 1
 	for l in n + 28:
-		if not is_inside_tree():
+		if not _story_alive():
 			return
 		var sprite_id := -1
 		for z in range(l - 28, l + 1):
@@ -288,7 +303,7 @@ func _wait_with_warning(units: int) -> void:
 	if _delay_next_ms < now - 4.0 * DELAY_PERIOD * 1000.0:
 		_delay_next_ms = now
 	_delay_next_ms += units * DELAY_PERIOD * 1000.0
-	while is_inside_tree():
+	while _story_alive():
 		if _warning_display:
 			_update_warning()
 		var left := (_delay_next_ms - Time.get_ticks_usec() / 1000.0) / 1000.0
@@ -340,7 +355,7 @@ func _episode_end(r: Dictionary) -> void:
 	_frame_count_max = 4
 	await _display_text(lines.slice(0, 14))
 	await fade_black(15)
-	if not is_inside_tree():
+	if not _story_alive():
 		return
 	# JE_nextEpisode.
 	Game.level_name = "Completed"
@@ -454,7 +469,7 @@ func play_credits() -> void:
 	# The C's setDelay(1) waits exactly 1 unit; here the deadline accumulates so that the
 	# engine's frame rate (14 ms at 70 fps) does not lengthen each tick.
 	var next_tick_ms := float(_now_ms())
-	while ticks < ticks_max and is_inside_tree():
+	while ticks < ticks_max and _story_alive():
 		next_tick_ms = maxf(next_tick_ms + DELAY_PERIOD * 1000.0, float(_now_ms()) - DELAY_PERIOD * 4000.0)
 		vga.clear(VGA_SCREEN, 0)
 		var size: Vector2i = vga.sprite_size(EXTRA_SHAPES, current_pic)
@@ -530,7 +545,7 @@ func play_credits() -> void:
 		present()
 		if Capture.active:
 			break
-		while float(_now_ms()) < next_tick_ms and is_inside_tree():
+		while float(_now_ms()) < next_tick_ms and _story_alive():
 			await get_tree().process_frame
 		if _any_button():
 			break
@@ -604,7 +619,7 @@ func _enter_name(score: int, p: int, two_p: bool, timed: bool, muts: int, mult: 
 	mouse_cursor = true
 	_name_keys.clear()
 	var quit := false
-	while not quit and is_inside_tree():
+	while not quit and _story_alive():
 		_name_redraw = false
 		var offset := _name_offset
 		if _touch_name:
@@ -654,7 +669,7 @@ func _enter_name(score: int, p: int, two_p: bool, timed: bool, muts: int, mult: 
 				)
 		# Blinking cursor until a key or a click.
 		var got := false
-		while not got and is_inside_tree():
+		while not got and _story_alive():
 			flash = 8 * 16 + 2 if flash == 8 * 16 + 10 else 8 * 16 + 10
 			TyrianText.out_text(self, 65, 89 + offset, _name_text, 8, 3)
 			var cx := 65 + TyrianText.width(_name_text, SMALL_FONT)
@@ -759,7 +774,7 @@ func _show_table(table: int, slot: int, timed: bool) -> void:
 
 ## fonthand.c:JE_outTextGlow (TINY_FONT, glow up to `brightness`).
 func _out_text_glow(x: int, y: int, s: String, brightness: int) -> void:
-	var c := 7 if warning_red else 15
+	var c := 7 if _story_red() else 15
 	for d in [[-1, 0], [0, -1], [1, 0], [0, 1]]:
 		TyrianText.out_text_adjust(self, x + d[0], y + d[1], s, 0, -12, SMALL_FONT, false)
 	if _frame_count_max > 0:
@@ -778,6 +793,30 @@ func _out_text_glow(x: int, y: int, s: String, brightness: int) -> void:
 
 
 # --- Inputs and utilities -------------------------------------------------------
+
+
+func _story_alive() -> bool:
+	return is_inside_tree()
+
+
+func _story_red() -> bool:
+	return warning_red
+
+
+func _set_story_red(value: bool) -> void:
+	warning_red = value
+
+
+func _story_bank() -> bool:
+	return use_last_bank
+
+
+func _set_story_bank(value: bool) -> void:
+	use_last_bank = value
+
+
+func _story_prompt() -> String:
+	return TyrianText.L("misc_press_key")
 
 
 ## Android keeps tap-anywhere but treats a drag as cancellation.
@@ -896,7 +935,7 @@ func _wait_any_button() -> void:
 	idle = true
 	_reset_story_input()
 	if not Capture.active:
-		while is_inside_tree() and not _any_button():
+		while _story_alive() and not _any_button():
 			await get_tree().process_frame
 	idle = false
 

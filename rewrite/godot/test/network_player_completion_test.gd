@@ -19,6 +19,13 @@ class Backend:
 	var ready_stages: Array[int] = []
 	var requests: Array[int] = []
 	var stopped := false
+	var bonus_context := false
+
+	func continuation_level_for_view() -> Dictionary:
+		return {"bonus": true} if bonus_context else {}
+
+	func bonus_completion_for_view() -> bool:
+		return matched and bonus_context
 
 	func simulation_for_view() -> Node:
 		return null if stopped else native
@@ -231,6 +238,23 @@ func test_all_dead_result_exits_after_agreement_without_opening_successful_debri
 	view.backend.changed.emit()
 	assert_array(view.controller.reasons).is_equal(["game_over"])
 	assert_object(view.get("_debrief")).is_null()
+
+
+func test_agreed_bonus_source_opens_original_statistics_even_without_survivors() -> void:
+	for role in [1, 2]:
+		var view := _view(role, false)
+		var backend: Node = view.backend
+		backend.bonus_context = true
+		view._begin_completion()
+		assert_object(view.get("_debrief")).is_null()
+		backend.matched = true
+		backend.changed.emit()
+		var screen: Node = view.get("_debrief")
+		assert_object(screen).is_not_null()
+		assert_bool(backend.stopped).is_false()
+		assert_array(view.controller.reasons).is_empty()
+		if screen != null:
+			assert_bool(await _wait(func(): return screen.idle)).is_true()
 
 
 func test_focus_loss_during_result_wait_stops_backend_and_detaches_borrowed_native() -> void:
