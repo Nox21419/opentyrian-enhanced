@@ -2840,3 +2840,104 @@ effects without skipping autosave, retry, score/profile or episode-finalization
 owners. The selected presentation direction persists for that work; it need not
 be requested again. Story transport, live story routing and episode-finalization
 effects are not implemented by this detached view.
+
+### Story page agreement plan (2026-11-26)
+
+The preceding checkpoint was pushed as `8549efd`. Add a pure story descriptor
+shared by the view and coordinator: copied bounded script, agreed source proposal,
+normalized session warning/bank context, and explicit locally supplied entry-frame
+digest. The backend requires a real digest from its presentation owner; the
+standalone view may retain an explicitly unspecified background for tests, which
+is not network authorization. Match descriptors/page digests, not localized pixels.
+
+Add fixed 68-byte STORY_READY, STORY_ADVANCE and STORY_DONE controls. Keep the
+existing maximum packet size, sender binding and session/epoch/final-tick checks.
+Pack decision 1/2 in the sequence's high 16 bits and page 1..128 in its low bits;
+reserve low value 129 for completion. Each peer reports local rendering readiness.
+Only the host requests advance; an early host request waits for the guest's
+readiness. Only matching ready records permit host commit. Both finish digests
+must agree on the final view context before accepting it for another script.
+
+Use bounded duplicate history, reject conflicts/skipped/future controls, and
+ignore stale sessions/epochs. Allow one early page-1 Ready per committed decision
+while the local owner prepares its independent background/descriptor, retaining
+the first timestamp. Rendering/readiness has a 180-second limit to accommodate
+original long story animation/text; both-ready human waits have no timeout.
+Final completion exchange has a 30-second limit. Duplicates never extend either.
+
+Expose explicit backend preparation, descriptor query, ready/request/finish and
+commit-query APIs after agreed continuation and final fades. Retain the stopped
+native owner and verify final result/core/content around operations. Block load
+or decision-2 progression while a prepared story is incomplete; keep existing
+next-request story/autosave refusals even after page completion, because effect
+consumption and live routing are not authorized by a digest alone. Preserve story
+context across level adoption but reset bounded per-level story histories.
+
+Test codec exact sizes/roles, staggered readiness, queued host requests, mismatch,
+deadline/idempotence, stale controls, final contexts, the original view's matching
+descriptors, and real ENet with independent locally prepared descriptors and an
+unchanged ended native node. No new layout choice is needed; the approved
+original screens on both phones with host advance remains the selected design.
+
+### Story page agreement checkpoint (2026-11-26)
+
+Implemented `network_story_script.gd` descriptors and `network_story_pages.gd`
+coordination, plus explicit backend APIs. The original story view and coordinator
+now share the same descriptor/page hashes, including source proposal, copied
+script, normalized warning/bank context and the presentation owner's entry-frame
+digest. The backend requires an explicit 64-digit digest; measuring/preparing
+that frame is the future live owner's responsibility. The standalone view's
+unspecified-background mode does not authorize a backend story.
+
+STORY_READY (16), STORY_ADVANCE (17, host-only) and STORY_DONE (18) are exact
+68-byte controls. Sequence packs decision 1/2 in the high 16 bits and page
+1..128 in the low bits, with 129 reserved for DONE. Both local and remote ready
+digests are required before a host commit. Host requests can wait for a slower
+guest; both-ready human waits have no deadline. Rendering readiness has a
+180-second limit and finish exchange a 30-second limit. Conflicting/duplicate,
+skipped, premature and future controls are checked against bounded history;
+duplicates cannot extend deadlines. Stale sessions/epochs are ignored.
+
+`prepare_story`, copied `story_for_view`, `mark_story_ready`, host-only
+`request_story_advance`, `story_committed_page`, `mark_story_finished` and
+completion/receipt/context queries operate after committed continuation/final
+fades. One early page-1 Ready may wait for independent local preparation, with
+its original timestamp retained. A later decision cannot bind story context
+before a prior nonempty story completes. Load and decision-2 progression are
+blocked while a prepared/early story is pending. Both finish digests must agree
+before the session accepts final context. Native state is reverified but never
+stepped by these APIs. Stop/failure clears state; native adoption clears bounded
+per-level histories while retaining the session story context.
+
+Validation:
+
+- The final coordinator/codec/view run passed 19 cases with actual process exit
+  0 and no errors, failures, skips or orphans. It covers staggered readiness,
+  queued host requests, both-ready human waits, duplicate/deadline behavior,
+  source/script/context/background mismatches, final-context agreement and
+  timeout, sender/sequence/size rejection, copied descriptors, stale contexts,
+  cross-decision ordering and existing original-renderer/cancellation behavior.
+- Both focused real-ENet cases passed with actual process exit 0, including the
+  final rerun after the cross-decision/early-control checks were tightened. They
+  verify early Ready timestamp retention, duplicate controls without repeating
+  filesystem verification, matching independent descriptors/view binding,
+  host-only advance, both finishes, copied receipts, mismatch cleanup and
+  unchanged ended native identities/ticks/diagnostics. The positive case resumes
+  after Pause at epoch 2. It also proves that page completion alone still cannot
+  bypass the next-level builder's unconsumed-story refusal.
+- The ENet harness uses a controlled story-stop candidate after natural terminal
+  completion and manually supplied presentation-ready/finish calls. It does not
+  claim live story scenes or a naturally won multi-level/physical-phone journey.
+  Prior inherited ENet regressions were excluded from these focused commands.
+- All seven changed/new GDScript files pass formatter/linter checks and
+  `git diff --check` passes. Initial discovery/fixture issues (a reserved native
+  class name and an incorrectly sized fixture hash) were corrected before final
+  runs. No native rebuild, APK, device run or exported Linux journey/smoke gate
+  is claimed. Clean exits do not prove the historical shutdown issue is fixed.
+
+Live story scene routing remains unconnected. Next give the original story view
+a session-owned presentation owner that prepares its entry frame/context,
+connects ready/request/commit/finish signals and produces a verified effect
+receipt. Then account for that receipt in next-level requests without silently
+dropping story, autosave, retry, score/profile or episode-finalization effects.
+The selected original-screens-on-both/host-advance direction remains approved.

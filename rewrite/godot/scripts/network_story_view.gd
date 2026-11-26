@@ -1,14 +1,15 @@
 ## Detached original story presentation. Caller owns agreement/transport/effects.
 extends "res://scripts/story_screens.gd"
 
+const StoryData := preload("res://scripts/network_story_script.gd")
 const Config := preload("res://scripts/network_configuration.gd")
-const Result := preload("res://scripts/network_level_result.gd")
 const MAX_PAGES := 128
 signal page_ready(page: int, digest: String)
 signal advance_requested(page: int, digest: String)
 signal finished(source: String)
 var error := ""
 var _script := {}
+var _descriptor := {}
 var _source := ""
 var _role := 0
 var _page := 0
@@ -23,29 +24,16 @@ var _local_bank := false
 
 ## The caller must have independently derived/agreed this script, not decoded it
 ## from an untrusted peer. This binding itself grants no network authorization.
-func bind_script(script: Dictionary, source: String, role: int, context := {}) -> bool:
+func bind_script(script: Dictionary, source: String, role: int, context := {}, background := "") -> bool:
 	if is_inside_tree() or not _script.is_empty() or not Config.hex_string(source, 64) or role not in [1, 2]:
 		return false
-	if script.get("stop") not in ["level", "shop"] or script.has("mini_game") or script.get("autosave", false) != false:
+	if not StoryData.valid_script(script):
 		return false
-	var pages: Variant = script.get("screens")
-	if not pages is Array or pages.size() > MAX_PAGES:
-		return false
-	for page in pages:
-		if not page is Dictionary or page.size() != 2 or not page.get("directive") is String:
-			return false
-		var directive: String = page.directive
-		if directive.length() < 2 or directive.length() > 128 or directive[1] not in "M@PUVRCBFAW":
-			return false
-		if not page.get("text") is PackedStringArray or page.text.size() > 128:
-			return false
-		for line in page.text:
-			if line.to_utf8_buffer().size() > 2048:
-				return false
 	for key in context:
 		if key not in ["warning_red", "use_last_bank"] or not context[key] is bool:
 			return false
-	if Result.canonical_bytes(script).is_empty():
+	_descriptor = StoryData.prepare(script, source, context, background)
+	if _descriptor.is_empty():
 		return false
 	_script = script.duplicate(true)
 	_source = source
@@ -58,13 +46,12 @@ func context_state() -> Dictionary:
 	return {"warning_red": _local_red, "use_last_bank": _local_bank}
 
 
+func presentation_descriptor() -> Dictionary:
+	return _descriptor.duplicate(true)
+
+
 func page_digest(page: int) -> String:
-	if _script.is_empty() or page < 1 or page > _script.screens.size():
-		return ""
-	var hash := HashingContext.new()
-	hash.start(HashingContext.HASH_SHA256)
-	hash.update(Result.canonical_bytes({"source": _source, "script": _script, "page": page}))
-	return hash.finish().hex_encode()
+	return StoryData.page_digest(_descriptor, page)
 
 
 func commit_page(page: int, digest: String) -> bool:

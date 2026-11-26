@@ -13,6 +13,8 @@ const Continuation := preload("res://scripts/network_continuation.gd")
 const CampaignCursor := preload("res://scripts/network_campaign_cursor.gd")
 const LevelLoad := preload("res://scripts/network_level_load.gd")
 const Next := preload("res://scripts/network_next_level.gd")
+const StoryScript := preload("res://scripts/network_story_script.gd")
+const StoryPages := preload("res://scripts/network_story_pages.gd")
 var _runner := Runner.new()
 var _activated := false
 var _view_local := false
@@ -31,6 +33,11 @@ var _active_request := {}
 var _view_borrows := {}
 var _pending_view_ready := false
 var _awaiting_new_views := false
+var _story_pages := {}
+var _story_descriptors := {}
+var _story_early := {}
+var _story_receipts := {}
+var _story_context := {"warning_red": false, "use_last_bank": false}
 
 
 func _ready() -> void:
@@ -39,6 +46,7 @@ func _ready() -> void:
 
 
 func stop() -> void:
+	_clear_stories(true)
 	_active_context.clear()
 	_active_request.clear()
 	_view_borrows.clear()
@@ -219,6 +227,7 @@ func adopt_next_level() -> bool:
 	_awaiting_new_views = true
 	_clear_pending_load()
 	previous.clear()
+	_clear_stories(false)
 	changed.emit()
 	return running()
 
@@ -321,6 +330,142 @@ func _process(_delta: float) -> void:
 			_fail(_continuation.error)
 	if running() and not _level_load.poll(Time.get_ticks_msec()):
 		_fail(_level_load.error)
+	if running():
+		for story in _story_pages.values():
+			if not story.poll(Time.get_ticks_msec()):
+				_fail(story.error)
+				return
+		for early in _story_early.values():
+			if Time.get_ticks_msec() >= early.time + StoryPages.RENDER_TIMEOUT_MS:
+				_fail("story_timeout")
+				return
+
+
+## Explicit independent preparation. The presentation owner supplies its own
+## entry-frame hash; no peer-provided pixels or script objects are accepted.
+func prepare_story(sequence: int, background: String) -> bool:
+	if not Config.hex_string(background, 64) or _load_sequence != 0 or not _verify_continuation_state():
+		return false
+	var candidate := committed_continuation(sequence)
+	if candidate.is_empty() or candidate.get("kind") not in ["level", "shop"]:
+		return false
+	if _story_descriptors.has(sequence):
+		var saved: Dictionary = _story_descriptors[sequence]
+		return (
+			true
+			if saved.source == candidate.digest and saved.background == background
+			else _fail("changed_story_descriptor")
+		)
+	if not _story_order_ready(sequence):
+		return false
+	var descriptor := StoryScript.prepare(candidate.script, candidate.digest, _story_context, background)
+	if descriptor.is_empty() or descriptor.pages.is_empty():
+		return false
+	var context := _gameplay_context()
+	var pages := StoryPages.new()
+	if not pages.configure(context.session, _pause.epoch, context.player, ticks_executed(), sequence, descriptor):
+		return _fail(pages.error)
+	_story_pages[sequence] = pages
+	_story_descriptors[sequence] = descriptor
+	if _story_early.has(sequence):
+		var early: Dictionary = _story_early[sequence]
+		_story_early.erase(sequence)
+		if not pages.receive(early.message, early.time):
+			return _fail(pages.error)
+	return _settle_story(sequence)
+
+
+func story_for_view(sequence: int) -> Dictionary:
+	return _story_descriptors.get(sequence, {}).duplicate(true) if running() else {}
+
+
+func story_committed_page(sequence: int) -> int:
+	return _story_pages[sequence].committed_page() if running() and _story_pages.has(sequence) else 0
+
+
+func story_complete(sequence: int) -> bool:
+	return running() and _story_pages.has(sequence) and _story_pages[sequence].complete()
+
+
+func story_receipt(sequence: int) -> Dictionary:
+	return _story_receipts.get(sequence, {}).duplicate(true) if story_complete(sequence) else {}
+
+
+func story_context() -> Dictionary:
+	return _story_context.duplicate() if running() else {}
+
+
+func mark_story_ready(sequence: int, page: int, digest: String) -> bool:
+	if not _story_pages.has(sequence) or not _verify_continuation_state():
+		return false
+	var pages: RefCounted = _story_pages[sequence]
+	return _settle_story(sequence) if pages.ready(page, digest, Time.get_ticks_msec()) else _fail(pages.error)
+
+
+func request_story_advance(sequence: int, page: int, digest: String) -> bool:
+	if player_for_view() != 1 or not _story_pages.has(sequence) or not _verify_continuation_state():
+		return false
+	var pages: RefCounted = _story_pages[sequence]
+	if not pages.request_advance(page, digest, Time.get_ticks_msec()):
+		return false if pages.error.is_empty() else _fail(pages.error)
+	return _settle_story(sequence)
+
+
+func mark_story_finished(sequence: int, context: Dictionary) -> bool:
+	if not _story_pages.has(sequence) or not _verify_continuation_state():
+		return false
+	var pages: RefCounted = _story_pages[sequence]
+	return _settle_story(sequence) if pages.finish(context, Time.get_ticks_msec()) else _fail(pages.error)
+
+
+func _settle_story(sequence: int) -> bool:
+	var pages: RefCounted = _story_pages[sequence]
+	if not pages.poll(Time.get_ticks_msec()):
+		return _fail(pages.error)
+	for message in pages.take_messages():
+		if _connection.transport.send_packet(Wire.encode(message)) != OK:
+			return _fail("story_send_failed")
+	if pages.complete() and not _story_receipts.has(sequence):
+		_story_context = pages.final_context()
+		var descriptor: Dictionary = _story_descriptors[sequence]
+		var receipt := {
+			"source": descriptor.source,
+			"presentation": descriptor.digest,
+			"context": _story_context.duplicate(),
+			"pages": descriptor.pages.size()
+		}
+		receipt["digest"] = StoryScript.digest(receipt)
+		_story_receipts[sequence] = receipt
+	changed.emit()
+	return running()
+
+
+func _story_pending() -> bool:
+	if not _story_early.is_empty():
+		return true
+	for pages in _story_pages.values():
+		if not pages.complete():
+			return true
+	return false
+
+
+func _story_order_ready(sequence: int) -> bool:
+	if sequence == 1:
+		return not _story_pages.has(2) and not _story_early.has(2)
+	var first := committed_continuation(1)
+	if first.is_empty():
+		return false
+	var screens: Array = first.get("script", {}).get("screens", [])
+	return screens.is_empty() or story_complete(1)
+
+
+func _clear_stories(reset_context: bool) -> void:
+	_story_pages.clear()
+	_story_descriptors.clear()
+	_story_early.clear()
+	_story_receipts.clear()
+	if reset_context:
+		_story_context = {"warning_red": false, "use_last_bank": false}
 
 
 ## Explicit backend-only load offer. Does not replace the runner or its owner.
@@ -358,6 +503,8 @@ func commit_next_level_load() -> bool:
 
 
 func _load_context(sequence: int) -> bool:
+	if _story_pending():
+		return false
 	if not _verify_continuation_state():
 		return false
 	var candidate := committed_continuation(sequence)
@@ -441,6 +588,8 @@ func prepare_continuation(sequence := 1) -> bool:
 
 
 func propose_continuation(sequence := 1) -> bool:
+	if sequence == 2 and _story_pending():
+		return false
 	if player_for_view() != 1 or not prepare_continuation(sequence):
 		return false
 	if not _continuation.propose(sequence, Time.get_ticks_msec()):
@@ -650,6 +799,12 @@ func _receive_input(packet: PackedByteArray) -> void:
 			return
 	if (
 		packet.size() >= Wire.HEADER_BYTES
+		and int(packet[6]) in [Wire.Kind.STORY_READY, Wire.Kind.STORY_ADVANCE, Wire.Kind.STORY_DONE]
+	):
+		_receive_story(packet)
+		return
+	if (
+		packet.size() >= Wire.HEADER_BYTES
 		and int(packet[6]) in [Wire.Kind.LOAD_SEED, Wire.Kind.LOAD_READY, Wire.Kind.LOAD_ACTIVATE]
 	):
 		_receive_load(packet)
@@ -728,6 +883,9 @@ func _receive_continuation(packet: PackedByteArray) -> void:
 	if message.epoch != _pause.epoch:
 		_fail("future_continuation_epoch")
 		return
+	if message.sequence == 2 and _story_pending():
+		_fail("continuation_before_story")
+		return
 	if _continuation.has_seen_control(message):
 		if not _continuation.receive(message, Time.get_ticks_msec()):
 			_fail(_continuation.error)
@@ -796,7 +954,56 @@ func _stage_next_view_ready(packet: PackedByteArray) -> void:
 	_pending_view_ready = true
 
 
+func _receive_story(packet: PackedByteArray) -> void:
+	var context := _gameplay_context()
+	var message := Wire.decode(packet, packet.slice(8, 24).hex_encode(), packet.decode_u32(24), 3 - context.player)
+	if message.is_empty():
+		_fail("invalid_story_message")
+		return
+	if message.session != context.session or message.epoch < _pause.epoch:
+		return
+	if message.epoch != _pause.epoch:
+		_fail("future_story_epoch")
+		return
+	var sequence: int = message.sequence >> 16
+	if _story_pages.has(sequence):
+		var pages: RefCounted = _story_pages[sequence]
+		if not pages.has_seen_control(message) and not _verify_continuation_state():
+			return
+		if not pages.receive(message, Time.get_ticks_msec()):
+			_fail(pages.error)
+			return
+		_settle_story(sequence)
+		return
+	if _story_early.has(sequence):
+		if _story_early[sequence].message != message:
+			_fail("conflicting_early_story")
+		return
+	if not _verify_continuation_state():
+		if running():
+			_fail("story_before_completion")
+		return
+	var candidate := committed_continuation(sequence)
+	if (
+		candidate.is_empty()
+		or candidate.get("kind") not in ["level", "shop"]
+		or not StoryScript.valid_script(candidate.get("script", {}))
+		or candidate.script.screens.is_empty()
+		or message.kind != Wire.Kind.STORY_READY
+		or message.sequence & 0xffff != 1
+		or message.tick != ticks_executed()
+		or _load_sequence != 0
+	):
+		_fail("story_before_preparation")
+		return
+	if not _story_order_ready(sequence):
+		_fail("story_before_previous_completion")
+		return
+	_story_early[sequence] = {"message": message.duplicate(true), "time": Time.get_ticks_msec()}
+
+
 func _fail(reason: String) -> bool:
+	_clear_stories(true)
 	_active_context.clear()
 	_active_request.clear()
 	_view_borrows.clear()

@@ -17,7 +17,10 @@ enum Kind {
 	CONTINUATION_COMMIT,
 	LOAD_SEED,
 	LOAD_READY,
-	LOAD_ACTIVATE
+	LOAD_ACTIVATE,
+	STORY_READY,
+	STORY_ADVANCE,
+	STORY_DONE
 }
 enum Pause { REQUEST_PAUSE, COMMIT_PAUSE, REQUEST_RESUME, COMMIT_RESUME }
 enum Leave { QUIT, TIMEOUT, DESYNC, INCOMPATIBLE, PROTOCOL_ERROR }
@@ -55,7 +58,7 @@ static func valid_frame(frame: Variant) -> bool:
 
 
 static func valid_message(message: Variant) -> bool:
-	if not message is Dictionary or not _integer(message.get("kind"), Kind.INPUT, Kind.LOAD_ACTIVATE):
+	if not message is Dictionary or not _integer(message.get("kind"), Kind.INPUT, Kind.STORY_DONE):
 		return false
 	var extra := "frame" if message.kind == Kind.INPUT else "digest"
 	if message.kind == Kind.LOAD_SEED:
@@ -115,6 +118,15 @@ static func valid_message(message: Variant) -> bool:
 			if not _integer(message.action, Pause.REQUEST_PAUSE, Pause.COMMIT_RESUME):
 				return false
 			return message.player == 1 or message.action in [Pause.REQUEST_PAUSE, Pause.REQUEST_RESUME]
+		Kind.STORY_READY, Kind.STORY_ADVANCE, Kind.STORY_DONE:
+			var decision: int = message.sequence >> 16
+			var page: int = message.sequence & 0xffff
+			return (
+				decision in [1, 2]
+				and (page == 129 if message.kind == Kind.STORY_DONE else page >= 1 and page <= 128)
+				and _hex(message.digest, 64)
+				and (message.kind != Kind.STORY_ADVANCE or message.player == 1)
+			)
 		Kind.LEAVE:
 			return _integer(message.reason, Leave.QUIT, Leave.PROTOCOL_ERROR)
 	return false
@@ -213,7 +225,7 @@ static func _packet_size(kind: int) -> int:
 			return 44
 		Kind.PAUSE, Kind.LEAVE:
 			return 37
-	return 68 if kind >= Kind.STATE and kind <= Kind.LOAD_ACTIVATE else 0
+	return 68 if kind >= Kind.STATE and kind <= Kind.STORY_DONE else 0
 
 
 static func _fields(value: Variant, fields: Array) -> bool:
