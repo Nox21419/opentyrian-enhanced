@@ -14,7 +14,8 @@ const PLAYER_SCENE := "res://scenes/network_player.tscn"
 const LOBBY_SCENE := "res://scenes/network_lobby.tscn"
 const ARCADE_SCENE := "res://scenes/network_arcade_menu.tscn"
 const STORY_SCENE := "res://scenes/network_story_owner.tscn"
-enum Progress { NONE, DECIDING, ARCADE, CHOOSING, LOADING, ADOPTING, STORY }
+const ENDING_SCENE := "res://scenes/network_episode_score_owner.tscn"
+enum Progress { NONE, DECIDING, ARCADE, CHOOSING, LOADING, ADOPTING, STORY, ENDING_WAIT }
 
 var lobby := Lobby.new()
 var selected_episode := 0
@@ -444,7 +445,10 @@ func _drive_progress() -> void:
 	if (
 		not is_instance_valid(_player_scene)
 		and current != null
-		and current.scene_file_path not in [ARCADE_SCENE, LOBBY_SCENE, STORY_SCENE, "res://scenes/network_options.tscn"]
+		and (
+			current.scene_file_path
+			not in [ARCADE_SCENE, LOBBY_SCENE, STORY_SCENE, ENDING_SCENE, "res://scenes/network_options.tscn"]
+		)
 	):
 		stop()
 		last_player_exit = "continuation_scene_replaced"
@@ -480,15 +484,19 @@ func _drive_progress() -> void:
 				return
 			_progress_candidate = backend.committed_continuation(2)
 			_route_candidate(2)
-		Progress.STORY:
+		Progress.STORY, Progress.ENDING_WAIT:
 			if not is_instance_valid(_story_scene) or current != _story_scene:
 				stop()
 				last_player_exit = "continuation_scene_replaced"
 				return
-			if _story_done and backend.story_complete(_story_sequence):
+			if _progress == Progress.STORY and _story_done and backend.story_complete(_story_sequence):
 				var next := _story_after
-				_release_story()
-				_enter_progress(next)
+				if next == Progress.ENDING_WAIT:
+					_progress = next
+					last_player_exit = "episode_score_agreed"
+				else:
+					_release_story()
+					_enter_progress(next)
 		Progress.LOADING:
 			var sequence: int = _progress_candidate.get("sequence", 0)
 			if lobby.hosting and not _progress_loading:
@@ -510,6 +518,12 @@ func _drive_progress() -> void:
 func _route_candidate(sequence: int) -> void:
 	var kind: String = _progress_candidate.get("kind", "")
 	var script: Variant = _progress_candidate.get("script")
+	if kind == "episode_end":
+		if not script is Dictionary or script.get("stop") != "episode_end":
+			_end_progress("unsupported_continuation_ending")
+		else:
+			_open_story(sequence, Progress.ENDING_WAIT, ENDING_SCENE)
+		return
 	if kind not in ["shop", "level"] or (sequence == 2 and kind != "level") or not script is Dictionary:
 		_end_progress("unsupported_continuation_route")
 		return
@@ -524,6 +538,14 @@ func _route_candidate(sequence: int) -> void:
 	if not StoryData.valid_script(script):
 		_end_progress("unsupported_continuation_story")
 		return
+	_open_story(sequence, next, STORY_SCENE)
+
+
+func ending_checkpoint() -> bool:
+	return continuing and _progress == Progress.ENDING_WAIT
+
+
+func _open_story(sequence: int, next: int, path: String) -> void:
 	_progress = Progress.STORY
 	_story_sequence = sequence
 	_story_after = next
@@ -532,7 +554,7 @@ func _route_candidate(sequence: int) -> void:
 	var previous: Node = current_scene.call()
 	if previous != null and previous.scene_file_path == LOBBY_SCENE:
 		previous.set("_handoff", true)
-	if scene_change.call(STORY_SCENE, _prepare_story) == null:
+	if scene_change.call(path, _prepare_story) == null:
 		_end_progress("continuation_story_failed")
 
 

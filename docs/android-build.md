@@ -31,7 +31,12 @@ returns to the lobby. The 2026-11-26 source connects supported shop/direct-level
 continuation to the host's original Arcade menu, guest waiting lobby and fresh
 level adoption. Supported story scripts now use the original screens on both
 phones, with host advance and both-phone completion before the shop or next
-level. Remaining campaign routes, naturally won multi-level journeys,
+level. Episode-end candidates now enter the original pre-ending and score/hint
+view on both phones, with host advance and both post-fade finishes. This source
+checkpoint holds the original black post-fade view; Back can leave. Profile,
+high-score, credits/reward and next-episode owners are still pending, so this is
+not a complete playable ending. Remaining campaign routes, naturally won
+multi-level journeys,
 phone verification and internet bootstrap remain pending; see the
 [live continuation checkpoint](network-coop.md#live-continuation-checkpoint-2026-11-26).
 Both roles and Normal/Turbo pacing pass desktop source tests with an injected
@@ -39,8 +44,8 @@ Android platform check. Actual two-phone validation and a new APK handover
 remain pending; a successful cross-compile is not a device-play result.
 The approved original two-player debrief/Statistics is now wired into the source
 player flow on both phones, with host-only advance after result agreement. Both
-final fades finish before returning to the lobby. This remains a first-level
-prototype; campaign continuation and successful device journeys remain pending.
+final fades finish before agreed continuation. This remains a LAN prototype;
+remaining campaign routes and successful device journeys remain pending.
 Episode Select keeps its original five labels and placement, adds Back and
 wider touch areas, and activates a choice on release. Difficulty Select uses
 the same release-to-select adaptation with Back to Episode or Timed Battle.

@@ -14,6 +14,7 @@ class Backend:
 	var stopped := false
 	var sequence := 0
 	var kind := "shop"
+	var second_kind := "level"
 	var proposals := []
 	var loaded := false
 	var committed := false
@@ -54,7 +55,7 @@ class Backend:
 	func committed_continuation(value: int) -> Dictionary:
 		return {
 			"sequence": value,
-			"kind": kind if value == 1 else "level",
+			"kind": kind if value == 1 else second_kind,
 			"script": metadata.duplicate(true),
 			"earned": {"cash": 1200, "cash2": 2400}
 		}

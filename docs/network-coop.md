@@ -3191,7 +3191,7 @@ ENet to bind the new view to independently prepared backend descriptors and veri
 both ready/host advance/both finishes without native changes or ending effects.
 The detached view and protocol checkpoint does not yet add a live campaign route.
 
-### Detached original ending score/hint checkpoint (2026-11-26, working tree)
+### Detached original ending score/hint checkpoint (2026-11-26, `aab58d5`)
 
 `network_episode_score.gd` builds a validated presentation envelope containing the
 unchanged pre-ending screens plus a final context-neutral marker. Its shared
@@ -3244,3 +3244,77 @@ Next add session-owned entry/cleanup for this ending view and a guarded live
 handoff that stops at its agreed finish until later ending owners are available.
 Do not use presentation completion to skip high-score/profile handling, credits,
 reward decisions, campaign-history adoption or next-episode loading.
+
+### Live ending-score entry/ownership plan (2026-11-26)
+
+Add an ending-score scene owner using the existing story owner's guarded entry,
+measured common entry surface, page signal routing, both-finish notification and
+release/disconnect behavior. Extract small proposal/preparation hooks from that
+owner, retaining level/shop defaults. The ending subclass accepts a committed
+episode-end proposal, explicitly prepares the validated ending-score descriptor,
+and uses the original score renderer and final fade. Do not duplicate transport
+or add local campaign hooks. Keep the selected original-screens-on-both and
+host-advance direction; this is the same approved score/hint screen.
+
+Route committed episode-end candidates in either decision slot to this scene
+through the existing deferred session/generation/scene-identity checks. Preserve
+the old native owner. After local post-fade finish and both-peer agreement, hold
+the original black post-fade surface in an explicit ending checkpoint, with no
+native adoption, next-level request or profile/reward writes. Retain the owner
+and connection there so a faster peer cannot close transport before the other
+receives its finish. Back from either phone after local finish leaves through a
+single deferred failure signal; guest Back during presentation keeps its current
+leave behavior. Focus loss, disconnect and external scene replacement use the
+existing checked cleanup and must not revive stale scenes.
+
+Test session route/hold gates, no load/adoption, pending peer finish, Back,
+focus/disconnect, replacement and stale callbacks. Test owner entry cancellation
+and reuse the original story-owner regressions. Use real ENet/session drivers and
+both original ending owners for measured entry preparation, host-only page
+advance, both finishes and retained native identity/ticks/diagnostics. Test one
+peer leaving the held checkpoint and cleanup on the other. Keep the fixture's
+controlled successful route and accelerated animation waits explicit. This is
+an intermediate source checkpoint, not a playable complete episode ending or APK
+handover; later high-score/profile/credits/reward/next-episode owners remain needed.
+
+### Live ending-score ownership checkpoint (2026-11-26, working tree)
+
+`network_episode_score_owner.gd` now reuses the live story owner's measured common
+entry, guarded fade, page routing, both-finish signal and release behavior through
+two small proposal/preparation hooks. Level/shop defaults remain intact. The
+ending subclass explicitly prepares the validated score envelope, preserves raw
+pre-ending rendering and the original score/final fade, and permits either phone
+to leave with Back after local finish, including during the held checkpoint.
+
+`network_session.gd` routes episode-end proposals in either decision slot to the
+new scene using the existing deferred identity/generation checks. Only local
+post-fade finish plus both-peer agreement enters `ENDING_WAIT`. The original
+black post-fade surface, scene owner, backend and ended native simulation remain
+owned there; there is no next-level load/adoption or finalization write. A faster
+phone does not close the connection while its peer is still receiving finish.
+Back, focus loss and disconnect release the owner before backend destruction and
+return to the lobby; external replacement is preserved and stale signals cannot
+revive a scene. This is deliberately an intermediate source checkpoint, not a
+complete playable ending: later ending effects and screens remain outstanding.
+
+Validation: all 18 ending-owner/session-flow and inherited story-owner/flow cases
+passed with process exit 0. They cover both continuation slots, local-vs-peer
+finish gates, retained ownership/no load, Back after finish on either role,
+entry cancellation, focus/replacement cleanup and stale signals. The real ENet
+ending-owner/session-driver case passed with exit 0: both measured entry
+descriptors match, guest input cannot advance, both post-fade finishes reach the
+held checkpoint, native identities/ticks/diagnostics stay unchanged, and guest
+Back returns both drivers to the lobby and releases both native owners. The
+existing live shop/story/fresh-adoption ENet regression also passed its assertions,
+then its process hit the known Windows shutdown access violation `0xC0000005`.
+The defect remains unresolved. Neither final log reports script/runtime errors
+before shutdown.
+
+These ENet journeys use controlled successful-route candidates after native
+terminal completion and accelerated animation waits, not naturally won episodes,
+physical phones or independently verified wall-clock animation timing. Seven new/
+changed GDScript files pass format/lint checks and `git diff --check` passes.
+No native rebuild, APK/build handover or exported Linux journey/smoke gate is
+claimed. Next give the post-score ending effects their own verified owners before
+allowing this held checkpoint to advance; it cannot be treated as full campaign
+completion or permission to skip those effects.

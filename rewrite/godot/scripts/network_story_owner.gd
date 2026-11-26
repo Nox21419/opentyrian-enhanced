@@ -18,9 +18,7 @@ func bind(connection: Node, decision: int) -> bool:
 	if not is_instance_valid(connection) or not connection.running():
 		return false
 	var proposal: Dictionary = connection.committed_continuation(decision)
-	if not proposal.get("script") is Dictionary or not StoryData.valid_script(proposal.script):
-		return false
-	if proposal.script.screens.is_empty() or proposal.get("kind") not in ["level", "shop"]:
+	if not _accept_proposal(proposal):
 		return false
 	_connection = connection
 	_decision = decision
@@ -31,6 +29,19 @@ func bind(connection: Node, decision: int) -> bool:
 	finished.connect(_finished_locally)
 	_connection.changed.connect(_sync)
 	return _role in [1, 2]
+
+
+func _accept_proposal(proposal: Dictionary) -> bool:
+	return (
+		proposal.get("script") is Dictionary
+		and StoryData.valid_script(proposal.script)
+		and not proposal.script.screens.is_empty()
+		and proposal.get("kind") in ["level", "shop"]
+	)
+
+
+func _prepare_presentation(background: String) -> bool:
+	return _connection.prepare_story(_decision, background)
 
 
 func _run() -> void:
@@ -50,7 +61,7 @@ func _run() -> void:
 	hash.update(vga.image(VGA_SCREEN).get_data())
 	var background := hash.finish().hex_encode()
 	present()
-	if not _connection.prepare_story(_decision, background):
+	if not _prepare_presentation(background):
 		_abort("story_preparation_failed")
 		return
 	var descriptor: Dictionary = _connection.story_for_view(_decision)
