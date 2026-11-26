@@ -3003,7 +3003,7 @@ candidate following a native terminal run, not a naturally won campaign. GDScrip
 format/lint and `git diff --check` passed. No APK handover or exported Linux
 package journey/smoke gate was run for this `main` working-tree checkpoint.
 
-### Live story scene checkpoint (2026-11-26, working tree)
+### Live story scene checkpoint (2026-11-26, `c971dc3`)
 
 `network_story_owner.gd` now binds the original network story renderer to a
 committed continuation decision. After the old scene detaches, a guarded original
@@ -3042,3 +3042,63 @@ errors were corrected before the final runs. Earlier owner/combined runs also
 hit the existing Windows shutdown access violation after their assertions; the
 clean final exits do not establish that it is fixed. No APK handover or exported
 Linux journey/smoke gate was run for this `main` working-tree checkpoint.
+
+### Episode-ending ownership plan (2026-11-26)
+
+The next checkpoint is a detached, read-only ending plan, not execution of the
+local `_episode_end` routine. That routine reads local Game state, draws a random
+hint, writes Completed names/achievements/high scores, may play credits and draw
+a random SuperCarrot reward, changes episode and invokes local campaign loading.
+Calling it from either network view would bypass session ownership/agreement.
+
+Add a pure planner bound to the agreed configuration/result/proposal and explicit
+campaign history (initial episode and repeated flag). Validate the native
+episode-end script, bounded hint blocks and existing story directive grammar,
+preserving the raw script and signed cash bit patterns. Record the two-player
+presentation sequence and outstanding effects: score/hint, pre-ending story,
+completion/profile writes, conditional high-score eligibility, credits/reward
+on wrap, next-episode announcement and section-1 continuation. Keep random
+selection explicitly unresolved; no RNG draw, reward assignment, profile/save
+write, Game mutation or next-episode load is allowed in this checkpoint.
+
+Expose a backend query only after final completion/phase agreement and committed
+episode-end continuation. Obtain configuration, result and initial history from
+owned session state, verify the ended native/content boundary, and return a fresh
+copy. Validate plan lineage/digests and reject altered or malformed data. Test
+native ending scripts for all five episodes, wrap/credits/high-score conditions,
+full unsigned cash bits, explicit unowned effects, mutation isolation, stale
+lineage and unchanged Game/save/RNG state. Live ending presentation and effect
+agreement remain subsequent work under the approved both-phones/host-advance
+direction; the next-level loader must continue refusing episode-end requests.
+
+### Detached episode-ending checkpoint (2026-11-26, working tree)
+
+`network_episode_end.gd` now derives a copied, digest-bound ending ledger from
+configuration, final result, committed proposal and explicit history. It preserves
+the full native script and exact cash bits, bounds display/hint data and records
+the still-unapplied completion, high-score, hint, wrap/reward, autosave and next
+episode effects. The backend's `episode_end_plan()` requires the existing final
+native/content and phase-3 checks plus a committed ending decision. Since live
+sessions cannot yet cross an ending, its history is the startup episode with an
+unrepeated flag; history adoption must replace that assumption before live
+episode transitions are enabled. The ordinary next-level builder still refuses
+this stop, and the live session retains its unsupported-route exit.
+
+All 12 ending/cursor cases passed with process exit 0. Native ending scripts for
+all five episodes are covered, including wrap/credits and high-score conditions,
+signed-to-unsigned cash bits, changed lineage, recomputed invalid effect data,
+bounded hint blocks, explicit pending autosave and no planning RNG draw. Inherited
+sentinels check unchanged Game fields and save files. The focused real ENet case
+also passed with final process exit 0: both peers independently derive identical
+plans after agreement, queries return copies, and ended native identity/ticks/
+diagnostics remain unchanged. It uses a controlled ending candidate after native
+terminal completion rather than a naturally won episode. Its first run passed
+assertions but hit the existing shutdown access violation; that defect remains
+unresolved. All four new/changed GDScript files pass format/lint checks and
+`git diff --check` passes. No native rebuild, APK handover, physical-phone run or
+exported Linux journey/smoke gate is claimed.
+
+Next establish session-owned hint context and agreed presentation/random choices,
+then connect one original ending screen at a time. Profile/high-score writes,
+reward application, campaign history adoption and next-episode loading still
+need their own verified owners; this ledger grants none of those side effects.

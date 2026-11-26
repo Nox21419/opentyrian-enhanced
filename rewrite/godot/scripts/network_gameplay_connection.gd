@@ -15,6 +15,7 @@ const LevelLoad := preload("res://scripts/network_level_load.gd")
 const Next := preload("res://scripts/network_next_level.gd")
 const StoryScript := preload("res://scripts/network_story_script.gd")
 const StoryPages := preload("res://scripts/network_story_pages.gd")
+const EpisodeEnd := preload("res://scripts/network_episode_end.gd")
 var _runner := Runner.new()
 var _activated := false
 var _view_local := false
@@ -605,6 +606,24 @@ func propose_continuation(sequence := 1) -> bool:
 
 func continuation_sequence() -> int:
 	return _continuation.committed_sequence() if running() else 0
+
+
+## Detached ledger only. The session has no live episode-finalization owner yet.
+func episode_end_plan(sequence := 1) -> Dictionary:
+	if _load_sequence != 0 or _story_pending() or not _verify_continuation_state():
+		return {}
+	var candidate := committed_continuation(sequence)
+	if candidate.get("kind") != "episode_end":
+		return {}
+	# Current sessions cannot cross an ending, so history starts unrepeated.
+	# Replace this with adopted history before implementing episode transitions.
+	var initial: Dictionary = _connection.startup.configuration()
+	return EpisodeEnd.build(
+		configuration(),
+		_level_result.record(),
+		candidate,
+		{"initial_episode": initial.get("episode"), "repeated": false}
+	)
 
 
 func _valid_continuation_candidate(candidate: Dictionary, sequence: int) -> bool:
