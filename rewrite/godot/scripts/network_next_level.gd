@@ -6,6 +6,7 @@ const LevelConfig := preload("res://scripts/network_level_configuration.gd")
 const Config := preload("res://scripts/network_configuration.gd")
 const Cursor := preload("res://scripts/network_campaign_cursor.gd")
 const Result := preload("res://scripts/network_level_result.gd")
+const StoryData := preload("res://scripts/network_story_script.gd")
 
 
 static func valid_configuration(config: Variant) -> bool:
@@ -30,6 +31,8 @@ static func valid_request(request: Dictionary) -> bool:
 		"entry",
 		"digest"
 	]
+	if request.has("story_receipts"):
+		fields.append("story_receipts")
 	if request.size() != fields.size():
 		return false
 	for field in fields:
@@ -66,7 +69,9 @@ static func valid_request(request: Dictionary) -> bool:
 		return false
 	if request.bonus_level != (request.script.bonus or request.script.normal_bonus):
 		return false
-	if _pending_effects(request.script) or _pending_effects(request.entry):
+	if not _accounted(
+		request.script, request.entry, request.get("story_receipts", {}), request.source_proposal, request.parent
+	):
 		return false
 	var body := request.duplicate(true)
 	body.erase("digest")
@@ -78,7 +83,7 @@ static func valid_request(request: Dictionary) -> bool:
 
 
 ## Seed is an explicit agreed input, never wall time or a local RNG draw.
-static func build(previous: Dictionary, proposal: Dictionary, seed: String) -> Dictionary:
+static func build(previous: Dictionary, proposal: Dictionary, seed: String, receipts: Dictionary = {}) -> Dictionary:
 	if not valid_configuration(previous) or not Config.hex_string(seed, 16):
 		return {}
 	if not Config.hex_string(proposal.get("digest"), 64) or Cursor.proposal_digest(proposal) != proposal.digest:
@@ -101,10 +106,10 @@ static func build(previous: Dictionary, proposal: Dictionary, seed: String) -> D
 		return {}
 	if script.get("stop") != "level" or script.has("mini_game"):
 		return {}
-	# Story/autosave owners are not implemented here. Never silently skip them.
-	for effects in [script, proposal.get("entry", {})]:
-		if not effects is Dictionary or _pending_effects(effects):
-			return {}
+	if not proposal.get("entry", {}) is Dictionary:
+		return {}
+	if not _accounted(script, proposal.get("entry", {}), receipts, proposal.digest, proposal.get("parent", "")):
+		return {}
 	var carry: Variant = stats.get("carry")
 	if not carry is PackedInt32Array or carry.size() != 7:
 		return {}
@@ -143,6 +148,8 @@ static func build(previous: Dictionary, proposal: Dictionary, seed: String) -> D
 		"script": script.duplicate(true),
 		"entry": proposal.get("entry", {}).duplicate(true)
 	}
+	if not receipts.is_empty():
+		request["story_receipts"] = receipts.duplicate(true)
 	var hash := HashingContext.new()
 	var bytes := Result.canonical_bytes(request)
 	if bytes.is_empty():
@@ -151,6 +158,29 @@ static func build(previous: Dictionary, proposal: Dictionary, seed: String) -> D
 	hash.update(bytes)
 	request["digest"] = hash.finish().hex_encode()
 	return request
+
+
+static func _accounted(
+	script: Dictionary, entry: Dictionary, receipts: Variant, source: String, parent: String
+) -> bool:
+	if not receipts is Dictionary:
+		return false
+	for key in receipts:
+		if key not in ["script", "entry"] or not receipts[key] is Dictionary:
+			return false
+	for item in [["script", script, source], ["entry", entry, parent]]:
+		var effects: Dictionary = item[1]
+		if effects.get("autosave", false) != false or effects.has("mini_game"):
+			return false
+		var screens: Variant = effects.get("screens", [])
+		if not screens is Array:
+			return false
+		if screens.is_empty():
+			if receipts.has(item[0]):
+				return false
+		elif not receipts.has(item[0]) or not StoryData.valid_receipt(receipts[item[0]], effects, item[2]):
+			return false
+	return true
 
 
 static func _pending_effects(script: Dictionary) -> bool:

@@ -129,10 +129,10 @@ func entry() -> Dictionary:
 
 ## Caller owns this new context. The old preview stays alive and unchanged.
 ## Agreement, fresh epoch allocation and scene adoption are separate operations.
-func fork_continuation(proposal: Dictionary, seed: String) -> RefCounted:
+func fork_continuation(proposal: Dictionary, seed: String, receipts := {}) -> RefCounted:
 	if _preview == null or not verify_current():
 		return null
-	var request := Next.build(_config, proposal, seed)
+	var request := Next.build(_config, proposal, seed, receipts)
 	if request.is_empty():
 		return null
 	var context: RefCounted = get_script().new()

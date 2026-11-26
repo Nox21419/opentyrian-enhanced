@@ -2941,3 +2941,64 @@ connects ready/request/commit/finish signals and produces a verified effect
 receipt. Then account for that receipt in next-level requests without silently
 dropping story, autosave, retry, score/profile or episode-finalization effects.
 The selected original-screens-on-both/host-advance direction remains approved.
+
+### Live story owner and receipt plan (2026-11-26)
+
+The page agreement checkpoint was pushed as `e255d4a`. Add a session-owned scene
+subclass of the approved original story view. Bind it to a committed decision,
+then, after the previous scene detaches, use a guarded original black fade and a
+common cleared original palette-0 surface. Measure the actual indexed/RGBA entry
+frame and independently prepare the backend descriptor on each phone. This avoids
+carrying host-only Arcade or guest-only lobby lettering into a story background.
+Reuse the original directive rendering, host input and guest waiting prompt.
+
+Connect local page readiness/request/finished signals to backend controls and
+backend committed pages back to the view. A local finish alone does not leave
+the scene; both finish records must agree. Detach callbacks and cancel entry/
+render coroutines before scene replacement. Guest Back and focus/disconnect can
+leave; host keys keep the original advance behavior. All session transitions and
+failure callbacks stay deferred and bound to backend/scene/generation identity.
+
+Strengthen the completed receipt to bind source, full presentation descriptor,
+initial/final context, background and page count. Derive the expected final
+warning/bank context from the same original directive rules. The backend checks
+the local rendered context and retains only receipts from both-peer completion.
+Pure receipt validation checks structure/digests/context, not remote authority;
+the live loader must obtain receipts only from its own backend history.
+
+Allow next-level requests to account for completed script/entry story receipts
+without erasing original script data. Bind entry receipts to the committed parent
+decision and level receipts to the current source proposal. Keep the old no-story
+request shape and strict startup APIs. Wrong/missing/stale receipts, autosaves,
+mini-games and unowned ending/retry effects still fail closed. Route story before
+the host shop and after its Start decision, or before a direct level; preserve the
+old native owner until the existing load/adoption/view barriers finish. Test
+receipt rejection and lifetime, actual owner signal wiring, both decision slots,
+original menu regressions and real ENet story-to-next-level flow. This reuses the
+already approved original-screens-on-both/host-advance direction.
+
+### Story receipt loading checkpoint (2026-11-26, working tree)
+
+The first part of that plan now connects completed story receipts to detached
+next-level loading. Receipts bind the original script, proposal lineage, entry
+background, initial/final warning and bank context, and page count. The backend
+checks rendered context against the original directive rules and supplies only
+its own completed receipts to the loader. Requests retain the original scripts;
+no-story requests retain their existing shape. Missing, changed, surplus or
+wrong-parent receipts, autosave and mini-game effects are refused.
+
+This is backend integration, not live story scene routing. The session-owned
+original story scene and its deferred scene/lifetime wiring remain next in the
+plan above. Episode-ending side effects, retry, internet bootstrap and physical
+two-phone verification remain outstanding.
+
+Validation: all 21 continuation-loader, story coordinator/codec and original
+network story-view cases passed, plus both focused real ENet story cases. The
+initial 15-case run and the ENet run exited 0; the final 21-case combined run
+hit the existing intermittent Windows shutdown access violation `0xC0000005`
+after reporting all assertions passed. This shutdown defect remains unresolved.
+The ENet fixture verifies next-level preparation after matching story
+completion and rejects mismatched entry frames. It uses a controlled continuation
+candidate following a native terminal run, not a naturally won campaign. GDScript
+format/lint and `git diff --check` passed. No APK handover or exported Linux
+package journey/smoke gate was run for this `main` working-tree checkpoint.

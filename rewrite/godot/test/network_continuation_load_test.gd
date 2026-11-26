@@ -5,6 +5,64 @@ const Cursor := preload("res://scripts/network_campaign_cursor.gd")
 const Next := preload("res://scripts/network_next_level.gd")
 const Config := preload("res://scripts/network_configuration.gd")
 const Preparation := preload("res://scripts/network_preparation.gd")
+const StoryData := preload("res://scripts/network_story_script.gd")
+
+
+func test_story_receipt_accounts_for_original_script_and_rejects_changed_context() -> void:
+	var proposal := _proposal()
+	proposal.script["screens"] = [
+		{"directive": "]W 010", "text": PackedStringArray(["WARNING"])},
+		{"directive": "]@", "text": PackedStringArray()}
+	]
+	proposal["digest"] = Cursor.proposal_digest(proposal)
+	var descriptor := StoryData.prepare(proposal.script, proposal.digest, {}, "cd".repeat(32))
+	var context := StoryData.final_context(proposal.script, descriptor.context)
+	assert_bool(context.warning_red).is_true()
+	assert_bool(context.use_last_bank).is_true()
+	var receipt := StoryData.receipt(descriptor, context)
+	assert_bool(StoryData.valid_receipt(receipt, proposal.script, proposal.digest)).is_true()
+	assert_dict(Next.build(Setup.configuration(), proposal, "1234567890abcdef")).is_empty()
+	var request := Next.build(Setup.configuration(), proposal, "1234567890abcdef", {"script": receipt})
+	assert_bool(Next.valid_request(request)).is_true()
+	assert_dict(request.script).is_equal(proposal.script)
+	for field in ["source", "presentation", "background", "pages", "context", "initial"]:
+		var changed := receipt.duplicate(true)
+		match field:
+			"pages":
+				changed.pages += 1
+			"context":
+				changed.context.warning_red = false
+			"initial":
+				changed.initial.use_last_bank = true
+			_:
+				changed[field] = "ab".repeat(32)
+		changed.erase("digest")
+		changed["digest"] = StoryData.digest(changed)
+		assert_dict(Next.build(Setup.configuration(), proposal, "1234567890abcdef", {"script": changed})).is_empty()
+	(
+		assert_dict(
+			Next.build(Setup.configuration(), proposal, "1234567890abcdef", {"script": receipt, "entry": receipt})
+		)
+		. is_empty()
+	)
+	proposal.script["autosave"] = true
+	proposal["digest"] = Cursor.proposal_digest(proposal)
+	assert_dict(Next.build(Setup.configuration(), proposal, "1234567890abcdef", {"script": receipt})).is_empty()
+
+
+func test_entry_receipt_is_bound_to_the_parent_decision() -> void:
+	var proposal := _proposal()
+	proposal["sequence"] = 2
+	proposal["parent"] = "ab".repeat(32)
+	proposal["entry"] = {"stop": "shop", "screens": [{"directive": "]W 00[", "text": PackedStringArray(["ENTRY"])}]}
+	proposal["digest"] = Cursor.proposal_digest(proposal)
+	var descriptor := StoryData.prepare(proposal.entry, proposal.parent, {}, "cd".repeat(32))
+	var receipt := StoryData.receipt(descriptor, StoryData.final_context(proposal.entry, descriptor.context))
+	var request := Next.build(Setup.configuration(), proposal, "1234567890abcdef", {"entry": receipt})
+	assert_bool(Next.valid_request(request)).is_true()
+	proposal.parent = "ef".repeat(32)
+	proposal["digest"] = Cursor.proposal_digest(proposal)
+	assert_dict(Next.build(Setup.configuration(), proposal, "1234567890abcdef", {"entry": receipt})).is_empty()
 
 
 func after() -> void:

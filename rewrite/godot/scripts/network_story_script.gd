@@ -30,6 +30,47 @@ static func valid_context(context: Dictionary) -> bool:
 	return context.size() == 2 and context.get("warning_red") is bool and context.get("use_last_bank") is bool
 
 
+static func final_context(script: Dictionary, initial: Dictionary) -> Dictionary:
+	if not valid_script(script) or not valid_context(initial):
+		return {}
+	var result := {"warning_red": initial.warning_red, "use_last_bank": false}
+	for page: Dictionary in script.screens:
+		if page.directive[1] == "@":
+			result.use_last_bank = not result.use_last_bank
+		elif page.directive[1] == "W":
+			var text: String = page.directive.substr(4).strip_edges()
+			var end := 0
+			while end < text.length() and (text[end].is_valid_int() or (end == 0 and text[end] == "-")):
+				end += 1
+			var value := int(text.left(end)) if end > 0 else 0
+			result.warning_red = value / 10 != 0
+	return result
+
+
+static func receipt(descriptor: Dictionary, context: Dictionary) -> Dictionary:
+	if not valid(descriptor) or context != final_context(descriptor.script, descriptor.context):
+		return {}
+	var result := {
+		"source": descriptor.source,
+		"presentation": descriptor.digest,
+		"initial": descriptor.context.duplicate(),
+		"background": descriptor.background,
+		"context": context.duplicate(),
+		"pages": descriptor.pages.size()
+	}
+	result["digest"] = digest(result)
+	return result
+
+
+static func valid_receipt(value: Dictionary, script: Dictionary, source: String) -> bool:
+	if value.size() != 7 or not value.get("initial") is Dictionary or not value.get("context") is Dictionary:
+		return false
+	if not value.get("background") is String or not valid_context(value.initial) or not valid_context(value.context):
+		return false
+	var descriptor := prepare(script, source, value.initial, value.background)
+	return not descriptor.is_empty() and value == receipt(descriptor, value.context)
+
+
 static func prepare(script: Dictionary, source: String, context: Dictionary, background: String) -> Dictionary:
 	if not valid_script(script) or not Config.hex_string(source, 64):
 		return {}

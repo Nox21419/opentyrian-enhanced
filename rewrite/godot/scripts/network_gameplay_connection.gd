@@ -414,6 +414,9 @@ func request_story_advance(sequence: int, page: int, digest: String) -> bool:
 func mark_story_finished(sequence: int, context: Dictionary) -> bool:
 	if not _story_pages.has(sequence) or not _verify_continuation_state():
 		return false
+	var descriptor: Dictionary = _story_descriptors[sequence]
+	if context != StoryScript.final_context(descriptor.script, descriptor.context):
+		return _fail("invalid_rendered_story_context")
 	var pages: RefCounted = _story_pages[sequence]
 	return _settle_story(sequence) if pages.finish(context, Time.get_ticks_msec()) else _fail(pages.error)
 
@@ -428,13 +431,9 @@ func _settle_story(sequence: int) -> bool:
 	if pages.complete() and not _story_receipts.has(sequence):
 		_story_context = pages.final_context()
 		var descriptor: Dictionary = _story_descriptors[sequence]
-		var receipt := {
-			"source": descriptor.source,
-			"presentation": descriptor.digest,
-			"context": _story_context.duplicate(),
-			"pages": descriptor.pages.size()
-		}
-		receipt["digest"] = StoryScript.digest(receipt)
+		var receipt := StoryScript.receipt(descriptor, _story_context)
+		if receipt.is_empty():
+			return _fail("invalid_story_receipt")
 		_story_receipts[sequence] = receipt
 	changed.emit()
 	return running()
@@ -524,7 +523,14 @@ func _load_context(sequence: int) -> bool:
 func _prepare_pending_load() -> bool:
 	if _pending_preparation != null:
 		return true if _pending_preparation.verify_preview() else _fail(_pending_preparation.error)
-	_pending_preparation = _preparation.fork_continuation(committed_continuation(_load_sequence), _level_load.seed)
+	var receipts := {}
+	if _story_receipts.has(_load_sequence):
+		receipts["script"] = _story_receipts[_load_sequence].duplicate(true)
+	if _load_sequence == 2 and _story_receipts.has(1):
+		receipts["entry"] = _story_receipts[1].duplicate(true)
+	_pending_preparation = _preparation.fork_continuation(
+		committed_continuation(_load_sequence), _level_load.seed, receipts
+	)
 	if _pending_preparation == null:
 		return _fail("next_level_preparation_failed")
 	if not _verify_continuation_state():

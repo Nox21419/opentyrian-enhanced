@@ -115,12 +115,11 @@ func test_staggered_story_preparation_and_page_commits_preserve_native_and_requi
 		assert_int(peers[i].ticks_executed()).is_equal(tick)
 		assert_str(peers[i].diagnostic_digest()).is_equal(before)
 		assert_bool(peers[i].advance()).is_false()
-	# Completion is presentation agreement, not permission to omit story effects
-	# from a level request. That next integration checkpoint remains closed.
-	assert_bool(peers[0].prepare_next_level(1, "12".repeat(8))).is_false()
-	assert_str(peers[0].error).is_equal("next_level_preparation_failed")
-	await _wait_decision(func(): return not peers[1].running())
-	assert_dict(peers[1].story_receipt(1)).is_empty()
+	assert_bool(peers[0].prepare_next_level(1, "12".repeat(8))).is_true()
+	await _wait_decision(func(): return peers[0].next_level_loaded() and peers[1].next_level_loaded())
+	for peer in peers:
+		assert_str(peer.error).is_empty()
+		assert_dict(peer.story_receipt(1)).is_not_empty()
 
 
 func test_different_independently_prepared_entry_frames_fail_before_page_advance() -> void:
