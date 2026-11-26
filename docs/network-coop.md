@@ -2977,7 +2977,7 @@ receipt rejection and lifetime, actual owner signal wiring, both decision slots,
 original menu regressions and real ENet story-to-next-level flow. This reuses the
 already approved original-screens-on-both/host-advance direction.
 
-### Story receipt loading checkpoint (2026-11-26, working tree)
+### Story receipt loading checkpoint (2026-11-26, `81c2ac0`)
 
 The first part of that plan now connects completed story receipts to detached
 next-level loading. Receipts bind the original script, proposal lineage, entry
@@ -3002,3 +3002,43 @@ completion and rejects mismatched entry frames. It uses a controlled continuatio
 candidate following a native terminal run, not a naturally won campaign. GDScript
 format/lint and `git diff --check` passed. No APK handover or exported Linux
 package journey/smoke gate was run for this `main` working-tree checkpoint.
+
+### Live story scene checkpoint (2026-11-26, working tree)
+
+`network_story_owner.gd` now binds the original network story renderer to a
+committed continuation decision. After the old scene detaches, a guarded original
+fade leads to a cleared palette-0 entry surface; its indexed and RGBA bytes are
+hashed for independent backend preparation. The owner forwards page readiness,
+host requests and local finish, applies backend page commits, and reports
+completion only after both phones finish. Guest Back reports leave. Release
+disconnects backend callbacks and cancels rendering/fades before replacement;
+the owner never stops or frees the backend itself.
+
+`network_session.gd` routes nonempty supported story scripts through that scene
+before the original host-operated shop or next-level loading, for either decision
+slot. Empty-story routes retain the existing flow. Completion/failure callbacks
+are bound to scene identity and session generation, and transitions remain
+deferred. The ended native simulation stays owned until the existing load and
+adoption barriers complete. Autosave, mini-game and episode-finalization routes
+remain refused. Physical phones and naturally won multi-level journeys remain
+unverified; this does not implement internet bootstrap.
+
+Validation: the final campaign-flow, story-owner and original story-view run
+passed all 17 cases with process exit 0. These cover local-vs-peer finish gates,
+guest Back/disconnect, entry-fade cancellation, released callback isolation,
+deferred leave/focus cleanup, stale completion/failure and preserving an external
+replacement scene. The final ENet run passed the story route and existing
+no-story route with process exit 0 (three executions because the inherited
+no-story case also ran in the derived suite). Both real original story owners
+finish decision 1 before the shop and decision 2 before fresh native adoption;
+guest input cannot advance, and both fresh peers match through 35 ticks. This
+uses a controlled successful-route candidate after native terminal completion;
+it does not prove a naturally won campaign or two-device presentation. Rendering
+frame comparisons remain sequential because in-process views share the VGA.
+
+All seven changed/new GDScript files pass format/lint checks, and
+`git diff --check` passes. Initial fixture parse/key-event and stale-fixture-drive
+errors were corrected before the final runs. Earlier owner/combined runs also
+hit the existing Windows shutdown access violation after their assertions; the
+clean final exits do not establish that it is fixed. No APK handover or exported
+Linux journey/smoke gate was run for this `main` working-tree checkpoint.

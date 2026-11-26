@@ -25,20 +25,20 @@ var _local_bank := false
 ## The caller must have independently derived/agreed this script, not decoded it
 ## from an untrusted peer. This binding itself grants no network authorization.
 func bind_script(script: Dictionary, source: String, role: int, context := {}, background := "") -> bool:
-	if is_inside_tree() or not _script.is_empty() or not Config.hex_string(source, 64) or role not in [1, 2]:
+	if is_inside_tree():
 		return false
-	if not StoryData.valid_script(script):
+	return _bind_descriptor(StoryData.prepare(script, source, context, background), role)
+
+
+## Session owner binds only after its entry fade has detached the old scene.
+func _bind_descriptor(descriptor: Dictionary, role: int) -> bool:
+	if not _script.is_empty() or role not in [1, 2] or not StoryData.valid(descriptor):
 		return false
-	for key in context:
-		if key not in ["warning_red", "use_last_bank"] or not context[key] is bool:
-			return false
-	_descriptor = StoryData.prepare(script, source, context, background)
-	if _descriptor.is_empty():
-		return false
-	_script = script.duplicate(true)
-	_source = source
+	_descriptor = descriptor.duplicate(true)
+	_script = descriptor.script.duplicate(true)
+	_source = descriptor.source
 	_role = role
-	_local_red = context.get("warning_red", false)
+	_local_red = descriptor.context.warning_red
 	return true
 
 

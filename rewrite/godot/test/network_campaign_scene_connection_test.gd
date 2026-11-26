@@ -8,6 +8,7 @@ const SessionDriver := preload("res://scripts/network_session.gd")
 class ShopRoute:
 	extends RefCounted
 	var error := ""
+	var include_story := false
 	var _proposal := {}
 	var _campaign: RefCounted = ClassDB.instantiate("TyrianCampaign")
 
@@ -30,6 +31,8 @@ class ShopRoute:
 				"difficulty_rule_review_required": false,
 				"script": _campaign.run_script(1, 4, 2, 11, false, 0, true, 0)
 			}
+			if include_story:
+				_proposal.script["screens"] = [{"directive": "]W 00[", "text": PackedStringArray(["BEFORE SHOP"])}]
 			_proposal["digest"] = CursorBuilder.proposal_digest(_proposal)
 		return _proposal.duplicate(true)
 
@@ -42,6 +45,8 @@ class ShopRoute:
 		proposal.sequence = 2
 		proposal["parent"] = parent
 		proposal["action"] = "arcade_start"
+		if include_story:
+			proposal.script["screens"] = [{"directive": "]W 00[", "text": PackedStringArray(["AFTER SHOP"])}]
 		proposal.digest = CursorBuilder.proposal_digest(proposal)
 		return proposal
 
@@ -71,7 +76,13 @@ class Scenes:
 
 	func change(path: String, prepare: Callable) -> Node:
 		paths.append(path)
-		var scene: Node = FreshPlayer.new() if path == SessionDriver.PLAYER_SCENE else Interlude.new()
+		var scene: Node
+		if path == SessionDriver.PLAYER_SCENE:
+			scene = FreshPlayer.new()
+		elif path == SessionDriver.STORY_SCENE:
+			scene = load("res://scripts/network_story_owner.gd").new()
+		else:
+			scene = Interlude.new()
 		scene.scene_file_path = path
 		if prepare.is_valid() and not prepare.call(scene):
 			scene.free()

@@ -21,6 +21,10 @@ class Backend:
 	var begins := 0
 	var load_requests := 0
 	var metadata := {}
+	var story_done := false
+
+	func story_complete(_sequence: int) -> bool:
+		return story_done
 
 	func configuration() -> Dictionary:
 		return Fixture.configuration()
@@ -81,6 +85,9 @@ class Backend:
 
 class View:
 	extends Node
+	signal completed
+	signal failed(reason: String)
+	var released := false
 	var detached := false
 	var controller: Node
 	var use_entry_fade := false
@@ -93,8 +100,11 @@ class View:
 	func _detach() -> void:
 		detached = true
 
-	func bind(connection: Node) -> bool:
-		return connection.adopted
+	func bind(connection: Node, decision := 0) -> bool:
+		return decision > 0 or connection.adopted
+
+	func release() -> void:
+		released = true
 
 
 func before_test() -> void:
@@ -269,3 +279,65 @@ func test_focus_loss_during_interlude_cancels_pending_scene_work() -> void:
 	assert_object(session.backend).is_null()
 	assert_str(session.last_player_exit).is_equal("continuation_focus_lost")
 	assert_str(_paths.back()).is_equal(Session.LOBBY_SCENE)
+
+
+func _story_session() -> Node:
+	var session := _session(true)
+	assert_bool(session.continue_player(_current)).is_true()
+	_drive(session)
+	session.backend.sequence = 1
+	session.backend.metadata = {
+		"stop": "shop", "screens": [{"directive": "]W 00[", "text": PackedStringArray(["STORY"])}]
+	}
+	_drive(session)
+	assert_str(_paths.back()).is_equal(Session.STORY_SCENE)
+	return session
+
+
+func test_story_waits_for_local_and_peer_completion_then_releases_before_shop() -> void:
+	var session := _story_session()
+	var story: Node = _current
+	story.completed.emit()
+	_drive(session)
+	assert_str(_current.scene_file_path).is_equal(Session.STORY_SCENE)
+	session.backend.story_done = true
+	_drive(session)
+	assert_bool(story.released).is_true()
+	assert_str(_current.scene_file_path).is_equal(Session.ARCADE_SCENE)
+	assert_bool(session.selecting_arcade).is_true()
+	var count := _paths.size()
+	story.completed.emit()
+	story.failed.emit("stale_failure")
+	await get_tree().process_frame
+	assert_int(_paths.size()).is_equal(count)
+	assert_bool(session.backend.running()).is_true()
+
+
+func test_story_failure_is_deferred_and_focus_loss_releases_owner() -> void:
+	var session := _story_session()
+	var story: Node = _current
+	story.failed.emit("left_story")
+	assert_bool(is_instance_valid(session.backend)).is_true()
+	await get_tree().process_frame
+	assert_bool(story.released).is_true()
+	assert_object(session.backend).is_null()
+	assert_str(session.last_player_exit).is_equal("left_story")
+	session = _story_session()
+	story = _current
+	session._notification(NOTIFICATION_APPLICATION_FOCUS_OUT)
+	await get_tree().process_frame
+	assert_bool(story.released).is_true()
+	assert_object(session.backend).is_null()
+
+
+func test_external_scene_replacement_is_preserved_when_story_fails() -> void:
+	var session := _story_session()
+	var story: Node = _current
+	_change("res://scenes/title.tscn", Callable())
+	story.failed.emit("late_failure")
+	await get_tree().process_frame
+	if session.continuing:
+		_drive(session)
+	assert_bool(story.released).is_true()
+	assert_object(session.backend).is_null()
+	assert_str(_current.scene_file_path).is_equal("res://scenes/title.tscn")

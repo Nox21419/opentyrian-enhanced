@@ -8,12 +8,13 @@ const Gameplay := preload("res://scripts/network_gameplay_connection.gd")
 const Rules := preload("res://scripts/network_initial_configuration.gd")
 const SETUP := preload("res://scripts/setup.gd")
 const Clock := preload("res://scripts/network_tick_clock.gd")
-const Next := preload("res://scripts/network_next_level.gd")
 const Cursor := preload("res://scripts/network_campaign_cursor.gd")
+const StoryData := preload("res://scripts/network_story_script.gd")
 const PLAYER_SCENE := "res://scenes/network_player.tscn"
 const LOBBY_SCENE := "res://scenes/network_lobby.tscn"
 const ARCADE_SCENE := "res://scenes/network_arcade_menu.tscn"
-enum Progress { NONE, DECIDING, ARCADE, CHOOSING, LOADING, ADOPTING }
+const STORY_SCENE := "res://scenes/network_story_owner.tscn"
+enum Progress { NONE, DECIDING, ARCADE, CHOOSING, LOADING, ADOPTING, STORY }
 
 var lobby := Lobby.new()
 var selected_episode := 0
@@ -50,6 +51,10 @@ var _progress_candidate := {}
 var scene_change := Callable(Game, "goto_scene")
 var current_scene := Callable(Effects, "current_game_scene")
 var _progress_generation := 0
+var _story_scene: Node
+var _story_sequence := 0
+var _story_after := Progress.NONE
+var _story_done := false
 
 
 func _ready() -> void:
@@ -169,6 +174,7 @@ func finish_options() -> bool:
 
 func stop() -> void:
 	_stopping = true
+	_release_story()
 	_progress_generation += 1
 	continuing = false
 	_progress = Progress.NONE
@@ -438,7 +444,7 @@ func _drive_progress() -> void:
 	if (
 		not is_instance_valid(_player_scene)
 		and current != null
-		and current.scene_file_path not in [ARCADE_SCENE, LOBBY_SCENE, "res://scenes/network_options.tscn"]
+		and current.scene_file_path not in [ARCADE_SCENE, LOBBY_SCENE, STORY_SCENE, "res://scenes/network_options.tscn"]
 	):
 		stop()
 		last_player_exit = "continuation_scene_replaced"
@@ -459,22 +465,11 @@ func _drive_progress() -> void:
 					_end_progress("continuation_decision_failed")
 				return
 			_progress_candidate = backend.committed_continuation(1)
-			var kind: String = _progress_candidate.get("kind", "")
-			if kind == "shop" and not Next._pending_effects(_progress_candidate.script):
-				_progress = Progress.ARCADE
-				selecting_arcade = lobby.hosting
-				arcade_row = 2
-				options_row = 2
-				_move_progress_scene(ARCADE_SCENE if lobby.hosting else LOBBY_SCENE)
-			elif kind == "level":
-				_progress = Progress.LOADING
-				_move_progress_scene(LOBBY_SCENE)
-			else:
-				_end_progress("unsupported_continuation_route")
+			_route_candidate(1)
 		Progress.ARCADE:
 			if not lobby.hosting and backend.continuation_sequence() == 2:
 				_progress_candidate = backend.committed_continuation(2)
-				_progress = Progress.LOADING
+				_route_candidate(2)
 		Progress.CHOOSING:
 			if backend.continuation_sequence() != 2:
 				if _progress_choice_requested:
@@ -484,7 +479,16 @@ func _drive_progress() -> void:
 					_end_progress("continuation_choice_failed")
 				return
 			_progress_candidate = backend.committed_continuation(2)
-			_progress = Progress.LOADING
+			_route_candidate(2)
+		Progress.STORY:
+			if not is_instance_valid(_story_scene) or current != _story_scene:
+				stop()
+				last_player_exit = "continuation_scene_replaced"
+				return
+			if _story_done and backend.story_complete(_story_sequence):
+				var next := _story_after
+				_release_story()
+				_enter_progress(next)
 		Progress.LOADING:
 			var sequence: int = _progress_candidate.get("sequence", 0)
 			if lobby.hosting and not _progress_loading:
@@ -501,6 +505,87 @@ func _drive_progress() -> void:
 				_progress = Progress.ADOPTING
 				_replace_continuation_player()
 	changed.emit()
+
+
+func _route_candidate(sequence: int) -> void:
+	var kind: String = _progress_candidate.get("kind", "")
+	var script: Variant = _progress_candidate.get("script")
+	if kind not in ["shop", "level"] or (sequence == 2 and kind != "level") or not script is Dictionary:
+		_end_progress("unsupported_continuation_route")
+		return
+	var screens: Variant = script.get("screens", [])
+	if script.get("autosave", false) != false or script.has("mini_game") or not screens is Array:
+		_end_progress("unsupported_continuation_route")
+		return
+	var next := Progress.ARCADE if kind == "shop" else Progress.LOADING
+	if screens.is_empty():
+		_enter_progress(next)
+		return
+	if not StoryData.valid_script(script):
+		_end_progress("unsupported_continuation_story")
+		return
+	_progress = Progress.STORY
+	_story_sequence = sequence
+	_story_after = next
+	_story_done = false
+	_detach_progress_player()
+	var previous: Node = current_scene.call()
+	if previous != null and previous.scene_file_path == LOBBY_SCENE:
+		previous.set("_handoff", true)
+	if scene_change.call(STORY_SCENE, _prepare_story) == null:
+		_end_progress("continuation_story_failed")
+
+
+func _enter_progress(next: int) -> void:
+	_progress = next
+	if next == Progress.ARCADE:
+		selecting_arcade = lobby.hosting
+		arcade_row = 2
+		options_row = 2
+	_move_progress_scene(ARCADE_SCENE if next == Progress.ARCADE and lobby.hosting else LOBBY_SCENE)
+
+
+func _prepare_story(scene: Node) -> bool:
+	if not scene.bind(backend, _story_sequence):
+		return false
+	_story_scene = scene
+	scene.completed.connect(_story_completed.bind(scene.get_instance_id(), _progress_generation))
+	scene.failed.connect(_story_failed.bind(scene.get_instance_id(), _progress_generation))
+	return true
+
+
+func _story_completed(identity: int, generation: int) -> void:
+	if (
+		generation == _progress_generation
+		and is_instance_valid(_story_scene)
+		and _story_scene.get_instance_id() == identity
+	):
+		_story_done = true
+		_queue_progress()
+
+
+func _story_failed(reason: String, identity: int, generation: int) -> void:
+	_story_failure_checked.call_deferred(reason, identity, generation)
+
+
+func _story_failure_checked(reason: String, identity: int, generation: int) -> void:
+	if (
+		generation != _progress_generation
+		or not is_instance_valid(_story_scene)
+		or _story_scene.get_instance_id() != identity
+	):
+		return
+	if current_scene.call() == _story_scene:
+		_end_progress(reason)
+
+
+func _release_story() -> void:
+	if is_instance_valid(_story_scene):
+		_story_scene.release()
+	_story_scene = null
+	_story_sequence = 0
+	_story_after = Progress.NONE
+	_story_done = false
 
 
 func _detach_progress_player() -> void:

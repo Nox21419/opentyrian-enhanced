@@ -29,7 +29,9 @@ Quit); the guest sees PAUSED and may leave with Back. Negotiated settings and
 unsupported rows remain dim. Focus loss/disconnect closes the session and
 returns to the lobby. The 2026-11-26 source connects supported shop/direct-level
 continuation to the host's original Arcade menu, guest waiting lobby and fresh
-level adoption. Remaining campaign routes, naturally won multi-level journeys,
+level adoption. Supported story scripts now use the original screens on both
+phones, with host advance and both-phone completion before the shop or next
+level. Remaining campaign routes, naturally won multi-level journeys,
 phone verification and internet bootstrap remain pending; see the
 [live continuation checkpoint](network-coop.md#live-continuation-checkpoint-2026-11-26).
 Both roles and Normal/Turbo pacing pass desktop source tests with an injected
