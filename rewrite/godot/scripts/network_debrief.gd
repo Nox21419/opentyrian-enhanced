@@ -4,6 +4,7 @@
 extends "res://scripts/debrief.gd"
 
 const Config := preload("res://scripts/network_configuration.gd")
+const LevelConfig := preload("res://scripts/network_level_configuration.gd")
 signal phase_ready(stage: int)
 signal advance_requested(stage: int)
 signal finished
@@ -17,13 +18,18 @@ var _requested := false
 var _frozen := false
 
 
-func bind(result: RefCounted, config: Dictionary, role: int, elapsed_seconds: int) -> bool:
+func bind(result: RefCounted, config: Dictionary, role: int, elapsed_seconds: int, continuation := false) -> bool:
 	if is_inside_tree() or not _snapshot.is_empty() or role not in [1, 2] or elapsed_seconds < 0:
 		return false
-	if not Config.valid(config) or not is_instance_valid(result) or not result.has_method("record"):
+	if (
+		not (LevelConfig.valid(config) if continuation else Config.valid(config))
+		or not is_instance_valid(result)
+		or not result.has_method("record")
+	):
 		return false
 	var record: Dictionary = result.record()
-	if record.is_empty() or record.config != Config.digest(config) or not record.stats.get("any_player_alive", false):
+	var digest := LevelConfig.digest(config) if continuation else Config.digest(config)
+	if record.is_empty() or record.config != digest or not record.stats.get("any_player_alive", false):
 		return false
 	_snapshot = record.stats.duplicate(true)
 	_episode = config.episode

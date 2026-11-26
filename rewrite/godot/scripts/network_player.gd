@@ -114,7 +114,13 @@ func _sync_completion() -> void:
 			_leave("game_over")
 			return
 		var screen := Debrief.new()
-		if not screen.bind(result, _config, player, backend.result_elapsed_seconds()) or not screen.freeze_from(self):
+		var continuation: bool = (
+			backend.has_method("continuation_level_for_view") and not backend.continuation_level_for_view().is_empty()
+		)
+		if (
+			not screen.bind(result, _config, player, backend.result_elapsed_seconds(), continuation)
+			or not screen.freeze_from(self)
+		):
 			screen.free()
 			_leave("debrief_binding_failed")
 			return
@@ -132,7 +138,13 @@ func _sync_completion() -> void:
 		add_child(screen)
 	var phase: int = backend.result_committed_phase()
 	if phase == 3:
-		_leave("first_level_complete")
+		if is_instance_valid(controller) and controller.has_method("continue_player"):
+			_leaving = true
+			disable_network_input()
+			if not controller.continue_player(self):
+				controller.leave_player(self, "continuation_handoff_failed")
+		else:
+			_leave("first_level_complete")
 	elif phase > 0 and not _debrief.commit_phase(phase):
 		_leave("debrief_phase_failed")
 

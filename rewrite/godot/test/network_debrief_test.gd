@@ -78,6 +78,19 @@ func _result() -> RefCounted:
 	return result
 
 
+func test_adopted_configuration_requires_explicit_continuation_binding() -> void:
+	var config := Fixture.configuration()
+	config.difficulty = 4
+	config.loadout1[4] = 0
+	var native: Node = auto_free(FinishedSimulation.new())
+	var result := Result.new()
+	assert_bool(result.capture(native, config, "ASTEROID1", 47, true)).is_true()
+	var view: Node = auto_free(View.new())
+	assert_bool(view.bind(result, config, 1, 125)).is_false()
+	assert_bool(view.bind(result, config, 1, 125, true)).is_true()
+	assert_int(view.get("_episode")).is_equal(1)
+
+
 func _open(role: int) -> Node:
 	var view: Node = auto_free(FastView.new())
 	assert_bool(view.bind(_result(), Fixture.configuration(), role, 125)).is_true()

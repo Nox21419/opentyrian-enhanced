@@ -1,8 +1,9 @@
 # Two-phone co-op: connection screen and implementation stages
 
-## Current status (2026-11-25)
+## Current status (2026-11-26)
 
-**The source now includes an Android-only first-level LAN co-op prototype. It has
+**The source now includes an Android-only LAN co-op prototype with supported
+level continuation. It has
 not been verified on two phones.** New Game > Modem/Network Game opens a LAN
 setup lobby. It has Host Game, Join Game and Back,
 using the original picture-2 backdrop, bitmap fonts, palette and menu engine.
@@ -31,9 +32,13 @@ dim. Host Return resumes both; guest Back while paused leaves. Focus loss,
 disconnect closes this prototype session and returns to the lobby. On agreed
 level completion, surviving players now see the original two-player debrief and
 Statistics on both views, with host-only advancement. Both final fades finish
-before the first-level prototype returns to the lobby. Normal all-dead results
-exit after agreement without a successful debrief. Later levels, independent-process lifecycle validation
-and internet integration remain unfinished. Desktop networking remains a
+before agreeing a supported shop/direct-level continuation. The host reuses the
+original Arcade menu while the guest waits, then both load/compare and adopt a
+fresh level in a new epoch before their next views become ready. Normal all-dead
+results exit after agreement without a successful debrief. Story/autosave effects,
+retry, bonus-death and episode-ending routes, naturally won multi-level and
+independent-process lifecycle journeys, physical phone verification and internet
+integration remain unfinished. Unsupported routes exit explicitly. Desktop networking remains a
 diagnostic transport/backend profile, not a shipped desktop input profile.
 The previously observed intermittent Windows shutdown access violation remains
 unresolved. No new APK or playable build has been handed over.
@@ -2614,7 +2619,7 @@ Validation:
   Linux gate is claimed. Clean exits do not establish that the pre-existing
   intermittent native shutdown issue is fixed.
 
-These backend APIs are not yet invoked by the live first-level Statistics exit.
+At this checkpoint these backend APIs were not yet invoked by the live first-level Statistics exit.
 Next wire NetworkSession's guarded scene replacement and the approved host-owned
 original Arcade continuation, including its waiting guest. Before live later-level
 completion, adapt debrief binding to the explicit continuation profile; preserve
@@ -2622,3 +2627,103 @@ the current strict initial binding. Handle story/autosave effects, retry and
 episode-ending routes through their own owners rather than bypassing the request
 builder's existing refusals. No new frontend layout or mechanics approval is
 needed to reuse the directions already selected for this scoped work.
+
+### Live continuation scene plan (2026-11-26)
+
+The adoption checkpoint was pushed as `bd727eb`. Reuse the already approved
+host-operated original Arcade menu, its original Options screen, waiting guest
+lobby and original two-player HUD; no new layout is proposed. After both final
+Statistics fades, NetworkSession owns a deferred progression state machine:
+derive/agree decision 1, open the host Arcade menu for a shop while the guest
+waits, agree decision 2 after host Start, then offer/load/activate/adopt a fresh
+level and replace each waiting scene with the original player scene. Direct
+level stops can proceed through the same load/adoption path without an extra
+shop. Normal all-dead completion retains the current exit. Retry, episode/title/
+eof stops and pending story/autosave/mini-game effects must exit explicitly rather
+than silently skip their owners. Read-only native route inspection confirms
+episode 1 section 4 is a shop with no such effects in this two-player context.
+
+Queue every scene-changing operation outside backend signal delivery. Check
+backend/scene identity, Android platform and session state before each operation;
+detach the old player and release its borrow before replacing it, and guard the
+existing scene-exit hook so an intentional interlude does not stop the session.
+Keep ended native ownership through the menus until committed adoption. Preserve
+the original engine-rate restore value across successive levels. Guest waiting
+and host loading reuse existing lobby labels with disabled startup actions;
+Arcade Start is the explicit host progression action, not a second startup
+negotiation. Disconnect, cancel, focus loss or failed preparation stops the
+session and clears pending work without reviving a stale scene callback.
+
+Render both earned cash values in the original Arcade/Options positions without
+mutating Game's local campaign/loadout/save data; retain fixed phone assignments
+and disabled purchases/save/load. Add an explicit continuation debrief binding
+profile, selected only by an adopted backend. Preserve strict initial binding.
+Test deferred routing, ownership and stale-callback rejection with controlled
+session fixtures; exercise the original menu's Start/Options actions and guest
+waiting state; retain real ENet native adoption regression coverage. A controlled
+successful-result fixture is not evidence of a naturally won multi-level journey
+or two physical phones, and the validation report must distinguish them.
+
+### Live continuation checkpoint (2026-11-26)
+
+The live Statistics phase-3 callback now requests continuation from NetworkSession
+once, disables old input and retains the ended native owner. Session progression
+uses deferred, generation/backend-checked work: agree decision 1, reuse the host
+Arcade menu for a shop with the guest in the existing waiting lobby, agree the
+host Start choice, offer/load/compare/activate the next level, detach the old view,
+adopt the prepared owner and replace each waiting scene with its new player.
+Direct level stops use the same load/adoption route. Startup Ready/Start cannot
+be reused during this interlude; the approved host Arcade Start is the action
+that proceeds, followed by the existing machine load and two-view barriers.
+
+The original Arcade/Options layouts render copied earned equipment and exact
+unsigned cash text. Fixed phone assignments and disabled purchase/save/load rows
+remain. No Game campaign/loadout/save state is adopted into the local profile.
+An explicit continuation profile now binds later-level debriefs; default initial
+binding stays strict. The original physics-rate restore value survives successive
+player scenes. Intentional old-view exit cannot stop the new player; unexpected
+exit defers backend cleanup outside Godot's tree-removal callback and binds that
+cleanup to the exited backend. Cancel/focus loss/disconnect clears pending work;
+stale generations and scene replacement cannot revive an old progression.
+
+Normal all-dead results retain their exit. Story/autosave/mini-game effects,
+retry, bonus-death and episode/title/eof routes remain incomplete and are not
+silently applied. The source now links supported continuation, not every campaign
+path. No new frontend direction was needed: it reuses the already selected
+host Arcade/Options, guest lobby, original HUD and shared Statistics directions.
+
+Validation:
+
+- The final session/menu/Options/debrief/player run passed 24 cases, with no
+  errors, failures, skips or orphans and actual process exit 0. It covers host
+  and guest routing, one-shot decisions/load requests, stale generation and
+  cleanup callbacks, focus cancellation, unsigned cash text, rate restoration,
+  changed earned-cash rendering, original Options navigation, continuation Start
+  returning to the same session, explicit debrief binding and the player phase-3
+  continuation callback firing only once.
+- A focused real-ENet scene test passed with actual process exit 0. Two actual
+  session drivers agree the original episode-1 section-4 shop and Start route,
+  retain old native ownership through their interludes, replace both player
+  views using the new runner adoption, and match native diagnostics through 35
+  ticks of the next level. The interlude scenes are fixture nodes; the original
+  Arcade/Options/lobby widgets are exercised separately above. The native scene
+  test uses a controlled successful-route candidate after natural all-dead
+  completion, bypassing the player's surviving-result UI condition. It does not
+  establish a naturally won multi-level or two-phone journey. Inherited ENet
+  regressions were excluded from this focused command; earlier checkpoints
+  record their full runs.
+- The first scene test reached teardown but reported busy-parent removal errors
+  and exited with a native access violation. The unexpected player-exit callback
+  was freeing a sibling backend during tree removal. Deferring identity-bound
+  cleanup removed those errors in the final run. This concrete fix does not
+  establish that the earlier intermittent Windows shutdown issue is resolved.
+  An initial pure fixture also dereferenced a backend that had correctly been
+  freed on failure; it now checks lifetime directly.
+- All ten changed/new GDScript files pass formatter/linter checks;
+  `git diff --check` passes. No native rebuild, APK, physical phone run or
+  exported Linux journey/smoke gate is claimed.
+
+Next verify an independently running, naturally won multi-level journey and
+complete original story/autosave, retry/bonus-death and ending-route ownership
+before describing this as full campaign co-op. Internet bootstrap remains a
+separate unfinished part of the original plan.

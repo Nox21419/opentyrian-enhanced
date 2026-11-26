@@ -21,6 +21,7 @@ func after_test() -> void:
 	await get_tree().process_frame
 	await get_tree().process_frame
 	NetworkSession.stop()
+	NetworkSession.set_process(true)
 	Game.episode = _episode
 	Game.campaign_active = _campaign
 	Game.campaign_modes = _modes
@@ -48,6 +49,56 @@ func _open() -> Node:
 	var menu: Node = Game.goto_scene(SCENE)
 	await _wait(func(): return menu.idle)
 	return menu
+
+
+func test_continuation_reuses_original_arcade_options_and_start_without_new_startup() -> void:
+	assert_int(NetworkSession.host()).is_equal(OK)
+	NetworkSession.selected_episode = 1
+	NetworkSession.selected_difficulty = 2
+	assert_bool(NetworkSession.begin_arcade_menu()).is_true()
+	# UI-only fixture: the real ENet/session suites own progression permissions.
+	NetworkSession.set_process(false)
+	NetworkSession.continuing = true
+	NetworkSession.set("_progress", NetworkSession.Progress.ARCADE)
+	NetworkSession.set("_progress_queued", true)
+	var candidate := {
+		"kind": "shop",
+		"script": {"section": 4},
+		"earned": {"cash": 1200, "cash2": 2400, "loadout": PackedInt32Array([11, 1, 2, 0, 3, 4, 2, 0, 0, 0, 0])}
+	}
+	NetworkSession.set("_progress_candidate", candidate)
+	var menu: Node = Game.goto_scene(SCENE)
+	await _wait(func(): return menu.idle)
+	assert_int(menu.get("_state").cash).is_equal(1200)
+	assert_int(menu.get("_state").loadout[2]).is_equal(2)
+	var before: PackedByteArray = menu.vga.indices(0)
+	candidate.earned.cash = 1300
+	menu._render()
+	await _wait(func(): return menu.idle)
+	assert_bool(menu.vga.indices(0) != before).is_true()
+	menu.set("_arcade_sel", 5)
+	menu._arcade_function()
+	await _wait(
+		func():
+			return (
+				Effects.current_game_scene().scene_file_path == "res://scenes/network_options.tscn"
+				and Effects.current_game_scene().idle
+			)
+	)
+	assert_bool(NetworkSession.continuing).is_true()
+	Effects.current_game_scene()._leave()
+	await _wait(
+		func(): return Effects.current_game_scene().scene_file_path == SCENE and Effects.current_game_scene().idle
+	)
+	Effects.current_game_scene().set("_arcade_sel", 2)
+	Effects.current_game_scene()._arcade_function()
+	await _wait(
+		func(): return Effects.current_game_scene().scene_file_path == LOBBY and Effects.current_game_scene().idle
+	)
+	assert_bool(NetworkSession.continuing).is_true()
+	assert_bool(NetworkSession.start_requested).is_false()
+	assert_int(NetworkSession.get("_progress")).is_equal(NetworkSession.Progress.CHOOSING)
+	assert_bool(NetworkSession.can_ready()).is_false()
 
 
 func test_original_menu_records_start_without_launching_or_mutating_campaign() -> void:

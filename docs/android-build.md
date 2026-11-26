@@ -22,12 +22,16 @@ The shared lobby now validates the selected configuration and accepts Ready on
 both phones, then host Start; this Ready screen is approved. The source now
 hands off to the original full two-player HUD and assigned touch/tilt input.
 The original entry fade and a two-view readiness barrier hold simulation at
-tick zero until both views are ready. This is a first-level LAN prototype:
+tick zero until both views are ready. This is a LAN prototype:
 either phone can request synchronized Pause using the original pause target or
 Back. The host operates the original Pause menu (local Music/Sound, Return and
 Quit); the guest sees PAUSED and may leave with Back. Negotiated settings and
 unsupported rows remain dim. Focus loss/disconnect closes the session and
-returns to the lobby; later levels and internet bootstrap remain pending.
+returns to the lobby. The 2026-11-26 source connects supported shop/direct-level
+continuation to the host's original Arcade menu, guest waiting lobby and fresh
+level adoption. Remaining campaign routes, naturally won multi-level journeys,
+phone verification and internet bootstrap remain pending; see the
+[live continuation checkpoint](network-coop.md#live-continuation-checkpoint-2026-11-26).
 Both roles and Normal/Turbo pacing pass desktop source tests with an injected
 Android platform check. Actual two-phone validation and a new APK handover
 remain pending; a successful cross-compile is not a device-play result.

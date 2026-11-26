@@ -27,7 +27,13 @@ func _remember_row(_screen: String) -> void:
 func _draw_status() -> void:
 	for i in 2:
 		vga.text_shade(
-			VGA_SCREEN, 25, 50 + 10 * i, "%s 0" % TyrianText.L("miscText_%d" % (40 + i)), 15, 0, TyrianText.FULL_SHADE
+			VGA_SCREEN,
+			25,
+			50 + 10 * i,
+			"%s %s" % [TyrianText.L("miscText_%d" % (40 + i)), NetworkSession.continuation_cash(i)],
+			15,
+			0,
+			TyrianText.FULL_SHADE
 		)
 
 

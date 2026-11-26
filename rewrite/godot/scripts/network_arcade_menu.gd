@@ -15,12 +15,18 @@ func _ready() -> void:
 	_arcade_sel = NetworkSession.arcade_row
 	var rules := Rules.new(Game.data_dir)
 	var preview := rules.first_level(NetworkSession.selected_episode, NetworkSession.selected_difficulty)
+	var continuation := NetworkSession.continuation_menu()
+	if not continuation.is_empty():
+		preview = {"entry": continuation.script}
 	if preview.is_empty():
 		NetworkSession.stop()
 		Game.goto_scene.call_deferred("res://scenes/network_lobby.tscn")
 		return
 	Music.play_song(Music.shop_song(NetworkSession.selected_episode, int(preview.entry.section)))
 	_state = {"menu": 9, "sel": 2, "loadout": PackedInt32Array([11, 1, 1, 0, 1, 4, 2, 0, 0, 0, 0]), "cash": 0}
+	if not continuation.is_empty():
+		_state.loadout = continuation.earned.loadout.duplicate()
+		_state.cash = continuation.earned.cash
 	vga.load_pic(VGA_SCREEN, 1, true)
 	_background = vga.indices(VGA_SCREEN)
 	_render()
@@ -38,7 +44,13 @@ func _arcade_item_metadata(row: int) -> Dictionary:
 func _decorate_arcade() -> void:
 	for i in 2:
 		vga.text_shade(
-			VGA_SCREEN, 25, 50 + 10 * i, "%s 0" % TyrianText.L("miscText_%d" % (40 + i)), 15, 0, TyrianText.FULL_SHADE
+			VGA_SCREEN,
+			25,
+			50 + 10 * i,
+			"%s %s" % [TyrianText.L("miscText_%d" % (40 + i)), NetworkSession.continuation_cash(i)],
+			15,
+			0,
+			TyrianText.FULL_SHADE
 		)
 		vga.dstring(VGA_SCREEN, 186, 70 + i * 32, "%s %d" % [TyrianText.L("net_phone"), i + 1], NORMAL_FONT)
 	vga.text_shade(VGA_SCREEN, 10, 187, TyrianText.L("net_connection_test"), 14, 1, 2)
@@ -60,7 +72,11 @@ func _arcade_action(action: StringName) -> void:
 
 func _arcade_function() -> void:
 	if _arcade_sel == 2:
-		NetworkSession.finish_arcade_menu()
+		if NetworkSession.continuing:
+			if not NetworkSession.start_continuation_from_arcade():
+				return
+		else:
+			NetworkSession.finish_arcade_menu()
 		Game.goto_scene("res://scenes/network_lobby.tscn")
 	elif _arcade_sel == 6:
 		_quit_request()

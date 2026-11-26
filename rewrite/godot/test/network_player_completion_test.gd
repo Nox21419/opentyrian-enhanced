@@ -89,6 +89,15 @@ class EndedFixtureView:
 		set_physics_process(false)
 
 
+class ProgressOwner:
+	extends Owner
+	var continuations := 0
+
+	func continue_player(_view: Node) -> bool:
+		continuations += 1
+		return true
+
+
 func after_test() -> void:
 	for node in _nodes:
 		if is_instance_valid(node):
@@ -193,10 +202,23 @@ func test_both_roles_wait_for_results_and_display_original_screens_then_wait_for
 		assert_array(view.controller.reasons).is_empty()
 		assert_array(backend.requests).is_equal([2, 3] if role == 1 else [])
 		assert_str(backend.diagnostic_digest()).is_equal(digest)
+		if role == 2:
+			var progression_owner := ProgressOwner.new()
+			add_child(progression_owner)
+			_nodes.push_front(progression_owner)
+			view.controller = progression_owner
 		backend.commit(3)
-		assert_array(view.controller.reasons).is_equal(["first_level_complete"])
-		assert_bool(backend.stopped).is_true()
-		assert_object(view.sim).is_null()
+		if role == 2:
+			assert_int(view.controller.continuations).is_equal(1)
+			view._sync_completion()
+			assert_int(view.controller.continuations).is_equal(1)
+			assert_array(view.controller.reasons).is_empty()
+			assert_bool(backend.stopped).is_false()
+			assert_bool(view.get("_network_input_enabled")).is_false()
+		else:
+			assert_array(view.controller.reasons).is_equal(["first_level_complete"])
+			assert_bool(backend.stopped).is_true()
+			assert_object(view.sim).is_null()
 		view.free()
 		await get_tree().process_frame
 

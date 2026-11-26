@@ -8,8 +8,12 @@ const Gameplay := preload("res://scripts/network_gameplay_connection.gd")
 const Rules := preload("res://scripts/network_initial_configuration.gd")
 const SETUP := preload("res://scripts/setup.gd")
 const Clock := preload("res://scripts/network_tick_clock.gd")
+const Next := preload("res://scripts/network_next_level.gd")
+const Cursor := preload("res://scripts/network_campaign_cursor.gd")
 const PLAYER_SCENE := "res://scenes/network_player.tscn"
 const LOBBY_SCENE := "res://scenes/network_lobby.tscn"
+const ARCADE_SCENE := "res://scenes/network_arcade_menu.tscn"
+enum Progress { NONE, DECIDING, ARCADE, CHOOSING, LOADING, ADOPTING }
 
 var lobby := Lobby.new()
 var selected_episode := 0
@@ -30,12 +34,22 @@ var _owns_rate := false
 var _previous_rate := 35
 var configuration_locked: bool:
 	get:
-		return _proposed
+		return continuing or _proposed
 var _returning := false
 var _proposed := false
 var _compared := false
 var _stopping := false
 var _setup_error := ""
+var continuing := false
+var _progress := Progress.NONE
+var _progress_queued := false
+var _progress_loading := false
+var _progress_decision_requested := false
+var _progress_choice_requested := false
+var _progress_candidate := {}
+var scene_change := Callable(Game, "goto_scene")
+var current_scene := Callable(Effects, "current_game_scene")
+var _progress_generation := 0
 
 
 func _ready() -> void:
@@ -82,7 +96,7 @@ func _bind_backend() -> Error:
 
 
 func begin_episode_selection() -> bool:
-	if not lobby.hosting or lobby.peer == null or _proposed:
+	if continuing or not lobby.hosting or lobby.peer == null or _proposed:
 		return false
 	start_requested = false
 	selecting_episode = true
@@ -155,6 +169,14 @@ func finish_options() -> bool:
 
 func stop() -> void:
 	_stopping = true
+	_progress_generation += 1
+	continuing = false
+	_progress = Progress.NONE
+	_progress_queued = false
+	_progress_loading = false
+	_progress_decision_requested = false
+	_progress_choice_requested = false
+	_progress_candidate.clear()
 	if is_instance_valid(_player_scene):
 		_player_scene.disable_network_input()
 	_player_scene = null
@@ -185,7 +207,7 @@ func stop() -> void:
 
 
 func ready_screen() -> bool:
-	return lobby.peer != null and (start_requested or not lobby.hosting or _proposed)
+	return continuing or (lobby.peer != null and (start_requested or not lobby.hosting or _proposed))
 
 
 func local_ready() -> bool:
@@ -193,10 +215,14 @@ func local_ready() -> bool:
 
 
 func can_ready() -> bool:
+	if continuing:
+		return false
 	return is_instance_valid(backend) and backend.preview_matched() and not local_ready()
 
 
 func can_start() -> bool:
+	if continuing:
+		return false
 	return (
 		lobby.hosting
 		and is_instance_valid(backend)
@@ -221,6 +247,8 @@ func status_key() -> String:
 		return "net_content_mismatch" if _setup_error == "content_mismatch" else "net_setup_failed"
 	if not is_instance_valid(backend) or not lobby.connected:
 		return lobby.status_key
+	if continuing:
+		return "net_wait_host" if _progress == Progress.ARCADE else "net_preparing"
 	if backend.running():
 		return "net_session_prepared"
 	if local_ready():
@@ -242,6 +270,11 @@ func _backend_changed() -> void:
 		selected_episode = config.episode
 		selected_difficulty = config.initial_difficulty
 	changed.emit()
+	if _leave_queued and not is_instance_valid(_player_scene):
+		return
+	if continuing:
+		_queue_progress()
+		return
 	if is_instance_valid(_player_scene):
 		if not backend.running():
 			leave_player(_player_scene, backend.error if not backend.error.is_empty() else "session_closed")
@@ -278,7 +311,8 @@ func _prepare_player(scene: Node) -> bool:
 	scene.controller = self
 	scene.use_entry_fade = true
 	scene.set("_touch_pause", true)
-	_previous_rate = Engine.physics_ticks_per_second
+	if not _owns_rate:
+		_previous_rate = Engine.physics_ticks_per_second
 	_owns_rate = true
 	Engine.physics_ticks_per_second = rate
 	_player_scene = scene
@@ -305,11 +339,29 @@ func _return_to_lobby(expected_scene: int) -> void:
 func player_scene_exited(scene: Node) -> void:
 	if is_instance_valid(_player_scene) and scene == _player_scene:
 		last_player_exit = "scene_replaced"
+		_player_scene = null
+		_leave_queued = true
+		if is_instance_valid(backend):
+			_stop_after_player_exit.call_deferred(backend.get_instance_id())
+
+
+func _stop_after_player_exit(expected_backend: int) -> void:
+	if (
+		_leave_queued
+		and not is_instance_valid(_player_scene)
+		and is_instance_valid(backend)
+		and backend.get_instance_id() == expected_backend
+	):
 		stop()
 
 
 func _process(_delta: float) -> void:
 	if _stopping or not is_instance_valid(backend) or not _setup_error.is_empty():
+		return
+	if _leave_queued and not is_instance_valid(_player_scene):
+		return
+	if continuing:
+		_queue_progress()
 		return
 	if lobby.hosting and start_requested and not _proposed and backend.compatible():
 		_proposed = true
@@ -325,6 +377,215 @@ func _process(_delta: float) -> void:
 		if not backend.compare_preview():
 			_setup_error = backend.error if not backend.error.is_empty() else "preview_failed"
 		changed.emit()
+
+
+## Called once by the old player after both final Statistics fades.
+func continue_player(scene: Node) -> bool:
+	if continuing or scene != _player_scene or not is_instance_valid(backend) or platform_name.call() != "Android":
+		return false
+	if not backend.running() or not backend.completion_agreed() or backend.result_committed_phase() != 3:
+		return false
+	continuing = true
+	_progress_generation += 1
+	_progress = Progress.DECIDING
+	_progress_loading = false
+	_progress_decision_requested = false
+	_progress_choice_requested = false
+	scene.disable_network_input()
+	_queue_progress()
+	return true
+
+
+func continuation_menu() -> Dictionary:
+	return _progress_candidate.duplicate(true) if continuing and _progress_candidate.get("kind") == "shop" else {}
+
+
+func start_continuation_from_arcade() -> bool:
+	if not continuing or _progress != Progress.ARCADE or not selecting_arcade or not lobby.hosting:
+		return false
+	selecting_arcade = false
+	_progress = Progress.CHOOSING
+	_returning = true
+	_queue_progress()
+	return true
+
+
+func _queue_progress() -> void:
+	if _progress_queued or not continuing or not is_instance_valid(backend):
+		return
+	_progress_queued = true
+	_advance_progress.call_deferred(backend.get_instance_id(), _progress_generation)
+
+
+func _advance_progress(expected_backend: int, generation: int) -> void:
+	if (
+		not continuing
+		or generation != _progress_generation
+		or not is_instance_valid(backend)
+		or backend.get_instance_id() != expected_backend
+	):
+		return
+	_drive_progress()
+	_progress_queued = false
+
+
+func _drive_progress() -> void:
+	var current: Node = current_scene.call()
+	if is_instance_valid(_player_scene) and current != _player_scene:
+		stop()
+		last_player_exit = "continuation_scene_replaced"
+		return
+	if (
+		not is_instance_valid(_player_scene)
+		and current != null
+		and current.scene_file_path not in [ARCADE_SCENE, LOBBY_SCENE, "res://scenes/network_options.tscn"]
+	):
+		stop()
+		last_player_exit = "continuation_scene_replaced"
+		return
+	if not backend.running():
+		_end_progress("continuation_disconnected")
+		return
+	match _progress:
+		Progress.DECIDING:
+			if backend.continuation_sequence() == 0:
+				if _progress_decision_requested:
+					return
+				_progress_decision_requested = true
+				var accepted: bool = (
+					backend.propose_continuation(1) if lobby.hosting else backend.prepare_continuation(1)
+				)
+				if not accepted:
+					_end_progress("continuation_decision_failed")
+				return
+			_progress_candidate = backend.committed_continuation(1)
+			var kind: String = _progress_candidate.get("kind", "")
+			if kind == "shop" and not Next._pending_effects(_progress_candidate.script):
+				_progress = Progress.ARCADE
+				selecting_arcade = lobby.hosting
+				arcade_row = 2
+				options_row = 2
+				_move_progress_scene(ARCADE_SCENE if lobby.hosting else LOBBY_SCENE)
+			elif kind == "level":
+				_progress = Progress.LOADING
+				_move_progress_scene(LOBBY_SCENE)
+			else:
+				_end_progress("unsupported_continuation_route")
+		Progress.ARCADE:
+			if not lobby.hosting and backend.continuation_sequence() == 2:
+				_progress_candidate = backend.committed_continuation(2)
+				_progress = Progress.LOADING
+		Progress.CHOOSING:
+			if backend.continuation_sequence() != 2:
+				if _progress_choice_requested:
+					return
+				_progress_choice_requested = true
+				if not backend.propose_continuation(2):
+					_end_progress("continuation_choice_failed")
+				return
+			_progress_candidate = backend.committed_continuation(2)
+			_progress = Progress.LOADING
+		Progress.LOADING:
+			var sequence: int = _progress_candidate.get("sequence", 0)
+			if lobby.hosting and not _progress_loading:
+				_progress_loading = true
+				var seed := Crypto.new().generate_random_bytes(8).hex_encode()
+				if not backend.prepare_next_level(sequence, seed):
+					_end_progress("continuation_load_failed")
+				return
+			if lobby.hosting and backend.next_level_loaded() and not backend.next_level_load_committed():
+				if not backend.commit_next_level_load():
+					_end_progress("continuation_activation_failed")
+				return
+			if backend.next_level_load_committed():
+				_progress = Progress.ADOPTING
+				_replace_continuation_player()
+	changed.emit()
+
+
+func _detach_progress_player() -> void:
+	if is_instance_valid(_player_scene):
+		_player_scene._detach()
+	_player_scene = null
+
+
+func _move_progress_scene(path: String) -> void:
+	_detach_progress_player()
+	var current: Node = current_scene.call()
+	if current != null and current.scene_file_path == path:
+		return
+	if current != null and current.scene_file_path == LOBBY_SCENE:
+		current.set("_handoff", true)
+	_returning = path == LOBBY_SCENE
+	if scene_change.call(path, Callable()) == null:
+		_end_progress("continuation_scene_failed")
+
+
+func _replace_continuation_player() -> void:
+	_detach_progress_player()
+	if platform_name.call() != "Android" or not backend.adopt_next_level():
+		_end_progress("continuation_adoption_failed")
+		return
+	var current: Node = current_scene.call()
+	if current != null and current.scene_file_path == LOBBY_SCENE:
+		current.set("_handoff", true)
+	selecting_arcade = false
+	selecting_options = false
+	if scene_change.call(PLAYER_SCENE, _prepare_player) == null:
+		_end_progress("continuation_player_failed")
+		return
+	continuing = false
+	_progress = Progress.NONE
+	_progress_candidate.clear()
+	_progress_loading = false
+	_returning = false
+	last_player_exit = "continued"
+	changed.emit()
+
+
+func _end_progress(reason: String) -> void:
+	if not continuing:
+		return
+	_detach_progress_player()
+	var current: Node = current_scene.call()
+	if current != null and current.scene_file_path == LOBBY_SCENE:
+		current.set("_handoff", true)
+	stop()
+	_setup_error = reason
+	last_player_exit = reason
+	_returning = true
+	scene_change.call(LOBBY_SCENE, Callable())
+
+
+func continuation_cash(player: int) -> String:
+	var stats: Dictionary = _progress_candidate.get("earned", {})
+	var value := int(stats.get("cash" if player == 0 else "cash2", 0))
+	if value >= 0:
+		return str(value)
+	# Convert the unsigned native cash bits without floating point or overflow.
+	var decimal := "0"
+	for nibble in Cursor.unsigned_cash(value):
+		var carry := "0123456789abcdef".find(nibble)
+		var next := ""
+		for i in range(decimal.length() - 1, -1, -1):
+			var digit := int(decimal[i]) * 16 + carry
+			next = str(digit % 10) + next
+			carry = digit / 10
+		while carry > 0:
+			next = str(carry % 10) + next
+			carry /= 10
+		decimal = next
+	return decimal
+
+
+func _notification(what: int) -> void:
+	if continuing and what in [NOTIFICATION_APPLICATION_FOCUS_OUT, NOTIFICATION_APPLICATION_PAUSED]:
+		_end_progress_checked.call_deferred("continuation_focus_lost", _progress_generation)
+
+
+func _end_progress_checked(reason: String, generation: int) -> void:
+	if generation == _progress_generation:
+		_end_progress(reason)
 
 
 func _build_configuration() -> Dictionary:
