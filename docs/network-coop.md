@@ -3071,7 +3071,7 @@ lineage and unchanged Game/save/RNG state. Live ending presentation and effect
 agreement remain subsequent work under the approved both-phones/host-advance
 direction; the next-level loader must continue refusing episode-end requests.
 
-### Detached episode-ending checkpoint (2026-11-26, working tree)
+### Detached episode-ending checkpoint (2026-11-26, `67ba6b5`)
 
 `network_episode_end.gd` now derives a copied, digest-bound ending ledger from
 configuration, final result, committed proposal and explicit history. It preserves
@@ -3102,3 +3102,63 @@ Next establish session-owned hint context and agreed presentation/random choices
 then connect one original ending screen at a time. Profile/high-score writes,
 reward application, campaign history adoption and next-episode loading still
 need their own verified owners; this ledger grants none of those side effects.
+
+### Shared episode-hint plan (2026-11-26)
+
+The maintained local path draws `secret_hint = randi() % 3 + 1` at campaign
+start, then chooses `group + (randi() % 3) * 3` at each ending, falling back to
+block 1 if the selected block is absent. This is Godot presentation randomness;
+neither draw uses the deterministic native simulation RNG. Implement this next
+checkpoint strictly for hints. Do not reuse it for the SuperCarrot reward.
+
+Derive a session-owned hint group from a domain-separated hash of the agreed
+random session identifier, keeping it stable across levels/episodes. Derive the
+ending variant from a separate domain plus that context and the validated ending
+plan digest. Project one explicit unsigned 32-bit value modulo 3 for each choice;
+apply the original block formula and missing-block fallback without modifying
+native hint text. Both peers can independently obtain identical choices from
+already agreed inputs, without local RNG draws or another untrusted wire object.
+Return a digest-bound copied descriptor with context, source ending plan, variant,
+requested/selected block and raw hint text. A query is not a Ready/advance/finish
+agreement; eventual presentation must still bind this descriptor into its page
+agreement. Keep the ending ledger's effects unapplied and preserve its raw script.
+
+Expose this through the guarded ending backend query. Test stable group lifetime,
+all group/variant combinations, native hint blocks/fallback/empty data, changed
+session/source/history, descriptor mutation and no global/native RNG consumption.
+Use native scripts for all five episodes and real ENet peers to compare complete
+descriptors and unchanged ended native state. No frontend or profile/reward writes
+are part of this checkpoint; live original score/hint rendering remains next.
+
+### Shared episode-hint checkpoint (2026-11-26, working tree)
+
+`network_episode_hint.gd` now derives a stable session hint context and a separate
+ending-specific cosmetic variant from domain-separated SHA-256 inputs. It uses
+the original group-plus-three-times-variant block formula, fallback to block 1,
+and empty-block behavior, preserving raw native hint text. The copied descriptor
+binds its source ending plan, session context, requested/selected block, variant
+and text. `episode_hint_for_view()` obtains all inputs through the guarded,
+committed ending query; neither query marks effects applied or advances a page.
+No new packet or explicit peer acknowledgement is claimed: the choices derive
+from existing agreed inputs, and future page agreement must bind the descriptor.
+This cosmetic derivation must not be used for SuperCarrot or other gameplay
+rewards. It does not change the maintained local campaign's RNG behavior.
+
+All 15 hint/ending/cursor cases passed with process exit 0. Coverage includes
+native scripts for all five episodes, stable group lifetime, all nine original
+block combinations, fallback/empty data, raw text/copy isolation, changed
+session/history/source and rehashed descriptor tampering. Seeded controls verify
+no global RNG draw; inherited sentinels check unchanged Game fields/save files.
+The focused real ENet case also passed with exit 0: descriptors match after
+committed ending agreement, returned copies are isolated, and ended native
+identity, tick, diagnostic state (including RNG) and phase 3 stay unchanged.
+The route candidate is controlled after native terminal completion, not a
+naturally won episode. All four new/changed GDScript files pass format/lint checks
+and `git diff --check` passes. No APK/build handover, physical-phone run or
+exported Linux journey/smoke gate is claimed; the known Windows shutdown issue
+remains unresolved despite these clean exits.
+
+Next adapt the original two-player ending score/hint page to these copied values
+and bind its descriptor into presentation readiness/host advance/both finishes.
+Keep live profile/high-score writes, rewards, campaign-history adoption and
+next-episode loading explicitly unowned until their later checkpoints.

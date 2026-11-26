@@ -16,6 +16,7 @@ const Next := preload("res://scripts/network_next_level.gd")
 const StoryScript := preload("res://scripts/network_story_script.gd")
 const StoryPages := preload("res://scripts/network_story_pages.gd")
 const EpisodeEnd := preload("res://scripts/network_episode_end.gd")
+const EpisodeHint := preload("res://scripts/network_episode_hint.gd")
 var _runner := Runner.new()
 var _activated := false
 var _view_local := false
@@ -623,6 +624,20 @@ func episode_end_plan(sequence := 1) -> Dictionary:
 		_level_result.record(),
 		candidate,
 		{"initial_episode": initial.get("episode"), "repeated": false}
+	)
+
+
+## Cosmetic choices from already agreed inputs, not presentation completion.
+func episode_hint_for_view(sequence := 1) -> Dictionary:
+	var ending := episode_end_plan(sequence)
+	if ending.is_empty():
+		return {}
+	return EpisodeHint.build(
+		configuration(),
+		_level_result.record(),
+		committed_continuation(sequence),
+		ending.history,
+		_gameplay_context().session
 	)
 
 
