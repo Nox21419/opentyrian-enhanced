@@ -3,6 +3,7 @@ extends RefCounted
 
 const Wire := preload("res://scripts/network_protocol.gd")
 const Config := preload("res://scripts/network_configuration.gd")
+const LevelConfig := preload("res://scripts/network_level_configuration.gd")
 const MAX_DELTA := 30
 
 
@@ -33,8 +34,9 @@ static func supports(config: Dictionary) -> bool:
 	return Config.valid(config) and config.devices == [0, 0]
 
 
-static func valid(frame: Dictionary, player: int, config: Dictionary) -> bool:
-	if player not in [1, 2] or not supports(config) or not Wire.valid_frame(frame):
+static func valid(frame: Dictionary, player: int, config: Dictionary, continuation := false) -> bool:
+	var supported := LevelConfig.valid(config) if continuation else supports(config)
+	if player not in [1, 2] or not supported or not Wire.valid_frame(frame):
 		return false
 	if absi(frame.mouse_dx) > MAX_DELTA or absi(frame.mouse_dy) > MAX_DELTA:
 		return false

@@ -12,6 +12,7 @@ const LevelResult := preload("res://scripts/network_level_result.gd")
 const Continuation := preload("res://scripts/network_continuation.gd")
 const CampaignCursor := preload("res://scripts/network_campaign_cursor.gd")
 const LevelLoad := preload("res://scripts/network_level_load.gd")
+const Next := preload("res://scripts/network_next_level.gd")
 var _runner := Runner.new()
 var _activated := false
 var _view_local := false
@@ -25,6 +26,11 @@ var _continuation_candidates := {}
 var _level_load := LevelLoad.new()
 var _pending_preparation: RefCounted
 var _load_sequence := 0
+var _active_context := {}
+var _active_request := {}
+var _view_borrows := {}
+var _pending_view_ready := false
+var _awaiting_new_views := false
 
 
 func _ready() -> void:
@@ -33,6 +39,10 @@ func _ready() -> void:
 
 
 func stop() -> void:
+	_active_context.clear()
+	_active_request.clear()
+	_view_borrows.clear()
+	_awaiting_new_views = false
 	_clear_pending_load()
 	_continuation = Continuation.new()
 	_campaign_cursor = null
@@ -76,6 +86,7 @@ func running() -> bool:
 func needs_local_input() -> bool:
 	return (
 		running()
+		and (not _awaiting_new_views or views_ready())
 		and _pause.may_advance(ticks_executed())
 		and _completion.may_advance(ticks_executed())
 		and _runner.needs_local_input()
@@ -83,6 +94,8 @@ func needs_local_input() -> bool:
 
 
 func capture_local(frame: Dictionary) -> bool:
+	if _awaiting_new_views and not views_ready():
+		return false
 	if not running() or not _pause.may_advance(ticks_executed()) or not _completion.may_advance(ticks_executed()):
 		return false
 	var packet: PackedByteArray = _runner.capture_local(frame)
@@ -96,6 +109,8 @@ func capture_local(frame: Dictionary) -> bool:
 
 
 func advance() -> bool:
+	if _awaiting_new_views and not views_ready():
+		return false
 	if not running() or not _pause.may_advance(ticks_executed()) or not _completion.may_advance(ticks_executed()):
 		return false
 	var advanced: bool = _runner.advance()
@@ -118,7 +133,89 @@ func simulation_for_view() -> Node:
 
 
 func player_for_view() -> int:
-	return int(_connection.startup.context().get("player", 0)) if running() else 0
+	return int(_gameplay_context().get("player", 0)) if running() else 0
+
+
+func _gameplay_context() -> Dictionary:
+	return _active_context.duplicate() if not _active_context.is_empty() else _connection.startup.context()
+
+
+func _configuration_digest() -> String:
+	return (
+		Next.configuration_digest(configuration()) if not _active_request.is_empty() else Config.digest(configuration())
+	)
+
+
+func continuation_level_for_view() -> Dictionary:
+	return _active_request.get("script", {}).duplicate(true) if running() else {}
+
+
+func register_view_borrow(view: Node) -> bool:
+	if not running() or not is_instance_valid(view) or simulation_for_view() == null:
+		return false
+	_view_borrows[view.get_instance_id()] = weakref(view)
+	return true
+
+
+func release_view_borrow(view: Node) -> void:
+	if is_instance_valid(view):
+		_view_borrows.erase(view.get_instance_id())
+
+
+## Caller must detach all old views before swapping native ownership.
+func adopt_next_level() -> bool:
+	if not next_level_load_committed() or not _verify_continuation_state() or _pending_preparation == null:
+		return false
+	for id in _view_borrows.keys():
+		if _view_borrows[id].get_ref() == null:
+			_view_borrows.erase(id)
+	if not _view_borrows.is_empty():
+		return false
+	if not _pending_preparation.verify_preview():
+		return _fail(_pending_preparation.error)
+	var request: Dictionary = _pending_preparation.continuation_request()
+	if not Next.valid_request(request):
+		return _fail("invalid_continuation_request")
+	var context := _gameplay_context()
+	context.epoch = _level_load.next_epoch
+	var runner := Runner.new()
+	var native: Node = _pending_preparation.get("_preview")
+	if not runner.activate_continuation(native, request, context.session, context.epoch, context.player):
+		return _fail(runner.error)
+	var pause := PauseController.new()
+	if not pause.configure(context.session, context.epoch, context.player, request.configuration.input_delay):
+		return _fail(pause.error)
+	var cursor := CampaignCursor.new(_pending_preparation.get("_data_dir"))
+	if not cursor.begin_continuation(request.configuration, request.script, request.entry):
+		return _fail(cursor.error)
+	# Cursor construction reads scripts. Reverify both owned snapshots around it
+	# and bind the request/state back to the already committed load digest.
+	if not _verify_continuation_state():
+		return false
+	if not _pending_preparation.verify_preview():
+		return _fail(_pending_preparation.error)
+	if not _level_load.loaded(request.digest, _pending_preparation.preview_digest(), Time.get_ticks_msec()):
+		return _fail(_level_load.error)
+	var previous: RefCounted = _preparation
+	_runner.stop()
+	_runner = runner
+	_preparation = _pending_preparation
+	_pending_preparation = null
+	_active_context = context
+	_active_request = request.duplicate(true)
+	_pause = pause
+	_campaign_cursor = cursor
+	_completion = Completion.new()
+	_level_result = LevelResult.new()
+	_continuation = Continuation.new()
+	_continuation_candidates.clear()
+	_view_local = false
+	_view_remote = _pending_view_ready
+	_awaiting_new_views = true
+	_clear_pending_load()
+	previous.clear()
+	changed.emit()
+	return running()
 
 
 ## Production scene barrier, after its original entry fade. No core stepping.
@@ -129,7 +226,7 @@ func mark_view_ready() -> bool:
 		return true
 	if ticks_executed() != 0:
 		return false
-	var context: Dictionary = _connection.startup.context()
+	var context: Dictionary = _gameplay_context()
 	var packet := Wire.encode(
 		{
 			"kind": Wire.Kind.READY,
@@ -138,7 +235,7 @@ func mark_view_ready() -> bool:
 			"player": context.player,
 			"tick": 0,
 			"sequence": 1,
-			"digest": Config.digest(configuration())
+			"digest": _configuration_digest()
 		}
 	)
 	if _connection.transport.send_packet(packet) != OK:
@@ -263,7 +360,7 @@ func _load_context(sequence: int) -> bool:
 		return false
 	if _load_sequence != 0:
 		return true if _load_sequence == sequence else _fail("changed_load_decision")
-	var context: Dictionary = _connection.startup.context()
+	var context: Dictionary = _gameplay_context()
 	if not _level_load.configure(
 		context.session, _pause.epoch, context.player, ticks_executed(), sequence, candidate.digest
 	):
@@ -301,6 +398,7 @@ func _settle_load() -> bool:
 
 
 func _clear_pending_load() -> void:
+	_pending_view_ready = false
 	if _pending_preparation != null:
 		_pending_preparation.clear()
 	_pending_preparation = null
@@ -393,7 +491,7 @@ func _continuation_context() -> bool:
 		return true
 	if _continuation.epoch != 0:
 		return _fail("changed_continuation_epoch")
-	var context: Dictionary = _connection.startup.context()
+	var context: Dictionary = _gameplay_context()
 	if not _continuation.configure(context.session, _pause.epoch, context.player, ticks_executed()):
 		return _fail(_continuation.error)
 	return true
@@ -415,7 +513,7 @@ func note_level_result(presented_tick: int, level_name: String, elapsed_seconds:
 	if not views_ready() or not _completion_context():
 		return false
 	var native := simulation_for_view()
-	if not _level_result.capture(native, configuration(), level_name, presented_tick):
+	if not _level_result.capture(native, configuration(), level_name, presented_tick, not _active_request.is_empty()):
 		return _fail(_level_result.error)
 	var record := _level_result.record()
 	if not _completion.reached(record.tick, record.digest, elapsed_seconds, Time.get_ticks_msec()):
@@ -457,7 +555,7 @@ func _completion_context() -> bool:
 	if _completion.active():
 		return _fail("changed_completion_epoch")
 	_completion = Completion.new()
-	var context: Dictionary = _connection.startup.context()
+	var context: Dictionary = _gameplay_context()
 	if not _completion.configure(context.session, _pause.epoch, context.player, configuration().input_delay):
 		return _fail(_completion.error)
 	return true
@@ -474,7 +572,7 @@ func _settle_completion() -> bool:
 
 
 func _receive_view_ready(packet: PackedByteArray) -> void:
-	var context: Dictionary = _connection.startup.context()
+	var context: Dictionary = _gameplay_context()
 	var message := Wire.decode(packet, packet.slice(8, 24).hex_encode(), packet.decode_u32(24), 3 - context.player)
 	if message.is_empty():
 		_fail("invalid_view_ready")
@@ -484,7 +582,7 @@ func _receive_view_ready(packet: PackedByteArray) -> void:
 	if (
 		message.tick != 0
 		or message.sequence != 1
-		or message.digest != Config.digest(configuration())
+		or message.digest != _configuration_digest()
 		or (not _view_remote and ticks_executed() != 0)
 	):
 		_fail("invalid_view_ready")
@@ -513,7 +611,7 @@ func _changed() -> void:
 		if not _preparation.verify_preview():
 			_fail(_preparation.error)
 			return
-		var context: Dictionary = _connection.startup.context()
+		var context: Dictionary = _gameplay_context()
 		if not _runner.activate(
 			_preparation.get("_preview"), _preparation.configuration(), context.session, context.epoch, context.player
 		):
@@ -531,6 +629,20 @@ func _receive_input(packet: PackedByteArray) -> void:
 	if not running():
 		_fail("input_before_start")
 		return
+	if packet.size() >= Wire.HEADER_BYTES:
+		var context := _gameplay_context()
+		if packet.decode_u32(24) < context.epoch:
+			var old := Wire.decode(packet, packet.slice(8, 24).hex_encode(), packet.decode_u32(24), 3 - context.player)
+			if old.is_empty():
+				_fail("invalid_stale_packet")
+			return
+		if (
+			int(packet[6]) == Wire.Kind.READY
+			and _level_load.committed()
+			and packet.decode_u32(24) == _level_load.next_epoch
+		):
+			_stage_next_view_ready(packet)
+			return
 	if (
 		packet.size() >= Wire.HEADER_BYTES
 		and int(packet[6]) in [Wire.Kind.LOAD_SEED, Wire.Kind.LOAD_READY, Wire.Kind.LOAD_ACTIVATE]
@@ -550,7 +662,7 @@ func _receive_input(packet: PackedByteArray) -> void:
 		_receive_completion(packet)
 		return
 	if packet.size() >= Wire.HEADER_BYTES and int(packet[6]) == Wire.Kind.READY:
-		var initial_epoch: int = _connection.startup.context().epoch
+		var initial_epoch: int = _gameplay_context().epoch
 		if packet.decode_u32(24) == initial_epoch and packet.decode_u32(28) == 0:
 			_receive_view_ready(packet)
 		else:
@@ -583,7 +695,7 @@ func _receive_completion(packet: PackedByteArray) -> void:
 	if not views_ready():
 		_fail("completion_before_views")
 		return
-	var context: Dictionary = _connection.startup.context()
+	var context: Dictionary = _gameplay_context()
 	var message := Wire.decode(packet, packet.slice(8, 24).hex_encode(), packet.decode_u32(24), 3 - context.player)
 	if message.is_empty():
 		_fail("invalid_completion_message")
@@ -601,7 +713,7 @@ func _receive_completion(packet: PackedByteArray) -> void:
 
 
 func _receive_continuation(packet: PackedByteArray) -> void:
-	var context: Dictionary = _connection.startup.context()
+	var context: Dictionary = _gameplay_context()
 	var message := Wire.decode(packet, packet.slice(8, 24).hex_encode(), packet.decode_u32(24), 3 - context.player)
 	if message.is_empty():
 		_fail("invalid_continuation_message")
@@ -634,7 +746,7 @@ func _receive_continuation(packet: PackedByteArray) -> void:
 
 
 func _receive_load(packet: PackedByteArray) -> void:
-	var context: Dictionary = _connection.startup.context()
+	var context: Dictionary = _gameplay_context()
 	var message := Wire.decode(packet, packet.slice(8, 24).hex_encode(), packet.decode_u32(24), 3 - context.player)
 	if message.is_empty():
 		_fail("invalid_load_message")
@@ -663,7 +775,27 @@ func _receive_load(packet: PackedByteArray) -> void:
 	_settle_load()
 
 
+func _stage_next_view_ready(packet: PackedByteArray) -> void:
+	var context := _gameplay_context()
+	var message := Wire.decode(packet, context.session, _level_load.next_epoch, 3 - context.player)
+	if message.is_empty() or _pending_preparation == null:
+		_fail("invalid_next_view_ready")
+		return
+	if (
+		message.tick != 0
+		or message.sequence != 1
+		or message.digest != Next.configuration_digest(_pending_preparation.configuration())
+	):
+		_fail("invalid_next_view_ready")
+		return
+	_pending_view_ready = true
+
+
 func _fail(reason: String) -> bool:
+	_active_context.clear()
+	_active_request.clear()
+	_view_borrows.clear()
+	_awaiting_new_views = false
 	_clear_pending_load()
 	_continuation = Continuation.new()
 	_campaign_cursor = null

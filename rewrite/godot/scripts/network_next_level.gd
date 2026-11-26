@@ -2,35 +2,79 @@
 ## Caller must independently derive and agree the source proposal first.
 extends RefCounted
 
+const LevelConfig := preload("res://scripts/network_level_configuration.gd")
 const Config := preload("res://scripts/network_configuration.gd")
 const Cursor := preload("res://scripts/network_campaign_cursor.gd")
 const Result := preload("res://scripts/network_level_result.gd")
 
 
 static func valid_configuration(config: Variant) -> bool:
-	if not config is Dictionary or not Config.integer(config.get("initial_difficulty"), 1, 8):
-		return false
-	if not Config.integer(config.get("difficulty"), config.initial_difficulty + 1, 9):
-		return false
-	var normalized: Dictionary = config.duplicate(true)
-	normalized.difficulty = config.initial_difficulty + 1
-	for pair in [["loadout1", 4], ["loadout2", 2]]:
-		var equipment: Variant = normalized.get(pair[0])
-		if not equipment is Array or equipment.size() != 10:
-			return false
-		if not Config.integer(equipment[pair[1]], 0, 255):
-			return false
-		equipment[pair[1]] = 1
-	return Config.valid(normalized) and config.devices == [0, 0] and config.game_speed <= 5
+	return LevelConfig.valid(config)
 
 
 static func configuration_digest(config: Dictionary) -> String:
-	if not valid_configuration(config):
-		return ""
-	var ordered := []
-	for field in Config.FIELDS:
-		ordered.append(config[field])
-	return Config.sha256(JSON.stringify(ordered))
+	return LevelConfig.digest(config)
+
+
+static func valid_request(request: Dictionary) -> bool:
+	var fields := [
+		"configuration",
+		"carry",
+		"bonus_level",
+		"source_configuration",
+		"source_result",
+		"source_proposal",
+		"sequence",
+		"parent",
+		"script",
+		"entry",
+		"digest"
+	]
+	if request.size() != fields.size():
+		return false
+	for field in fields:
+		if not request.has(field):
+			return false
+	if not LevelConfig.valid(request.configuration) or not request.bonus_level is bool:
+		return false
+	for field in ["source_configuration", "source_result", "source_proposal", "digest"]:
+		if not Config.hex_string(request[field], 64):
+			return false
+	if request.sequence not in [1, 2] or not request.sequence is int:
+		return false
+	if request.parent != "" and not Config.hex_string(request.parent, 64):
+		return false
+	if request.sequence == 2 and request.parent == "":
+		return false
+	if not request.carry is PackedInt32Array or request.carry.size() != 7:
+		return false
+	if (
+		not Config.integer(request.carry[4], 0, 1)
+		or not Config.integer(request.carry[5], 0, 255)
+		or not Config.integer(request.carry[6], 0, 255)
+	):
+		return false
+	if not request.script is Dictionary or not request.entry is Dictionary:
+		return false
+	if (
+		request.script.get("stop") != "level"
+		or request.script.get("lvl_file_num") != request.configuration.level_file
+		or request.script.has("mini_game")
+	):
+		return false
+	if not request.script.get("bonus") is bool or not request.script.get("normal_bonus") is bool:
+		return false
+	if request.bonus_level != (request.script.bonus or request.script.normal_bonus):
+		return false
+	if _pending_effects(request.script) or _pending_effects(request.entry):
+		return false
+	var body := request.duplicate(true)
+	body.erase("digest")
+	var bytes := Result.canonical_bytes(body)
+	var hash := HashingContext.new()
+	hash.start(HashingContext.HASH_SHA256)
+	hash.update(bytes)
+	return not bytes.is_empty() and hash.finish().hex_encode() == request.digest
 
 
 ## Seed is an explicit agreed input, never wall time or a local RNG draw.

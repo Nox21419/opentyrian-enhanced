@@ -2529,3 +2529,96 @@ All five changed/new GDScript files pass formatter/linter checks and
 `git diff --check` passes. These clean ENet exits do not resolve the intermittent
 shutdown failure seen in the pure run. No native rebuild was needed for this
 GDScript-only checkpoint; no APK, phone play or exported Linux gate is claimed.
+
+### Fresh runner adoption plan (2026-11-25)
+
+The load-barrier checkpoint was pushed as `c163126`. Next add explicit backend
+adoption, without changing the live Statistics/Arcade scene flow yet. Extract
+the continuation configuration grammar into a small dependency-only module so
+result/cursor/input consumers can select it without circular preloads or weakening
+initial validation. Add a sealed-request runner entry point; keep ordinary
+activation strict. Carry the selected profile through frame validation and result
+capture; adopt the request's real script context into a fresh campaign cursor.
+
+Register weak view borrows at binding and release them at detach/exit. Adoption
+requires committed load authorization, unchanged ended result/core/content,
+unchanged pending tick-zero diagnostic and no remaining old view borrows. Build
+fresh runner/pause/cursor objects before replacing the preparation owner. Use the
+reserved epoch+1, tick zero and the agreed request's configuration and metadata;
+reset view/result/continuation/load state, then release the detached old owner.
+Keep the persistent transport/startup handshake separate from the active gameplay
+epoch. All future pause/result/load controls use that active context.
+
+Permit one correctly bound next-epoch view Ready to arrive before local adoption,
+only after local load commitment, with exact next-config digest. Stage it without
+stepping or marking the old view ready. New-level input capture and advancement
+remain blocked until both fresh views are ready. Ignore old-epoch controls after
+adoption. Test rejection while a view is borrowed, safe detach/lifetime, two-peer
+adoption with staggered Ready delivery, tick/RNG equivalence, pause/resume in the
+new epoch, copied later-level metadata/result capture and strict initial APIs.
+Use the already chosen original two-player HUD; this step adds no new layout.
+Live scene replacement and the approved host Arcade route follow separately.
+
+### Backend adoption checkpoint (2026-11-25)
+
+Implemented explicit `adopt_next_level`, weak view-borrow registration and release,
+fresh continuation runner/pause/cursor creation, and a separate active gameplay
+context. The persistent startup transport remains connected. Adoption refuses
+while an old view is bound; detach/exit removes its borrow and disconnects the
+old callbacks. It rechecks the ended result/content, pending preview and sealed
+request, constructs replacements, then rechecks snapshots around script parsing
+and compares the request/state against the already committed load digest. Only
+then does it swap owners and free the old preparation. No simulation tick occurs
+during adoption.
+
+The new runner starts at tick zero in the reserved epoch, with a fresh input
+buffer. It requires the continuation-specific sealed request; ordinary activation
+keeps strict initial validation. `network_level_configuration.gd` centralizes the
+continuation grammar without circular dependencies; the existing next-level
+builder delegates to it. Input policy, result capture and campaign cursor adoption
+select that profile explicitly. The original view binds the adopted request's
+real level metadata instead of the initial destination. Initial APIs and the
+existing original two-player HUD remain unchanged.
+
+One valid next-epoch view Ready may be staged while the peer still owns its old
+ended view, but only after local load commitment and with the exact next config
+digest. Adoption preserves that staged fact while resetting all old view/result/
+load state. Fresh capture/advance are blocked until both new views are ready.
+Old-epoch controls are discarded after adoption, including before the new view
+barrier has finished. Pause/resume and later results/continuations use the adopted
+epoch/configuration and script context.
+
+Validation:
+
+- The loader/runner/cursor run passed 28 executed cases with actual process exit
+  0; counts include inherited loader cases exercised again in the new suite.
+  New tests compare 80 ticks from independent carried runners and verify strict
+  initial activation, sealed-request rejection and later-level result/cursor
+  digest selection.
+- A full seven-case ENet adoption/load/continuation/completion regression passed
+  with actual process exit 0. Its controlled next-level fixture verifies refusal
+  with old views attached, safe native lifetime, staggered adoption and early
+  Ready staging, original new-level metadata, equal native diagnostics through
+  35 new ticks, new-epoch Pause/Resume and stale result rejection. It uses a
+  controlled level-stop proposal after natural all-dead completion, not a won
+  multi-level player journey.
+- After tightening the final pre-swap snapshot/digest guard and bonus-flag
+  validation, 24 view/result/adoption cases passed with exit 0, followed by two
+  focused request/cursor tests and the focused ENet adoption case, also exit 0.
+  Inherited tests were excluded from the focused commands rather than rerun.
+- Initial failures came from missing summary fields in a fake result and a test
+  profile path containing unresolved parent components. The fixture and command
+  profile setup were corrected; final commands use absolute normalized profiles.
+  All eleven changed/new GDScript files pass formatter/linter checks and
+  `git diff --check` passes. No native rebuild, APK, physical-device run or exported
+  Linux gate is claimed. Clean exits do not establish that the pre-existing
+  intermittent native shutdown issue is fixed.
+
+These backend APIs are not yet invoked by the live first-level Statistics exit.
+Next wire NetworkSession's guarded scene replacement and the approved host-owned
+original Arcade continuation, including its waiting guest. Before live later-level
+completion, adapt debrief binding to the explicit continuation profile; preserve
+the current strict initial binding. Handle story/autosave effects, retry and
+episode-ending routes through their own owners rather than bypassing the request
+builder's existing refusals. No new frontend layout or mechanics approval is
+needed to reuse the directions already selected for this scoped work.

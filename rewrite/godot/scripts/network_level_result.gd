@@ -3,14 +3,15 @@
 extends RefCounted
 
 const Config := preload("res://scripts/network_configuration.gd")
+const LevelConfig := preload("res://scripts/network_level_configuration.gd")
 var error := ""
 var _record := {}
 
 
-func capture(native: Node, config: Dictionary, level_name: String, presented_tick: int) -> bool:
+func capture(native: Node, config: Dictionary, level_name: String, presented_tick: int, continuation := false) -> bool:
 	_record.clear()
 	error = ""
-	if not is_instance_valid(native) or not Config.valid(config):
+	if not is_instance_valid(native) or not (LevelConfig.valid(config) if continuation else Config.valid(config)):
 		return _fail("invalid_result_context")
 	if not native.level_ended() or native.tick() != presented_tick or presented_tick < 1:
 		return _fail("result_not_at_final_boundary")
@@ -30,7 +31,8 @@ func capture(native: Node, config: Dictionary, level_name: String, presented_tic
 		)
 	if native.tick() != presented_tick or native.network_diagnostic_digest() != before:
 		return _fail("result_read_changed_simulation")
-	var record := {"tick": presented_tick, "config": Config.digest(config), "core": before, "stats": stats}
+	var digest := LevelConfig.digest(config) if continuation else Config.digest(config)
+	var record := {"tick": presented_tick, "config": digest, "core": before, "stats": stats}
 	var bytes := canonical_bytes(record)
 	if bytes.is_empty():
 		return _fail("invalid_result_values")

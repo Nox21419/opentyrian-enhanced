@@ -33,10 +33,16 @@ func bind(connection: Node) -> bool:
 	var config: Dictionary = connection.configuration()
 	var rules := Rules.new(Game.data_dir)
 	var level := rules.first_level(config.episode, config.initial_difficulty)
+	if connection.has_method("continuation_level_for_view"):
+		var continuation: Dictionary = connection.continuation_level_for_view()
+		if not continuation.is_empty():
+			level = continuation
 	if level.is_empty() or int(level.get("lvl_file_num", -1)) != config.level_file:
 		return false
 	var role: int = connection.player_for_view()
 	if role not in [1, 2]:
+		return false
+	if connection.has_method("register_view_borrow") and not connection.register_view_borrow(self):
 		return false
 	_bound = true
 	backend = connection
@@ -96,6 +102,13 @@ func _backend_changed() -> void:
 
 func _detach() -> void:
 	disable_network_input()
+	if is_instance_valid(backend):
+		if backend.has_method("release_view_borrow"):
+			backend.release_view_borrow(self)
+		if backend.changed.is_connected(_backend_changed):
+			backend.changed.disconnect(_backend_changed)
+		if backend.tree_exiting.is_connected(_detach):
+			backend.tree_exiting.disconnect(_detach)
 	sim = null
 	backend = null
 	visible = false
@@ -326,4 +339,4 @@ func _notification(what: int) -> void:
 			Effects.kill_slowmo = -1.0
 			Effects.shake_px = Vector2i.ZERO
 		_presentation_ready = false
-		sim = null
+		_detach()

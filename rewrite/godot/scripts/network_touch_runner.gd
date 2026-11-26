@@ -5,6 +5,7 @@ extends RefCounted
 const Wire := preload("res://scripts/network_protocol.gd")
 const Buffer := preload("res://scripts/network_input_buffer.gd")
 const Policy := preload("res://scripts/network_touch_inputs.gd")
+const Next := preload("res://scripts/network_next_level.gd")
 
 var error := ""
 var ticks_executed := 0
@@ -15,11 +16,26 @@ var _session := ""
 var _epoch := 0
 var _player := 0
 var _active := false
+var _continuation := false
 
 
 func activate(sim: Node, config: Dictionary, session: String, epoch: int, player: int) -> bool:
+	return _activate(sim, config, session, epoch, player, false)
+
+
+func activate_continuation(sim: Node, request: Dictionary, session: String, epoch: int, player: int) -> bool:
+	if not Next.valid_request(request):
+		stop()
+		return _fail("invalid_continuation_request")
+	return _activate(sim, request.configuration, session, epoch, player, true)
+
+
+func _activate(sim: Node, config: Dictionary, session: String, epoch: int, player: int, continuation: bool) -> bool:
 	stop()
-	if not Policy.supports(config) or not is_instance_valid(sim):
+	if (
+		not (Next.valid_configuration(config) if continuation else Policy.supports(config))
+		or not is_instance_valid(sim)
+	):
 		return _fail("invalid_touch_session")
 	for method in [
 		"tick", "level_ended", "network_diagnostic_digest", "set_player_mice", "set_analog", "set_new_key", "step"
@@ -36,10 +52,12 @@ func activate(sim: Node, config: Dictionary, session: String, epoch: int, player
 	_epoch = epoch
 	_player = player
 	_active = true
+	_continuation = continuation
 	return true
 
 
 func stop() -> void:
+	_continuation = false
 	_active = false
 	_sim = null
 	_buffer.reset()
@@ -72,7 +90,7 @@ func resume_inputs(epoch: int, tick: int) -> bool:
 func capture_local(frame: Dictionary) -> PackedByteArray:
 	if not _running():
 		return PackedByteArray()
-	if _buffer.needs_local_input() and not Policy.valid(frame, _player, _config):
+	if _buffer.needs_local_input() and not Policy.valid(frame, _player, _config, _continuation):
 		_fail("invalid_local_input")
 		return PackedByteArray()
 	return Wire.encode(_buffer.capture_local(frame))
@@ -91,7 +109,7 @@ func receive(packet: PackedByteArray) -> int:
 		return Buffer.Result.INVALID
 	if message.session != _session or message.epoch != _epoch:
 		return Buffer.Result.WRONG_SESSION
-	if message.kind != Wire.Kind.INPUT or not Policy.valid(message.frame, 3 - _player, _config):
+	if message.kind != Wire.Kind.INPUT or not Policy.valid(message.frame, 3 - _player, _config, _continuation):
 		_fail("invalid_remote_input")
 		return Buffer.Result.INVALID
 	var result: int = _buffer.receive(message)

@@ -29,7 +29,16 @@ class LevelCandidateFixture:
 				"earned": record.stats.duplicate(true),
 				"requires_loader_adaptation": true,
 				"difficulty_rule_review_required": false,
-				"script": {"stop": "level", "section": 6, "lvl_file_num": 1, "bonus": false, "normal_bonus": false}
+				"script":
+				{
+					"stop": "level",
+					"section": 6,
+					"lvl_file_num": 1,
+					"next_level": 8,
+					"level_name": "ASTEROID1",
+					"bonus": false,
+					"normal_bonus": false
+				}
 			}
 			_proposal["digest"] = CursorBuilder.proposal_digest(_proposal)
 		return _proposal.duplicate(true)

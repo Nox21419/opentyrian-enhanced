@@ -3,6 +3,7 @@
 extends RefCounted
 
 const Config := preload("res://scripts/network_configuration.gd")
+const LevelConfig := preload("res://scripts/network_level_configuration.gd")
 const Rules := preload("res://scripts/network_initial_configuration.gd")
 const Result := preload("res://scripts/network_level_result.gd")
 const Wire := preload("res://scripts/network_protocol.gd")
@@ -14,6 +15,7 @@ var _config := {}
 var _level := {}
 var _proposal := {}
 var _arcade_preview := {}
+var _continuation := false
 
 
 func _init(data_dir: String) -> void:
@@ -30,6 +32,22 @@ func begin(config: Dictionary) -> bool:
 	if _level.is_empty():
 		return _fail("missing_campaign_start")
 	_config = config.duplicate(true)
+	return true
+
+
+## Caller supplies the locally derived script from its agreed owned request.
+## This is context adoption only: no native loading or script effects.
+func begin_continuation(config: Dictionary, script: Dictionary, entry: Dictionary) -> bool:
+	if not error.is_empty() or not _config.is_empty() or _campaign == null or not LevelConfig.valid(config):
+		return _fail("invalid_campaign_continuation")
+	if script.get("stop") != "level" or script.get("lvl_file_num") != config.level_file or script.has("mini_game"):
+		return _fail("invalid_campaign_continuation")
+	if not Config.integer(script.get("next_level"), 1, 65535):
+		return _fail("invalid_campaign_continuation")
+	_config = config.duplicate(true)
+	_level = script.duplicate(true)
+	_level["entry"] = entry.duplicate(true)
+	_continuation = true
 	return true
 
 
@@ -155,7 +173,8 @@ func _valid_record(record: Dictionary) -> bool:
 	for key in fields:
 		if not record.has(key):
 			return false
-	if record.config != Config.digest(_config) or not Config.hex_string(record.core, 64):
+	var digest := LevelConfig.digest(_config) if _continuation else Config.digest(_config)
+	if record.config != digest or not Config.hex_string(record.core, 64):
 		return false
 	if not Config.integer(record.tick, 1, Wire.MAX_TICK) or not Config.hex_string(record.digest, 64):
 		return false
