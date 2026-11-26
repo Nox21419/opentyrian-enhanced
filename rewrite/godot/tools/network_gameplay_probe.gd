@@ -3,7 +3,6 @@
 ## [--probe-data=<original-data-directory>] [--probe-warmup=2]
 extends SceneTree
 
-const Connection := preload("res://scripts/network_gameplay_connection.gd")
 const Fixture := preload("res://test/fixtures/network_setup.gd")
 const Wire := preload("res://scripts/network_protocol.gd")
 const Config := preload("res://scripts/network_configuration.gd")
@@ -67,7 +66,8 @@ func _start() -> void:
 			local.step(16, 0)
 		local.free()
 	_config = Fixture.configuration()
-	_connection = Connection.new()
+	# Frontend dependencies require the autoload globals to be registered first.
+	_connection = load("res://scripts/network_gameplay_connection.gd").new()
 	root.add_child(_connection)
 	var result: int
 	if _role == "host":

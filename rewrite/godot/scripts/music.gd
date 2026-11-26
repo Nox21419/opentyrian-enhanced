@@ -15,6 +15,9 @@
 ## Nothing here is read by the simulation.
 extends Node
 
+const BusLifetime := preload("res://scripts/audio_bus_lifetime.gd")
+var _owned_bus_effects: Array = []
+
 const MUSIC_DIR := "res://assets/imported/music"
 ## Nuked OPL3 render (Authentic engine, `MUSIC_BACKEND=nuked` of render.sh).
 const MUSIC_NUKED_DIR := "res://assets/imported/music_nuked"
@@ -303,6 +306,11 @@ func release_streams() -> void:
 	music_stopped = true
 
 
+func _exit_tree() -> void:
+	release_streams()
+	BusLifetime.release(_owned_bus_effects)
+
+
 ## loudness.c:fade_song (lds_fade(1)).
 func fade_song() -> void:
 	_log("fade_song")
@@ -524,6 +532,7 @@ func _ensure_bus(bus_name: StringName, effect: AudioEffect) -> StringName:
 	if effect != null:
 		AudioServer.add_bus_effect(idx, effect, 0)
 		AudioServer.set_bus_effect_enabled(idx, 0, false)
+		_owned_bus_effects.append(effect)
 	return bus_name
 
 

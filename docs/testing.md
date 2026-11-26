@@ -34,6 +34,83 @@ journeys in full, and the core also at 1920x1080.
 did not pass everything on the same git head (commit and uncommitted
 changes): the file `build/player-journeys.pass` proves it.
 
+## Windows shutdown crash investigation (2026-11-26)
+
+The intermittent `0xC0000005` reproduces on ordinary headless startup/quit, not
+only in network tests. A fresh DbgEng capture reaches Godot's extension-instance
+destruction with a freed (`0xfeeefeeefeeefeee`) class callback. Object IDs tie the
+fault to the native SFX audio bus effect resource: AudioServer retains bus effects
+past the autoload owners and extension-class teardown. Removing visual/static
+caches did not fix it. A temporary probe that removes audio bus effects before
+engine teardown exited cleanly in ten independent processes.
+
+Implementation/validation plan: explicitly track the effects installed by Music
+and Sfx and remove only those exact resources when their autoload exits, while
+extension classes still exist. Stop channel/music streams first; let AudioServer
+synchronize effect-instance destruction, then release owned resource references.
+Keep `release_streams()` usable for its existing tests/runtime callers without
+removing bus effects; effect removal belongs only to exit. Preserve playback,
+mixing, settings and simulation/RNG behavior during play. Handle reordered or
+renamed buses, repeated cleanup, enabled/disabled effects and unrelated effects.
+
+Add lifecycle tests proving owned effects and their native instances disappear
+before owner destruction, including real Music/Sfx owners, while foreign effects
+remain. Add a short independent-process shutdown probe and repeat normal startup,
+probe and previously crashing gdUnit/network journeys, checking actual OS process
+codes and logs rather than only test summaries. Keep baseline failure and fixed
+run counts in the final evidence. No package handover is part of this source fix.
+
+### Fix and regression command
+
+Music now records the exact effects it installs; Sfx already owns its channel
+pan effects. On owner exit, streams stop and `audio_bus_lifetime.gd` removes those
+effects from every bus before releasing their references. Matching by resource
+identity preserves unrelated effects and handles renamed/reordered buses. Normal
+stream release and live settings toggles do not remove effects. No native rebuild,
+simulation change or runtime audio-processing change is involved.
+
+Run the Windows process-level regression from the repository root:
+
+```powershell
+python rewrite/scripts/shutdown-check.py --godot build/toolchain/godot/Godot_v4.7.2-stable_win64_console.exe --runs 3
+```
+
+This runs three fresh processes **per mode**: ordinary startup/quit, an idle VGA
+probe, and active widened OPL/SFX playback followed by the player's existing
+`Game.quit_cleanly()` stream-drain path. It invokes the actual executable rather
+than its console launcher, isolates each APPDATA profile under `build/`, records
+logs, bounds each process and fails on nonzero OS exit, script errors, leaked
+objects/resources or an incomplete probe. `SHUTDOWN_PROBE_READY` alone is never a
+pass. Active playback deliberately uses the existing drain path: directly
+calling SceneTree.quit while WAV/OGG audio is playing still produces the previously
+documented built-in playback-resource warnings, separate from this native bus
+effect lifetime defect.
+
+Evidence on Windows with the same Godot 4.7.2 and native DLL:
+
+- Before the fix, ordinary `--quit-after 2` crashed in 1 of 5 processes. Two fresh
+  debugger captures identified the Sfx0 `TyrianStereoGain` resource (ObjectID
+  `0x80000018c90006a0`) reaching a freed extension-class callback; the old crash
+  dump faults at the same destruction path. Clearing visual caches did not fix it.
+- After the fix, 12 ordinary startup/quit processes, 12 final idle/active probes
+  and all 6 checker processes (`--runs 2`) exited 0 with no script errors or
+  shutdown leaks: 30 clean repetitions. The initial abrupt-active probe confirmed
+  the separate WAV/OGG drain warnings and was corrected to use the player's path.
+- All 14 lifecycle, SFX-gain, music-widen, mute/freeze and music-engine cases passed
+  with process exit 0. Lifecycle tests prove native resources **and instances**
+  disappear before owner destruction and preserve foreign effects. Missing-MIDI/
+  SoundFont fallback warnings in the music-engine suite are intentional fixtures.
+- Both previously crashing ENet scene journeys (shop/story/adoption and held
+  ending-score/leave) passed together and exited 0. Separate host/guest processes
+  also exited 0 without script errors, executing 120 matching per-tick diagnostic
+  hashes and matching configuration digests. The host alone had two local warmups.
+  The development peer probe now defers frontend-dependent script loading until
+  autoload globals exist; its earlier compile errors are not counted as evidence.
+
+The dump reader, downloaded DbgEng binaries and exploratory probes remain ignored
+under `build/`; no machine-wide debugger or crash-reporting settings were changed.
+These are source/Windows lifecycle checks, not APK or exported-package validation.
+
 ## What a journey verifies
 
 Each journey is played like a player: real keys and real X clicks

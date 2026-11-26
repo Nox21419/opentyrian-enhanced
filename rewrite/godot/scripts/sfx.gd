@@ -12,6 +12,8 @@
 ## (nortsong.c:JE_playSampleNum, centered).
 extends Node
 
+const BusLifetime := preload("res://scripts/audio_bus_lifetime.gd")
+
 const WEAPON_1 := 1
 const EXPLOSION_9 := 9
 const SELECT := 8
@@ -70,6 +72,11 @@ func _ready() -> void:
 		_channel_db.append(0.0)
 		p.volume_db = _volume_db()
 	_preload_streams()
+
+
+func _exit_tree() -> void:
+	release_streams()
+	BusLifetime.release(_pans)
 
 
 ## Loads all samples at launch. The C code has them all in memory;

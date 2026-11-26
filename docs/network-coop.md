@@ -40,8 +40,10 @@ retry and episode-ending routes, naturally won multi-level/bonus-death and
 independent-process lifecycle journeys, physical phone verification and internet
 integration remain unfinished. Unsupported routes exit explicitly. Desktop networking remains a
 diagnostic transport/backend profile, not a shipped desktop input profile.
-The previously observed intermittent Windows shutdown access violation remains
-unresolved. No new APK or playable build has been handed over.
+The Windows shutdown access violation was traced to retained native audio bus
+effects and fixed through owner-exit cleanup; see the
+[shutdown evidence and regression command](testing.md#windows-shutdown-crash-investigation-2026-11-26).
+No new APK or playable build has been handed over.
 
 The maintainer approved this first screen on 2026-11-24 ("looks good, continue")
 and required the entire implementation plan to be documented before more code.
@@ -66,8 +68,8 @@ The following work remains in addition to physical-device testing, in this order
    where direct mobile-network connections fail. No dedicated game simulation
    server is required. Do not label the current LAN prototype internet-ready.
 3. **Failure handling and lifecycle.** Complete timeouts, disconnects and clean
-   exits at every transition; investigate the intermittent Windows native
-   shutdown access violation and prove repeated independent-process cleanup.
+   exits at every transition; retain the fixed native-audio shutdown regression
+   checks and expand independent-process transition coverage.
 4. **Automated network verification.** Add separate-process, extended-session,
    multi-level and adverse-network journeys. Check resulting state and files,
    including no accidental local campaign/profile writes. Matching pictures
@@ -3318,3 +3320,25 @@ No native rebuild, APK/build handover or exported Linux journey/smoke gate is
 claimed. Next give the post-score ending effects their own verified owners before
 allowing this held checkpoint to advance; it cannot be treated as full campaign
 completion or permission to skip those effects.
+
+### Windows shutdown lifetime fix (2026-11-26, working tree)
+
+The live ending ownership checkpoint was pushed as `1aad878`. The intermittent
+post-success access violation is now traced to AudioServer retaining the native
+SFX/Music effect resources after their autoloads exited and Godot unregistered
+the extension classes. Fresh debugger captures identify the Sfx0 effect resource
+and a freed class callback; this also reproduces without networking or gdUnit.
+Music/Sfx now stop streams and detach only their owned bus effects during owner
+exit, releasing native instances/resources while their class callbacks remain
+valid. Live stereo/widen toggles and ordinary stream release stay unchanged.
+
+The fixed source passed 30 clean normal/probe/checker shutdown repetitions, 14
+audio/lifetime regression cases, both previously crashing live ENet journeys,
+and separate host/guest processes with 120 matching tick diagnostics and clean
+exits. See [testing evidence and the repeatable process checker](testing.md#windows-shutdown-crash-investigation-2026-11-26)
+for baseline failures, exact commands/counts and the separate active-stream drain
+behavior. The peer development probe also defers its frontend dependency load
+until autoload globals exist; earlier compile-error runs are not counted as
+successful peer evidence. This fixes the identified lifecycle defect; historical
+checkpoint notes above retain the failures actually observed at those times.
+No game mechanics, native DLL, APK or exported-package gate changed here.
