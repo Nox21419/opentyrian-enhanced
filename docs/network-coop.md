@@ -3342,3 +3342,92 @@ until autoload globals exist; earlier compile-error runs are not counted as
 successful peer evidence. This fixes the identified lifecycle defect; historical
 checkpoint notes above retain the failures actually observed at those times.
 No game mechanics, native DLL, APK or exported-package gate changed here.
+
+### Complete post-score ending plan (2026-11-27)
+
+Continue from the live held score checkpoint. The maintainer chose the original
+host-operated high-score/name-entry and table on both phones, saving only the
+host's local high-score file; guest high-score state/files stay local and
+untouched. This extends the previously approved both-phones/host-advance ending
+direction. Work through one original screen at a time.
+
+1. Add an isolated high-score transaction using the maintained local ordering,
+   qualification, multiplier, name marking and table-shift rules. Bind the
+   transaction to the ending plan, configuration and host's three-row table.
+   Keep two players highest-cash-first (P1 wins ties), initial-episode/repeated
+   eligibility, exact integer scores and copied snapshots. Reuse local rules
+   deliberately rather than reading guest profile state. Host persistence must
+   verify the expected file/table, use a recoverable atomic replacement, report
+   failure and reject duplicate/conflicting application. No guest writes.
+2. Add bounded, authenticated ordered-array high-score packets, distinct from
+   tick packets, carrying only validated primitive fields/rows/names/digests.
+   Do not deserialize Godot objects. Use host proposals plus peer readiness,
+   host commits and both-finish barriers; reject source/epoch/role conflicts,
+   malformed UTF-8/lengths, stale/conflicting serials and premature controls.
+   Name edits may mirror while the host types, but submitted names/table writes
+   require stage agreement. Bind the host's table snapshot rather than assuming
+   the guest has the same local high scores.
+3. Adapt original name entry and table rendering through small virtual providers
+   and notifications with unchanged local defaults. Host handles original input;
+   guest mirrors host text/table and uses the original waiting prompt. Guard
+   entry/final fades, keyboard cleanup and stale callbacks. No local Game episode,
+   high-score globals or campaign hooks are read by the guest adapter. Preserve
+   original cancellation behavior as currently documented by `shift_down` and
+   preserve unowned fields in the host's other score tables.
+4. Add session-owned Completed names and idempotent local episode-achievement
+   handling after score agreement, with explicit per-peer completion/failure
+   receipts. Keep campaign Game state and native simulation untouched. Replace
+   the held checkpoint only after both owners can safely advance. Test actual
+   profile effects and disk failures, not just displayed rows.
+5. Reuse the original credits and next-episode announcement on both phones with
+   host advance. Keep credits cosmetic randomness separate from simulation.
+   Retain original conditional credits on wrap from episode >2; two-player
+   endings never show the one-player Super Arcade reveal.
+6. Resolve the wrap reward through a single agreed roll and the original
+   equipment assignment, pending the maintainer's express scoped approval. The
+   maintained method sets P1 ship/front/rear and both powers to 1 and changes
+   P2's rear id through its stored loadout. P1's rear-power byte doubles as lives
+   in co-op. Upstream OpenTyrian mainint.c agrees on those fields, but the
+   documented `c-final` reference is absent locally and on origin. Do not claim
+   frozen-reference verification or silently preserve a different life count.
+7. Adopt session history (initial episode, repeated flag and stable hint context),
+   derive next-episode section 1 using original campaign parsing and agreed
+   carry/equipment/difficulty, then use fresh-native load/activation/view barriers.
+   Keep completed effects/choices in the request digest and refuse any unowned
+   autosave, minigame, retry or unsupported stop rather than skipping it.
+
+Validate pure transactions/codec/coordinators first; compare original rendering
+with network fixtures sequentially, then real ENet/session drivers with different
+local score tables, both name orders, cancel/no-qualification, failure/cancellation
+and repeated calls. Check host-only written state, unchanged guest files/Game/core
+state/RNG, complete history across episodes and both wrap outcomes. Reuse the
+shutdown process checker after network regressions. Controlled route fixtures are
+not naturally won campaign or physical-phone evidence. No commit or build
+handover is authorized by this continuation request.
+
+The maintainer expressly approved the scoped original wrap-reward adaptation on
+2026-11-27, including P1's rear-power/lives byte becoming 1 and P2's rear weapon
+id changing without a P2 power/life reset. The absent frozen C reference remains
+a stated evidence limitation; the approval is scoped to those assignments and
+one agreed 1-in-6 roll, not other gameplay changes.
+
+### Post-score foundation evidence (2026-11-27, working tree)
+
+The isolated high-score transaction, host-only atomic writer, bounded OT2H
+ordered-array codec and pure two-peer stage coordinator are implemented. The
+coordinator holds submitted names until both views are ready and holds table
+publication until the host explicitly reports successful persistence. Names,
+table snapshots, source lineage and stage digests are validated; duplicate
+controls are idempotent, conflicting controls fail closed, and duplicate
+readiness does not extend rendering deadlines. Score integers use hexadecimal
+wire fields and decimal strings on disk to avoid JSON floating-point loss.
+
+`network_high_score_flow_test.gd` passed 20 cases including inherited ending,
+transaction, profile and cursor regressions, with zero failures/errors/orphans
+and actual Windows process exit 0. All six new GDScript files pass gdformat and
+gdlint; `git diff --check` passes. These are pure coordinator/profile tests, not
+live ENet or rendered high-score evidence. Transport/backend integration,
+original name/table view wiring and the later effects/next-episode steps above
+remain unfinished. The held live ending checkpoint still prevents progression;
+the approved reward has not yet been applied. No commit, APK or package gate
+is claimed.
