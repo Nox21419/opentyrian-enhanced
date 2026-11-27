@@ -102,3 +102,46 @@ func test_profile_conflict_and_write_failure_cannot_apply_a_transaction() -> voi
 	assert_str(profile.error).is_equal("changed_profile_file")
 	assert_str(FileAccess.get_file_as_string(path)).is_equal("external change")
 	DirAccess.remove_absolute(ProjectSettings.globalize_path(path))
+
+
+func test_fresh_profile_reader_preserves_exact_scores_and_rejects_unsupported_rows() -> void:
+	var model := _transaction([1000, 0])
+	var bank := []
+	for i in 20:
+		bank.append(_rows())
+	bank[10][0].score = 9223372036854775807
+	var path := "user://network-score-fresh.json"
+	DirAccess.remove_absolute(ProjectSettings.globalize_path(path))
+	var profile := Profile.new()
+	assert_bool(profile.begin(1, path, bank, 11, model.source)).is_true()
+	assert_bool(profile.apply(model.submit("HOST", false, model.entry().digest))).is_true()
+	var fresh := Profile.new()
+	assert_bool(fresh.begin_current(path, 11, model.source)).is_true()
+	assert_int(fresh.bank()[10][0].score).is_equal(9223372036854775807)
+	assert_str(fresh.bank()[11][0].name).is_equal("HOST")
+	var original := FileAccess.get_file_as_string(path)
+	var parsed: Dictionary = JSON.parse_string(original)
+	parsed.tables[10][0]["unowned"] = true
+	var file := FileAccess.open(path, FileAccess.WRITE)
+	file.store_string(JSON.stringify(parsed))
+	file.close()
+	var unsupported := FileAccess.get_file_as_string(path)
+	fresh = Profile.new()
+	assert_bool(fresh.begin_current(path, 11, model.source)).is_false()
+	assert_str(FileAccess.get_file_as_string(path)).is_equal(unsupported)
+	DirAccess.remove_absolute(ProjectSettings.globalize_path(path))
+
+
+func test_missing_profile_directory_fails_without_changing_owned_rows() -> void:
+	var model := _transaction([1000, 0])
+	var bank := []
+	for i in 20:
+		bank.append(_rows())
+	var profile := Profile.new()
+	(
+		assert_bool(profile.begin(1, "user://missing-network-score-directory/scores.json", bank, 11, model.source))
+		. is_true()
+	)
+	assert_bool(profile.apply(model.submit("HOST", false, model.entry().digest))).is_false()
+	assert_str(profile.error).is_equal("profile_write_failed")
+	assert_array(profile.bank()).is_equal(bank)

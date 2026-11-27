@@ -18,6 +18,9 @@ const StoryPages := preload("res://scripts/network_story_pages.gd")
 const EpisodeEnd := preload("res://scripts/network_episode_end.gd")
 const EpisodeHint := preload("res://scripts/network_episode_hint.gd")
 const EpisodeScore := preload("res://scripts/network_episode_score.gd")
+const HighScoreConnection := preload("res://scripts/network_high_score_connection.gd")
+const HighScoreWire := preload("res://scripts/network_high_score_wire.gd")
+var _high_scores := HighScoreConnection.new()
 var _runner := Runner.new()
 var _activated := false
 var _view_local := false
@@ -318,6 +321,8 @@ func _settle_pause() -> bool:
 
 
 func _process(_delta: float) -> void:
+	if running() and not _high_scores.settle(_connection.transport):
+		_fail(_high_scores.error)
 	if running():
 		if _completion.active():
 			_completion.poll(Time.get_ticks_msec())
@@ -501,12 +506,106 @@ func _story_order_ready(sequence: int) -> bool:
 
 
 func _clear_stories(reset_context: bool) -> void:
+	_high_scores = HighScoreConnection.new()
 	_story_pages.clear()
 	_story_descriptors.clear()
 	_story_early.clear()
 	_story_receipts.clear()
 	if reset_context:
 		_story_context = {"warning_red": false, "use_last_bank": false}
+
+
+func prepare_high_scores(sequence: int) -> bool:
+	if not _high_score_context(sequence):
+		return false
+	var context := _gameplay_context()
+	context.epoch = _pause.epoch
+	context["tick"] = ticks_executed()
+	context["decision"] = sequence
+	var initial: Dictionary = _connection.startup.configuration()
+	if not _high_scores.begin(
+		context,
+		configuration(),
+		_level_result.record(),
+		committed_continuation(sequence),
+		{"initial_episode": initial.episode, "repeated": false}
+	):
+		return _fail(_high_scores.error)
+	return _settle_high_scores()
+
+
+func high_scores_for_view() -> Dictionary:
+	return _high_scores.flow.snapshot() if running() and _high_scores.flow != null else {}
+
+
+func high_scores_complete() -> bool:
+	return running() and _high_scores.flow != null and _high_scores.flow.complete()
+
+
+func high_score_action(action: String, serial: int, name := "", cancel := false) -> bool:
+	if (
+		_high_scores.flow == null
+		or _high_scores.flow.snapshot().is_empty()
+		or not _high_score_context(_high_scores.sequence)
+	):
+		return false
+	var flow: RefCounted = _high_scores.flow
+	var now := Time.get_ticks_msec()
+	var accepted := false
+	match action:
+		"ready":
+			accepted = flow.ready(serial, now)
+		"edit":
+			accepted = serial == flow.snapshot().serial and flow.edit(name)
+		"submit":
+			accepted = serial == flow.snapshot().serial and flow.submit(name, cancel, now)
+		"advance":
+			accepted = flow.advance(serial, now)
+		"finish":
+			accepted = serial == flow.snapshot().serial and flow.finish(now)
+	if not flow.error.is_empty():
+		return _fail(flow.error)
+	return _settle_high_scores() if accepted else false
+
+
+func _high_score_context(sequence: int) -> bool:
+	return (
+		_load_sequence == 0
+		and story_complete(sequence)
+		and committed_continuation(sequence).get("kind") == "episode_end"
+		and _verify_continuation_state()
+	)
+
+
+func _settle_high_scores() -> bool:
+	if not _high_scores.settle(_connection.transport):
+		return _fail(_high_scores.error)
+	changed.emit()
+	return running()
+
+
+func _receive_high_scores(packet: PackedByteArray) -> void:
+	var context := _gameplay_context()
+	var message := HighScoreWire.decode(packet, 3 - context.player)
+	if message.is_empty():
+		_fail("invalid_high_score_packet")
+		return
+	if message.session != context.session or message.epoch < _pause.epoch:
+		return
+	if message.epoch != _pause.epoch or message.tick != ticks_executed() or not _high_score_context(message.decision):
+		_fail("high_score_context_mismatch")
+		return
+	if _high_scores.flow == null:
+		if message.kind != "open" or context.player != 2 or message.serial != 1:
+			_fail("high_score_before_preparation")
+			return
+		# Backend preparation does not mark a slow presentation owner ready.
+		if not prepare_high_scores(message.decision):
+			return
+	if not _high_scores.receive(message):
+		_fail(_high_scores.error)
+		return
+	_settle_high_scores()
 
 
 ## Explicit backend-only load offer. Does not replace the runner or its owner.
@@ -862,6 +961,9 @@ func _changed() -> void:
 func _receive_input(packet: PackedByteArray) -> void:
 	if not running():
 		_fail("input_before_start")
+		return
+	if packet.slice(0, 4) == HighScoreWire.MAGIC.to_utf8_buffer():
+		_receive_high_scores(packet)
 		return
 	if packet.size() >= Wire.HEADER_BYTES:
 		var context := _gameplay_context()

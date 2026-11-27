@@ -130,8 +130,10 @@ func _receive_packet(packet: PackedByteArray) -> void:
 		return
 	if (
 		startup.phase == Startup.Phase.RUNNING
-		and packet.size() <= Gameplay.MAX_PACKET_BYTES
-		and packet.slice(0, 4) == "OT2N".to_utf8_buffer()
+		and (
+			(packet.size() <= Gameplay.MAX_PACKET_BYTES and packet.slice(0, 4) == "OT2N".to_utf8_buffer())
+			or (packet.size() <= 2048 and packet.slice(0, 4) == "OT2H".to_utf8_buffer())
+		)
 		and not gameplay_packet_received.get_connections().is_empty()
 	):
 		gameplay_packet_received.emit(packet)

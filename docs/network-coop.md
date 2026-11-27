@@ -3431,3 +3431,53 @@ original name/table view wiring and the later effects/next-episode steps above
 remain unfinished. The held live ending checkpoint still prevents progression;
 the approved reward has not yet been applied. No commit, APK or package gate
 is claimed.
+
+### Live high-score backend agreement (2026-11-27, working tree)
+
+The foundation above was committed and pushed as `32689a4`. The next step now
+connects OT2H to the running ENet adapter, preserving OT2N's existing packet
+limit. `network_high_score_connection.gd` owns the stage coordinator and creates
+a writer only for the host. Preparation requires the committed episode-ending
+decision, both completed score presentations, the final result phase, and an
+unchanged native/content snapshot. Stop, failure and native adoption release
+the high-score owner with the other ending presentation state.
+
+The host reads a fresh profile snapshot without changing shared score memory;
+file hashes bracket the read and each write. Missing files use the existing
+default tables. Malformed/unsupported rows fail rather than being overwritten;
+exact decimal-string scores round-trip, and legacy numeric scores are accepted
+within JSON's exact integer range. Successful persistence alone updates host
+score memory and publishes the committed table. Guest preparation reads no
+profile. A valid host OPEN can prepare the guest backend before its view opens,
+allowing ordered readiness/name edits to arrive early; the guest view must still
+explicitly become ready before a submitted name can be saved. Neither opening
+the backend nor completing its handshake changes the live ending scene yet.
+
+Final-source validation:
+
+- Two ENet cases passed with process exit 0: guest-first preparation and no
+  qualification/no write; then host-first preparation, early host readiness/text,
+  two qualifying names, delayed guest readiness, host persistence, preserved
+  other-table values, and both-finish agreement. Both peers retain the same
+  native diagnostic digest. These cases use normal firing inputs to earn cash,
+  a natural native terminal result and a controlled episode-ending candidate;
+  they do not claim a naturally completed episode or phone verification.
+- Twenty-two pure coordinator/profile/ending/cursor cases and one focused
+  persistence-owner case passed, all with exit 0 and no errors/orphans. The
+  owner test proves an external file edit prevents both writing and table
+  publication, leaves guest score memory alone and creates no guest writer.
+  Fresh-reader and missing-directory failures are covered.
+- Startup, idle and active-audio shutdown probes each exited 0 without errors
+  or leaks. Formatting/lint and `git diff --check` pass for the affected files.
+
+An earlier seven-case ENet regression run passed before the final timing
+refinement. A subsequent cash-at-start fixture was stopped: new-session rules
+correctly rejected it and the inherited pause-entry helper could wait forever.
+The helper now has a failure/deadline guard; final tests earn cash through
+normal input instead. The stopped process is not counted as passing evidence.
+
+Next adapt the original name-entry and table views through the documented
+providers/hooks, then give the session its live high-score presentation owner.
+Achievements, credits, the approved wrap reward and next-episode adoption remain
+pending. No second commit, APK, physical-phone or exported-package gate is
+claimed by this backend step.

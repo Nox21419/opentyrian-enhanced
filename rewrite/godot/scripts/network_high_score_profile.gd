@@ -14,6 +14,45 @@ var _receipts := {}
 var _source := ""
 
 
+## Read a fresh host snapshot without touching shared high-score memory.
+func begin_current(path: String, table: int, source: String) -> bool:
+	var absolute := ProjectSettings.globalize_path(path)
+	var initial_hash := FileAccess.get_sha256(absolute) if FileAccess.file_exists(absolute) else "missing"
+	var bank := []
+	if initial_hash == "missing":
+		bank = Scores.default_high_scores()
+	else:
+		var json := JSON.new()
+		if json.parse(FileAccess.get_file_as_string(absolute)) != OK or not json.data is Dictionary:
+			return _fail("invalid_profile_file")
+		for key in json.data:
+			if key not in ["version", "tables"]:
+				return _fail("unsupported_profile_fields")
+		var tables: Variant = json.data.get("tables")
+		if not tables is Array or tables.size() != 20:
+			return _fail("invalid_profile_file")
+		for rows in tables:
+			if not rows is Array or rows.size() != 3:
+				return _fail("invalid_profile_file")
+			var converted := []
+			for row in rows:
+				if not row is Dictionary or row.size() != 3:
+					return _fail("invalid_profile_file")
+				var score: Variant = row.get("score")
+				if score is String:
+					if score.is_empty() or not score.is_valid_int() or str(int(score)) != score or int(score) < 0:
+						return _fail("invalid_profile_score")
+				elif not Config.wire_integer(score, 0, 9007199254740991):
+					return _fail("invalid_profile_score")
+				if not Config.wire_integer(row.get("difficulty"), 0, 255):
+					return _fail("invalid_profile_file")
+				converted.append({"score": int(score), "name": row.get("name"), "difficulty": int(row.difficulty)})
+			bank.append(converted)
+	if not begin(1, path, bank, table, source):
+		return false
+	return true if _file_hash == initial_hash else _fail("changed_profile_file")
+
+
 func begin(player: int, path: String, bank: Array, table: int, source: String) -> bool:
 	if player != 1 or not _path.is_empty() or table < 0 or table >= 20 or bank.size() != 20:
 		return _fail("invalid_profile_owner")

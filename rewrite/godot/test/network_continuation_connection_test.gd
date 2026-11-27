@@ -70,7 +70,17 @@ func _terminal_pair(resume := false) -> Array:
 	assert_bool(peers[0].prepare_continuation()).is_false()
 	assert_bool(peers[1].propose_continuation()).is_false()
 	if resume:
+		var entry_deadline := Time.get_ticks_msec() + 10000
 		while peers[0].ticks_executed() < 8 or peers[1].ticks_executed() < 8:
+			if not peers[0].running() or not peers[1].running() or Time.get_ticks_msec() >= entry_deadline:
+				(
+					assert_bool(false)
+					. override_failure_message(
+						"Pair failed before pause entry: %s / %s" % [peers[0].error, peers[1].error]
+					)
+					. is_true()
+				)
+				return []
 			await _step(peers, views, 8)
 		assert_bool(peers[1].request_pause()).is_true()
 		var deadline := Time.get_ticks_msec() + 10000

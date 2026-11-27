@@ -31,9 +31,13 @@ class ScoreCandidate:
 
 
 func test_original_score_views_agree_pages_and_both_finishes_without_ending_effects() -> void:
+	await _completed_score_pair()
+
+
+func _completed_score_pair() -> Array:
 	var pair := await _terminal_pair(true)
 	if pair.is_empty():
-		return
+		return []
 	var peers: Array = pair[0]
 	var tick: int = peers[0].ticks_executed()
 	var diagnostic: String = peers[0].diagnostic_digest()
@@ -102,3 +106,4 @@ func test_original_score_views_agree_pages_and_both_finishes_without_ending_effe
 		assert_bool(peer.story_context().warning_red).is_true()
 		assert_int(peer.result_committed_phase()).is_equal(3)
 		assert_dict(Next.build(peer.configuration(), peer.committed_continuation(), "1234567890abcdef")).is_empty()
+	return peers
